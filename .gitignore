@@ -1,0 +1,53 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# ---- 虚拟环境 ----
+venv/
+.venv/
+env/
+ENV/
+
+# ---- 测试与覆盖率 ----
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+
+# ---- 类型检查 / 缓存 ----
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+# ---- IDE ----
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ---- Claude Code 本地设置 ----
+.claude/settings.local.json
+
+# ---- 操作系统 ----
+.DS_Store
+Thumbs.db
+
+# ---- 环境变量与密钥 ----
+.env
+.env.*
+!.env.example
+
+# ---- 数据库与日志 ----
+*.sqlite3
+*.db
+*.log
