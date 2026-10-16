@@ -1,128 +1,81 @@
-@startuml UCD-01
-' ============================================================
-' 图编号：UCD-01
-' 图名称：智慧自习室预约与管理系统 用例图
-' 建模对象：参与者与用例
-' 关联需求：《智慧自习室预约与管理系统-需求规格说明书.md》第 4.3 节、
-'           FR-001~FR-060（含 V0.3 新增的 FR-014 并发冲突控制、
-'           FR-015 请求幂等性、FR-016 场地临时关闭处置）
-' 关联规则：BR-017、BR-018、BR-019、BR-021
-' 版本：V0.3     日期：2026-10-15
-' ------------------------------------------------------------
-' 图注：
-'   1. R-03 教师用户为【待确认】角色，REF-01 未提及教师角色。
-'   2. 本图仅表达用例与参与者的静态关系，
-'      不表示任何用例已实现或已验证。
-'   3. 全部业务规则为【AI 候选】或【分析推导】，确认状态为「待确认」。
-'   4. 【V0.3 修订】UC-06 由"查询座位实时状态"改名为
-'      "查询座位资源状态与时段可预约性"——座位本身不再有
-'      「已预约」「使用中」状态，可预约性按目标时段实时计算
-'      （正文第 10.4.2 节）。
-'   5. 【V0.3 修订】UC-08 包含"场地临时关闭"分支，但其对已排定
-'      预约的处置规则【待确认】（正文 ST-006、ST-033、FR-016、Q-026），
-'      故该分支在本图中不细化。
-'   6. UC-01 隐含 FR-014（并发冲突）与 FR-015（幂等）两条
-'      非功能性保障需求，未单列用例。
-' ============================================================
-
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
+@startuml
+title 智慧自习室预约与管理系统 · 角色用例图
 skinparam usecase {
-  BackgroundColor #F7F9FC
-  BorderColor #4A6FA5
-  FontSize 13
+  BackgroundColor White
+  BorderColor #CBD5E1
+  ArrowColor #3B82F6
 }
 skinparam actor {
-  BackgroundColor #FFFFFF
-  BorderColor #333333
-  FontSize 13
+  BackgroundColor White
+  BorderColor #1E40AF
 }
-skinparam rectangle {
-  BackgroundColor #FFFFFF
-  BorderColor #333333
-}
+left to right direction
 
-actor "学生用户\n（R-01）" as R01
-actor "自习室管理员\n（R-02）" as R02
-actor "教师用户\n（R-03，待确认）" as R03 #DDDDDD
+actor "学生用户\nR-01" as Student
+actor "自习室管理员\nR-02" as Admin
+actor "教师用户\nR-03 · 待确认" as Teacher <<待确认>>
+actor "系统管理员\nR-04 · 假设" as SysAdmin <<假设>>
+actor "统一身份认证系统\nE1 · 假设" as SSO <<外部系统>>
+actor "消息通知通道\nE2 · 假设" as Notify <<外部系统>>
 
-rectangle "智慧自习室预约与管理系统" {
-
+rectangle "智慧自习室预约与管理系统" as System {
   usecase "UC-01 预约座位" as UC01
   usecase "UC-02 取消预约" as UC02
   usecase "UC-03 签到" as UC03
   usecase "UC-04 签退" as UC04
   usecase "UC-05 查询预约记录" as UC05
-  usecase "UC-06 查询座位资源状态\n与时段可预约性" as UC06
+  usecase "UC-06 查询座位实时状态" as UC06
   usecase "UC-07 查询违规记录" as UC07
+  usecase "UC-10 投诉提交与处理" as UC10
+  usecase "UC-00 身份认证与登录" as UC00
+  usecase "自动违约判定\n系统自动" as AutoDefault
   usecase "UC-08 管理座位资源" as UC08
   usecase "UC-09 手动违约登记" as UC09
-  usecase "UC-10 投诉提交与处理" as UC10
   usecase "UC-11 用户与黑名单管理" as UC11
   usecase "UC-12 查看数据看板" as UC12
-
-  ' 系统自动执行的用例，不直接由参与者发起，以 note 标注
-  note bottom of UC03
-    签到超时后由系统执行
-    「自动违约登记」（FR-022），
-    无直接参与者。
-  end note
-
 }
 
-' ---------- 学生用户 R-01 ----------
-R01 --> UC01
-R01 --> UC02
-R01 --> UC03
-R01 --> UC04
-R01 --> UC05
-R01 --> UC06
-R01 --> UC07
-R01 --> UC10
+' 学生关联
+Student --> UC01
+Student --> UC02
+Student --> UC03
+Student --> UC04
+Student --> UC05
+Student --> UC06
+Student --> UC07
+Student --> UC10
 
-' ---------- 自习室管理员 R-02 ----------
-R02 --> UC02
-R02 --> UC05
-R02 --> UC06
-R02 --> UC07
-R02 --> UC08
-R02 --> UC09
-R02 --> UC10
-R02 --> UC11
-R02 --> UC12
+' 管理员关联
+Admin --> UC08
+Admin --> UC09
+Admin --> UC11
+Admin --> UC12
+Admin --> UC10
 
-' ---------- 教师用户 R-03（待确认） ----------
-R03 .> UC01 : <<待确认>>
-R03 .> UC06 : <<待确认>>
+' 待确认角色关联
+Teacher ..> UC01 : 待确认
 
-' ---------- 用例之间的关系 ----------
-UC01 ..> UC06 : <<include>>
-UC01 ..> UC05 : <<include>>
-UC03 ..> UC07 : <<extend>> : 签到超时自动违约
+' 假设角色关联
+SysAdmin ..> UC12 : 假设
+SysAdmin ..> UC11 : 假设
 
-note bottom of UC08
-  【V0.3】场地临时关闭分支
-  对应正文 ST-006、ST-033、FR-016。
-  处置方式（拒绝 / 批量取消 / 改约 /
-  是否计违约）**均未确认**（Q-026），
-  因此本分支不细化，该需求当前
-  **无验收标准**。
-end note
+' 外部系统关联
+SSO --> UC00 : 外部系统
+Notify --> UC10 : 外部系统
 
-note right of R03
-  【待确认】角色
-  REF-01 仅提及「用户」与「管理员」，
-  教师角色是否为独立角色尚未确认。
-  若确认不存在，应删除本参与者
-  及其关联用例关系。
-end note
+note bottom of System
+  统一声明：本图与需求规格说明书 V0.3 保持同一确认状态 —— 除 REF-01 明确给出的功能存在性外，
+  全部内容为【AI 候选】或【分析推导】，确认状态「待确认」。
+  本图 未经过 任何业务方确认、教学模拟确认、场景走查、原型走查或功能测试。
+  图中所有“预期行为”均为设计意图，不代表已执行或已验证。
 
-note bottom of UC12
-  关联需求：FR-050 柱状图分析、
-  FR-051 折线图分析、FR-052 统计数据、
-  FR-053 每 10 秒自动刷新（BR-016，原始资料）。
-  统计口径【尚未定义】，见 Q-009。
+  未纳入本图的项：FR-014 / FR-015（内部一致性要求，不单独设用例）；
+  FR-022（系统自动执行，无直接参与者）；FR-024 / FR-033 / FR-060（范围未定）；
+  FR-053（属 UC-12 的内部行为）。
+
+  关键待确认：UC-08 含 FR-016 场地临时关闭，规则本身待确认（Q-026）；
+  UC-06 的“实时”仅指系统记录的预约占用（TM-13）；
+  FR-050～FR-052 统计口径未定义（Q-009）；管理员是否分级未定义（CF-02 / Q-021）。
 end note
 
 @enduml
