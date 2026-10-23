@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智慧自习室预约与管理系统 · Mermaid 图模型渲染页</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f5f8fc;padding:20px;max-width:1200px;margin:0 auto}
+  h1{color:#2B5F9E;font-size:20px;border-bottom:2px solid #2B5F9E;padding-bottom:10px}
+  .diagram-block{background:#fff;border:1px solid #d6e2f0;border-radius:9px;padding:16px;margin-bottom:20px}
+  .diagram-block h2{font-size:16px;color:#12304f;margin:0 0 8px}
+  .diagram-block .info{font-size:12px;color:#6b7a8d;margin-bottom:10px}
+  .diagram-block .mermaid{text-align:center;overflow:auto}
+  nav{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;padding:10px;background:#fff;border-radius:8px;border:1px solid #d6e2f0}
+  nav a{color:#2B5F9E;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:4px}
+  nav a:hover{background:#eaf2fb}
+  .note{background:#fff6e5;border-left:4px solid #a9720b;padding:8px 12px;font-size:13px;margin-bottom:16px;border-radius:4px}
+  button{background:#2B5F9E;color:#fff;border:0;border-radius:5px;padding:5px 12px;font-size:12px;cursor:pointer;margin:2px}
+  button:hover{filter:brightness(1.1)}
+  .control-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<h1>智慧自习室预约与管理系统 · Mermaid 图模型渲染</h1>
+
+<div class="note">
+  <b>说明：</b>本页面使用 Mermaid.js 库（CDN 加载）渲染需求规格说明书（课程结构版 V2.0）中的 8 张 Mermaid 图。
+  可直接在浏览器中打开，右键 SVG 图形选择"另存为"即可导出为 SVG 文件，或使用截图工具导出为 PNG。
+  源文件对应同目录下同名 .mmd 文件。
+</div>
+
+<nav>
+  <a href="#d1">SCD-01 上下文图</a>
+  <a href="#d2">GT-01 目标树</a>
+  <a href="#d3">AD-01 预约与取消流程</a>
+  <a href="#d4">AD-02 签到签退与违约</a>
+  <a href="#d5">SM-01 座位资源状态</a>
+  <a href="#d6">SM-02 预约单状态</a>
+  <a href="#d7">SM-03 用户账户状态</a>
+  <a href="#d8">SM-04 投诉状态</a>
+</nav>
+
+<div class="control-bar">
+  <button onclick="expandAll()">展开全部</button>
+  <button onclick="collapseAll()">收起全部</button>
+  <span style="font-size:12px;color:#6b7a8d">（切换查看效果）</span>
+</div>
+
+<div class="diagram-block" id="d1">
+  <h2>SCD-01 系统上下文图</h2>
+  <div class="info">建模对象：系统边界与外部交互 | 关联：GO-01～GO-06、R-01～R-04、IR-001、IR-002</div>
+  <div class="mermaid">
+    flowchart LR
+        U1["学生用户 R-01"]
+        U2["自习室管理员 R-02"]
+        U3["教师用户 R-03（已确认）"]
+        SYS["智慧自习室预约与管理系统"]
+        E1["学校统一身份认证系统（假设）"]
+        E2["消息通知通道（假设）"]
+
+        U1 -->|"预约、取消、签到、签退、评价、投诉、查询"| SYS
+        U2 -->|"座位管理、违约登记、投诉处理、黑名单、数据看板"| SYS
+        U3 -.->|"预约与查询（已确认）"| SYS
+        SYS -->|"预约结果、违规记录、看板数据"| U1
+        SYS -->|"座位资源状态、时段可预约性、投诉待办、统计数据"| U2
+        SYS <-->|"身份认证与用户信息"| E1
+        SYS -->|"预约成功、违约、投诉反馈通知"| E2
+  </div>
+</div>
+
+<div class="diagram-block" id="d2">
+  <h2>GT-01 目标树</h2>
+  <div class="info">建模对象：业务目标层级 | 关联：GO-01～GO-06、SI-01～SI-04</div>
+  <div class="mermaid">
+    flowchart TD
+        G0["总体目标：实现自习室座位资源的在线预约与秩序管理"]
+        G0 --> G1["子目标1 座位资源可管理 GO-01"]
+        G0 --> G2["子目标2 预约与使用过程可记录 GO-02"]
+        G0 --> G3["子目标3 使用情况可查询 GO-03"]
+        G0 --> G4["子目标4 违规行为可追溯与约束 GO-04"]
+        G0 --> G5["子目标5 用户与投诉可管理 GO-05"]
+        G0 --> G6["子目标6 资源利用可量化 GO-06"]
+
+        G1 --> M1["成功指标 SI-01 座位可预约性查询结果与实际创建预约的结果一致（阈值本版未量化）"]
+        G2 --> M2["成功指标 SI-02 预约处理可完成（阈值本版未量化）"]
+        G4 --> M3["成功指标 SI-03 违约记录自动生成准确（阈值本版未量化）"]
+        G6 --> M4["成功指标 SI-04 看板刷新不超过10秒"]
+  </div>
+</div>
+
+<div class="diagram-block" id="d3">
+  <h2>AD-01 预约与取消流程活动图</h2>
+  <div class="info">建模对象：预约创建与取消的业务流程 | 关联需求：FR-010、FR-011、FR-012、FR-013、FR-014、FR-015；关联规则 BR-001～BR-006、BR-011、BR-018、BR-017；关联转换 ST-021、ST-022、ST-028、ST-035、ST-047</div>
+  <div class="mermaid">
+    flowchart TD
+        A(["开始"]) --> B["学生用户选择自习室与目标时段 [s, e)"]
+        B --> C["系统按第 10.4.2 节计算可预约性 C1～C6"]
+        C --> D{"C5 账户状态是否为正常"}
+        D -- 否 --> E["拒绝并提示限制原因与预计解除时间 ST-047"]
+        D -- 是 --> F{"C1/C2 座位资源是否为可用且在开放时间内"}
+        F -- 否 --> G["该座位不可预约 BR-017，返回其他候选座位"]
+        F -- 是 --> H{"C6 是否满足 BR-001～BR-004"}
+        H -- 否 --> I["拒绝并提示未通过的具体规则项与参数 ST-028"]
+        H -- 是 --> J{"C3/C4 该用户与该座位在 [s,e) 内是否已有有效预约"}
+        J -- 是 --> K["拒绝并提示时段冲突 ST-028"]
+        J -- 否 --> L["提交预约请求（携带幂等键）"]
+        L --> M{"并发写入是否冲突 ST-035"}
+        M -- 是 --> N["返回该时段已被占用"]
+        M -- 否 --> O["创建预约单 状态=待使用"]
+        O --> P["写入审计日志；**不改变座位资源状态**"]
+        P --> Q{"用户或管理员是否取消"}
+        Q -- 是 --> R{"用户取消：提交时刻是否早于 s − C 分钟 BR-011"}
+        R -- 否 --> S["拒绝取消并提示 ST-029"]
+        R -- 是 --> T["预约单 待使用→已取消 ST-021"]
+        Q -- 管理员强制取消 ST-022 --> T
+        T --> V["该时段按 C3 重新可预约（无需改变座位状态）"]
+        Q -- 否 --> W(["等待签到"])
+        V --> X(["结束"])
+        S --> W
+        W --> X
+        G --> X
+        I --> X
+        K --> X
+        N --> X
+        E --> X
+  </div>
+</div>
+
+<div class="diagram-block" id="d4">
+  <h2>AD-02 签到、签退与自动违约流程活动图</h2>
+  <div class="info">建模对象：座位使用阶段的状态推进与违约判定 | 关联需求：FR-016、FR-020、FR-021、FR-022、FR-023；关联规则 BR-007、BR-008、BR-009、BR-019；关联转换 ST-020、ST-023、ST-024、ST-025、ST-026、ST-030、ST-031、ST-033、ST-034、ST-027、ST-040</div>
+  <div class="mermaid">
+    flowchart TD
+        A(["进入预约时段"]) --> B{"当前时间是否在签到窗口 [s−X, s+Y) 内 BR-007"}
+        B -- 早于窗口 --> C["提示签到尚未开放"]
+        C --> B
+        B -- 是 --> D["用户提交签到"]
+        D --> E{"预约单是否属于本人，且状态为待使用"}
+        E -- 否 --> F["拒绝签到并提示 ST-027"]
+        E -- 已处于使用中 --> F2["拒绝重复签到（幂等）ST-030"]
+        E -- 已处于终态 --> F3["拒绝并提示该预约已结束 ST-031"]
+        E -- 是 --> G["预约单 待使用→使用中 ST-020"]
+        G --> H["记录签到时间"]
+        H --> I{"用户是否主动签退"}
+        I -- 是 --> J{"预约单状态是否为使用中"}
+        J -- 是 --> K["预约单 使用中→已完成 ST-024"]
+        J -- 否 --> L["拒绝签退并提示 ST-031"]
+        I -- 否 --> M{"是否到达预约结束时间 e"}
+        M -- 否 --> I
+        M -- 是 --> N["系统自动结束 预约单→已完成 ST-025"]
+        B -- 超过 s+Y 仍未签到 --> O["系统自动违约 ST-023"]
+        O --> P["生成违约记录；用户累计有效违约次数 +1"]
+        P --> P2{"同一预约单是否已被处理过 ST-034"}
+        P2 -- 是 --> P3["幂等：不重复生成记录、不重复累加"]
+        P2 -- 否 --> Q{"累计有效违约是否达到阈值 BR-009"}
+        P3 --> R(["结束"])
+        Q -- 是 --> S["用户账户 正常→受限 ST-040"]
+        Q -- 否 --> R
+        S --> R
+        K --> R
+        N --> R
+        L --> R
+        F --> R
+        F2 --> R
+        F3 --> R
+  </div>
+</div>
+
+<div class="diagram-block" id="d5">
+  <h2>SM-01 座位资源状态图</h2>
+  <div class="info">建模对象：座位（资源行政可用性，非占用情况） | 关联：FR-002、FR-003、FR-004、FR-016；BR-017～BR-019；ST-001～ST-007</div>
+  <div class="mermaid">
+    stateDiagram-v2
+        [*] --> 可用
+        可用 --> 维修中 : 管理员设置维修 ST-001
+        维修中 --> 可用 : 管理员结束维修 ST-002
+        可用 --> 停用 : 管理员停用 ST-003
+        停用 --> 可用 : 管理员启用 ST-004
+        维修中 --> 停用 : 管理员直接停用 ST-005
+        可用 --> 维修中 : 管理员设置维修（存在冲突预约）ST-006【待确认】
+        维修中 --> 停用
+        note right of 可用 : 资源状态，非占用状态
+        note right of 维修中 : 管理员设置维修 ST-001
+        note right of 停用 : 长期不启用
+  </div>
+</div>
+
+<div class="diagram-block" id="d6">
+  <h2>SM-02 预约单状态图</h2>
+  <div class="info">建模对象：预约单 | 关联：FR-010、FR-011、FR-014～FR-016、FR-020～FR-023；BR-001～BR-011；ST-020～ST-035</div>
+  <div class="mermaid">
+    stateDiagram-v2
+        [*] --> 待使用
+        待使用 --> 使用中 : 用户签到 ST-020
+        待使用 --> 已取消 : 用户取消 ST-021
+        待使用 --> 已取消 : 管理员强制取消 ST-022
+        待使用 --> 已违约 : 超时未签到 ST-023
+        使用中 --> 已完成 : 用户签退 ST-024
+        使用中 --> 已完成 : 预约结束时间到达 ST-025
+        使用中 --> 已违约 : 管理员手动违约登记 ST-026
+        已取消 --> [*]
+        已完成 --> [*]
+        已违约 --> [*]
+        note right of 待使用 : 已创建但未开始使用
+        note right of 使用中 : 已签到但未签退
+  </div>
+</div>
+
+<div class="diagram-block" id="d7">
+  <h2>SM-03 用户账户状态图</h2>
+  <div class="info">建模对象：用户账户 | 关联：FR-040、FR-044；BR-009、BR-010；ST-040～ST-049</div>
+  <div class="mermaid">
+    stateDiagram-v2
+        [*] --> 正常
+        正常 --> 受限 : 累计违约达阈值 ST-040
+        正常 --> 受限 : 管理员手动加入黑名单 ST-041
+        正常 --> 停用 : 管理员停用账户 ST-044
+        受限 --> 正常 : 限制期限届满 ST-042
+        受限 --> 正常 : 管理员移出黑名单 ST-043
+        受限 --> 停用 : 管理员停用受限账户 ST-045
+        停用 --> 正常 : 管理员恢复账户 ST-046
+        note right of 正常 : 可正常预约
+        note right of 受限 : 不可发起新预约
+        note right of 停用 : 不可登录
+  </div>
+</div>
+
+<div class="diagram-block" id="d8">
+  <h2>SM-04 投诉状态图</h2>
+  <div class="info">建模对象：投诉 | 关联：FR-042、FR-043；BR-014；ST-060～ST-065</div>
+  <div class="mermaid">
+    stateDiagram-v2
+        [*] --> 待处理
+        待处理 --> 处理中 : 管理员受理 ST-060
+        待处理 --> 已驳回 : 管理员驳回 ST-061
+        处理中 --> 已处理 : 管理员录入处理结果 ST-062
+        已处理 --> 已关闭 : 投诉人确认或超时 ST-063
+        note right of 待处理 : 投诉已提交，等待处理
+        note right of 处理中 : 管理员正在处理
+        note right of 已关闭 : 流程结束
+  </div>
+</div>
+
+<script>
+mermaid.initialize({startOnLoad:true,theme:'default',themeVariables:{primaryColor:'#2B5F9E',primaryTextColor:'#12304f',primaryBorderColor:'#2B5F9E',lineColor:'#2B5F9E',secondaryColor:'#eaf2fb',tertiaryColor:'#f5f8fc'}});
+
+function expandAll() {
+  document.querySelectorAll('.diagram-block').forEach(d=>d.style.display='block');
+}
+function collapseAll() {
+  document.querySelectorAll('.diagram-block').forEach(d=>d.style.display='none');
+}
+
+// 当 Mermaid 加载失败时的提示
+document.querySelectorAll('.mermaid').forEach(el=>{
+  el.addEventListener('error', function() {
+    const parent = this.closest('.diagram-block');
+    const note = document.createElement('div');
+    note.style.cssText = 'color:#b3261e;background:#fbe0e0;padding:10px;border-radius:5px;margin-top:10px';
+    note.textContent = 'Mermaid 渲染失败。请检查网络连接（需要加载 CDN 脚本），或直接查看同目录下的同名 .mmd 文件。';
+    parent.appendChild(note);
+  });
+});
+</script>
+
+<div class="note" style="margin-top:30px">
+  <b>使用方法：</b>
+  <ol style="margin:4px 0;font-size:13px">
+    <li>打开本页面（需要网络加载 Mermaid.js CDN 库）</li>
+    <li>等待所有图形自动渲染完成</li>
+    <li>在每个 SVG 图形上<strong>右键 → 另存为</strong>即可导出 SVG 文件</li>
+    <li>截图工具可导出为 PNG</li>
+    <li>可编辑源文件为同目录下 <code>.mmd</code> 文件及原始文档中的 <code>\`\`\`mermaid</code> 代码块</li>
+  </ol>
+</div>
+
+</body>
+</html>
