@@ -112,11 +112,22 @@ def add_entry(db: Session, admin: User, payload: BlacklistCreate) -> BlacklistEn
     return entry
 
 
-def release_entry(db: Session, admin: User, entry_id: int) -> BlacklistEntry:
+def release_entry(
+    db: Session, admin: User, entry_id: int, reason: str
+) -> BlacklistEntry:
     """M5 / FR-044 / ST-043：管理员手动解除黑名单。
 
-    解除后若该用户已无其它有效限制，账户由“受限”恢复为“正常”。
+    - 必须填写解除原因（DR-008 的 release_reason，库层有 CHECK 约束）；
+    - 解除后若该用户已无其它有效限制，账户由“受限”恢复为“正常”。
     """
+    cleaned_reason = (reason or "").strip()
+    if not cleaned_reason:
+        raise BusinessError(
+            "解除黑名单必须填写原因",
+            code="BLACKLIST_RELEASE_REASON_REQUIRED",
+            status_code=422,
+        )
+
     now = datetime.now()
     entry = db.get(BlacklistEntry, entry_id)
     if entry is None:
@@ -131,6 +142,7 @@ def release_entry(db: Session, admin: User, entry_id: int) -> BlacklistEntry:
         )
 
     entry.released_at = now
+    entry.release_reason = cleaned_reason
     user = db.get(User, entry.user_id)
     if user is not None:
         _sync_account_status(db, user, now)
@@ -140,7 +152,7 @@ def release_entry(db: Session, admin: User, entry_id: int) -> BlacklistEntry:
             action_type="BLACKLIST_RELEASE",
             target_type="USER",
             target_id=user.id,
-            reason="管理员手动解除黑名单",
+            reason=cleaned_reason,
             before_value=AccountStatus.RESTRICTED.value,
             after_value=user.account_status,
         )
@@ -209,6 +221,7 @@ def release_expired(db: Session, now: datetime | None = None) -> int:
     touched: set[int] = set()
     for entry in entries:
         entry.released_at = current
+        entry.release_reason = "自动限制期限届满，系统自动解除（ST-042）"
         touched.add(entry.user_id)
 
     for user_id in touched:

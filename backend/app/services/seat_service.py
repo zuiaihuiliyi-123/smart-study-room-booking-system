@@ -60,6 +60,7 @@ def create_seat(db: Session, payload: SeatCreate) -> Seat:
         seat_no=payload.seat_no,
         seat_type=payload.seat_type,
         has_power=payload.has_power,
+        near_window=payload.near_window,
         status=SeatStatus.AVAILABLE.value,
     )
     db.add(seat)

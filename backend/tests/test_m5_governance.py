@@ -337,9 +337,12 @@ def test_manual_blacklist_restricts_then_release_restores(db, make_user) -> None
     assert entry.mode == BlacklistMode.MANUAL.value
     assert student.account_status == AccountStatus.RESTRICTED.value
 
-    released = blacklist_service.release_entry(db, admin, entry.id)
+    released = blacklist_service.release_entry(
+        db, admin, entry.id, "申诉通过，提前解除"
+    )
 
     assert released.released_at is not None
+    assert released.release_reason == "申诉通过，提前解除"
     db.refresh(student)
     assert student.account_status == AccountStatus.NORMAL.value
 
@@ -387,9 +390,11 @@ def test_blacklist_release_twice_rejected(db, make_user) -> None:
     entry = blacklist_service.add_entry(
         db, admin, BlacklistCreate(user_id=student.id, reason="限制")
     )
-    blacklist_service.release_entry(db, admin, entry.id)
+    blacklist_service.release_entry(db, admin, entry.id, "首次解除")
 
-    error = _error_of(blacklist_service.release_entry, db, admin, entry.id)
+    error = _error_of(
+        blacklist_service.release_entry, db, admin, entry.id, "重复解除"
+    )
 
     assert error.code == "BLACKLIST_ALREADY_RELEASED"
 
@@ -433,10 +438,11 @@ def test_release_expired_skips_manual_entries(db, make_user) -> None:
         ),
     )
     # 手动限制即使过了期限，也不得由系统自动解除（BR-010）
-    entry.expire_at = datetime.now() - timedelta(hours=1)
-    db.commit()
+    # 注：库层有 ck_blacklist_expire 约束，不能把 expire_at 改到 start_at 之前；
+    # 这里通过传入“未来的 now”模拟时间推进。
+    later = datetime.now() + timedelta(days=2)
 
-    assert blacklist_service.release_expired(db) == 0
+    assert blacklist_service.release_expired(db, now=later) == 0
     db.refresh(entry)
     assert entry.released_at is None
     db.refresh(student)
@@ -449,10 +455,9 @@ def test_release_expired_releases_auto_entries(db, make_user) -> None:
     )
     entry = blacklist_service.restrict_if_threshold(db, student.id)
     assert entry is not None
-    entry.expire_at = datetime.now() - timedelta(minutes=1)
-    db.commit()
+    later = datetime.now() + timedelta(days=settings.restriction_days + 1)
 
-    assert blacklist_service.release_expired(db) == 1
+    assert blacklist_service.release_expired(db, now=later) == 1
     db.refresh(entry)
     assert entry.released_at is not None
     db.refresh(student)

@@ -3,6 +3,7 @@
 from datetime import date, time
 
 import pytest
+from pydantic import ValidationError
 
 from app.core.exceptions import BusinessError
 from app.models.audit_log import AuditLog
@@ -52,25 +53,45 @@ def test_create_room_duplicate_name_rejected(db, make_room) -> None:
 
 
 @pytest.mark.parametrize(
-    ("open_time", "close_time", "code"),
+    ("open_time", "close_time"),
     [
-        ("22:00", "08:00", "ROOM_TIME_RANGE_INVALID"),
-        ("8点", "22:00", "ROOM_TIME_FORMAT_INVALID"),
+        ("22:00", "08:00"),  # 开放时间晚于关闭时间
+        ("8点", "22:00"),  # 非 HH:MM 格式
     ],
 )
-def test_create_room_time_rules(db, open_time, close_time, code) -> None:
-    error = _error_of(
-        room_service.create_room,
-        db,
+def test_create_room_time_rules_rejected_by_schema(open_time, close_time) -> None:
+    """接口层由 RoomCreate 的 pattern + model_validator 拦截（422）。"""
+    with pytest.raises(ValidationError):
         RoomCreate(
             name="时段测试室",
             location="图书馆",
             open_time=open_time,
             close_time=close_time,
-        ),
-    )
+        )
 
-    assert error.code == code
+
+def test_create_room_time_rules_defended_in_service(db) -> None:
+    """即使绕过 schema 校验（内部直调），服务层仍须拒绝。"""
+    bad_range = RoomCreate.model_construct(
+        name="时段测试室A",
+        location="图书馆",
+        open_time="22:00",
+        close_time="08:00",
+        capacity=0,
+    )
+    error = _error_of(room_service.create_room, db, bad_range)
+    assert error.code == "ROOM_TIME_RANGE_INVALID"
+    assert error.status_code == 422
+
+    bad_format = RoomCreate.model_construct(
+        name="时段测试室B",
+        location="图书馆",
+        open_time="8点",
+        close_time="22:00",
+        capacity=0,
+    )
+    error = _error_of(room_service.create_room, db, bad_format)
+    assert error.code == "ROOM_TIME_FORMAT_INVALID"
     assert error.status_code == 422
 
 
