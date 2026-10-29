@@ -35,7 +35,7 @@ request.interceptors.response.use(
 )
 
 export const http = {
-  get<T>(url: string, params?: Record<string, unknown>) {
+  get<T>(url: string, params?: object) {
     return request.get<unknown, T>(url, { params })
   },
   post<T>(url: string, data?: unknown) {
