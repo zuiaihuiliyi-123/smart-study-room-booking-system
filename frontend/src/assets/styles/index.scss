@@ -1,0 +1,28 @@
+:root {
+  color: #303133;
+  background-color: #f5f7fa;
+  font-family: 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+.page {
+  padding: 20px;
+}
+
+.page-card {
+  margin-bottom: 16px;
+}
+
+.table-page {
+  padding: 20px;
+}

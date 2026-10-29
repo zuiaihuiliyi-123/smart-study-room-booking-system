@@ -2,7 +2,7 @@
 
 面向高校自习空间的座位预约、使用管理与数据分析平台。
 
-> **当前阶段：需求分析。** 本仓库目前包含需求分析阶段的文档与图模型，尚未包含应用代码。
+> **当前阶段：需求分析 + 开发骨架。** 本仓库包含需求分析阶段的文档与图模型，以及基于 FastAPI + Vue 3 的前后端项目骨架；业务逻辑尚未实现。
 
 ## 仓库结构
 
@@ -11,16 +11,36 @@
 ├── README.md
 ├── LICENSE
 ├── .gitignore
-├── docs/
-│   ├── 智慧自习室预约与管理系统-需求规格说明书.md
-│   ├── 需求分析质量验证报告.md
-│   └── 学生需求分析与AI智能体使用验证报告.md
-└── models/
-    ├── UCD-01-用例图.puml
-    ├── UCD-01.svg
-    ├── CD-01-领域类图.puml
-    └── CD-01.svg
+├── docs/                    # 需求规格说明书、质量验证报告
+├── models/                  # 用例图、类图、活动图、时序图
+├── backend/                 # FastAPI + SQLAlchemy + Alembic + MySQL
+│   ├── app/
+│   │   ├── api/v1/          # M1～M7 REST 路由
+│   │   ├── core/            # 配置、数据库、JWT、依赖
+│   │   ├── models/          # ORM 模型
+│   │   ├── schemas/         # Pydantic 模型
+│   │   ├── services/        # 业务逻辑
+│   │   ├── tasks/           # APScheduler 定时任务
+│   │   └── utils/
+│   ├── alembic/
+│   └── tests/
+└── frontend/                # Vue 3 + TypeScript + Vite + Element Plus
+    └── src/
+        ├── api/             # 接口封装
+        ├── layouts/         # 学生端 / 管理端布局
+        ├── router/          # 路由与角色守卫
+        ├── stores/          # Pinia
+        └── views/           # 学生端、管理端页面
 ```
+
+## 开发骨架
+
+| 部分 | 技术栈 | 启动说明 |
+|---|---|---|
+| `backend/` | FastAPI · Pydantic 2 · SQLAlchemy 2 · Alembic · MySQL 8.4 · JWT · APScheduler · Pytest | 见 [`backend/README.md`](backend/README.md) |
+| `frontend/` | Vue 3 · TypeScript · Vite · Element Plus · Pinia · ECharts | 见 [`frontend/README.md`](frontend/README.md) |
+
+后端已实现登录与健康检查，其余接口为骨架（统一返回 501）；前端已完成登录、角色路由与各模块页面占位。模块划分与功能需求编号的对应关系见 `backend/README.md`。
 
 ## 文档与模型
 
