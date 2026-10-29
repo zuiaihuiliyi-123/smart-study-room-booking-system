@@ -1,0 +1,286 @@
+@startuml CD-01
+' ============================================================
+' 图编号：CD-01
+' 图名称：智慧自习室预约与管理系统 领域类图
+' 建模对象：核心业务实体及其关联
+' 关联需求：《智慧自习室预约与管理系统-需求规格说明书（课程结构版）.md》
+'           第 3.3 节数据字典（DR-001~DR-009）、第 5 章行为与状态
+' 版本：V1.0（课程结构版）     日期：2026-10-15
+' ------------------------------------------------------------
+' 图注（务必与正文一并阅读）：
+'   1. 全部实体、属性名、类型与取值枚举均为【AI 候选】，确认状态「待确认」。
+'   2. REF-01 未提供任何数据字典，本图为【分析推导】的建模结果。
+'   3. 座位状态为纯资源状态（可用/维修中/停用），不含「已预约」「使用中」；
+'      「可否预约」不作图上的状态，按第 4.4.2 节 C1～C6 实时计算
+'      （建模约定见第 5.3.1 节）。
+'   4. 「分区」概念来自假设 AS-05，REF-01 未提及。
+'   5. 全部类型长度为占位建议值，未经确认。
+' ============================================================
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #F7F9FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+  FontSize 12
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #D4A017
+}
+
+' ============================================================
+' 一、枚举与状态（与正文第 5 章行为与状态一致）
+' ============================================================
+
+enum "SeatStatus 座位资源状态" as SeatStatus <<SM-01>> {
+  可用
+  维修中
+  停用
+  --
+  不含「已预约」「使用中」
+  「可否预约」为派生结论，
+  见正文第 4.4.2 节
+}
+
+enum "ReservationStatus 预约状态" as ResStatus <<SM-02>> {
+  待使用
+  使用中
+  已完成
+  已取消
+  已违约
+}
+
+enum "AccountStatus 账户状态" as AccStatus <<SM-03>> {
+  正常
+  受限
+  停用
+}
+
+enum "ComplaintStatus 投诉状态" as CmpStatus <<SM-04>> {
+  待处理
+  处理中
+  已处理
+  已驳回
+  已关闭
+}
+
+enum "Role 用户角色" as RoleEnum {
+  R-01 学生用户
+  R-02 自习室管理员
+  R-03 教师用户 <<待确认>>
+  R-04 系统管理员 <<假设>>
+}
+
+enum "ViolationType 违约类型" as ViolType {
+  自动违约
+  手动违约登记
+}
+
+' ============================================================
+' 二、核心业务实体（DR-001 ~ DR-009）
+' ============================================================
+
+class "User 用户" as User <<DR-001>> {
+  - userId : 用户标识 {PK}
+  - name : 姓名
+  - studentNo : 学号/工号 {UNIQUE}
+  - role : 角色 {Role}
+  - accountStatus : 账户状态 {AccountStatus}
+  - violationCount : 累计违约次数
+  - contact : 联系方式
+  --
+  + createReservation() : FR-010
+  + cancelReservation() : FR-011
+  + checkIn() : FR-020
+  + checkOut() : FR-021
+}
+
+class "Room 自习室" as Room <<DR-002>> {
+  - roomId : 自习室标识 {PK}
+  - name : 名称
+  - location : 位置
+  - openTime : 开放时间
+  - capacity : 容量
+  - enabled : 启用状态
+  --
+  + maintain() : FR-001
+}
+
+class "Area 分区" as Area <<DR-002a / AS-05>> {
+  - areaId : 分区标识 {PK}
+  - name : 分区名称
+  --
+  note: 【假设】REF-01 未提及分区概念
+}
+
+class "Seat 座位" as Seat <<DR-003>> {
+  - seatId : 座位标识 {PK}
+  - seatNo : 座位编号 {UNIQUE within Room}
+  - seatType : 座位类型
+  - hasPower : 是否带电源
+  - status : 资源状态 {SeatStatus}
+  --
+  + changeStatus() : FR-004
+  + 无「占用」字段：可否预约
+    由第 4.4.2 节 C1～C6 实时计算
+}
+
+class "Reservation 预约单" as Reservation <<DR-004>> {
+  - reservationId : 预约单标识 {PK}
+  - reserveDate : 预约日期
+  - startTime : 开始时间 s
+  - endTime : 结束时间 e
+  - 占用区间 : [s, e) 左闭右开
+  - status : 预约状态 {ResStatus}
+  - checkInTime : 签到时间
+  - checkOutTime : 签退时间
+  - cancelTime : 取消时间
+  - cancelReason : 取消原因
+  - idempotencyKey : 幂等键
+  --
+  + validateRules() : FR-012
+  + verifyConflict() : BR-005 / BR-006
+  + isActive() : TM-18 有效预约
+}
+
+class "ViolationRecord 违约记录" as Violation <<DR-005>> {
+  - violationId : 违约标识 {PK}
+  - violationType : 违约类型 {ViolType}
+  - violationTime : 违约时间
+  - reason : 违约原因
+  - operatorId : 登记操作者
+}
+
+class "Review 评价" as Review <<DR-006>> {
+  - reviewId : 评价标识 {PK}
+  - score : 评分
+  - content : 评价内容
+  - submitTime : 提交时间
+  --
+  note: 【待确认】评价对象与维度未定义
+}
+
+class "Complaint 投诉" as Complaint <<DR-007>> {
+  - complaintId : 投诉标识 {PK}
+  - targetType : 投诉对象类型
+  - targetId : 投诉对象标识
+  - content : 投诉内容
+  - status : 投诉状态 {ComplaintStatus}
+  - handleNote : 处理说明
+  - handleTime : 处理时间
+  --
+  note: 【待确认】投诉对象类型未定义
+}
+
+class "BlacklistEntry 黑名单记录" as Blacklist <<DR-008>> {
+  - entryId : 记录标识 {PK}
+  - joinReason : 加入原因
+  - joinMode : 加入方式 {自动 / 手动}
+  - joinTime : 加入时间
+  - limitUntil : 限制期限
+  - releaseTime : 解除时间
+  - operatorId : 操作者
+}
+
+class "AuditLog 审计日志" as AuditLog <<DR-009>> {
+  - logId : 日志标识 {PK}
+  - operatorId : 操作者
+  - actionType : 操作类型
+  - targetObject : 目标对象
+  - actionTime : 操作时间
+  - reason : 原因
+  - beforeValue : 变更前值
+  - afterValue : 变更后值
+}
+
+' ============================================================
+' 三、关联与数量关系
+' ============================================================
+
+Room "1" *-- "1..*" Area : 包含 >
+Area "1" *-- "0..*" Seat : 包含 >
+Room "1" o-- "0..*" Seat : 直接组织 >
+
+User "1" -- "0..*" Reservation : 发起 >
+Seat "1" -- "0..*" Reservation : 被预约 >
+Reservation "1" -- "0..*" Violation : 产生 >
+User "1" -- "0..*" Violation : 承担 >
+Seat "1" -- "0..*" Violation : 涉及 >
+
+Reservation "1" -- "0..1" Review : 评价 >
+User "1" -- "0..*" Review : 提交 >
+User "1" -- "0..*" Complaint : 提交 >
+User "1" -- "0..*" Complaint : 被投诉 <<待确认>> >
+User "1" -- "0..*" Blacklist : 受限记录 >
+User "1" -- "0..*" AuditLog : 产生操作 >
+User "1" -- "0..*" Reservation : 管理操作 <<R-02>> >
+
+' ============================================================
+' 四、关键约束（对应正文 DR 表与 BR 规则）
+' ============================================================
+
+note right of Reservation
+  【关键约束（AI 候选，待确认）】
+  BR-020 占用区间为左闭右开 [s, e)
+         重叠 ⇔ s1 < e2 且 s2 < e1
+         [14:00,16:00) 与 [16:00,18:00) 不冲突
+  BR-005 同一用户同一时段不得有两条有效预约
+  BR-006 同一座位同一时段不得有两条有效预约
+  BR-001 时段对齐预约粒度（候选 30 分钟）
+  BR-002 提前预约不超过 N 天（候选 7 天）
+  BR-003 单次时长不超过 M 小时（候选 4 小时）
+  BR-004 每日预约次数不超过 K 条（候选 2 条）
+  BR-011 距开始时间不少于 C 分钟可无损取消（候选 30 分钟）
+  BR-021 预约创建 / 签到 / 定时任务须幂等
+  TM-18 「有效预约」= 待使用 或 使用中；
+        已取消/已完成/已违约不占用时段
+end note
+
+note right of Seat
+  BR-017 资源状态为「维修中」或「停用」时不可被预约
+         （对应第 4.4.2 节判定项 C1）
+  BR-019 存在未来有效预约时设置维修/停用：
+         处置方式【未确认】（ST-006 / ST-033）
+end note
+
+note right of User
+  BR-009 累计违约达 T 次自动受限（候选 3 次）
+  BR-010 限制期 P 天（候选 7 天）
+  受限期间不可创建预约（ST-047，状态保持）
+  【待确认】账户转为受限/停用后，
+  其已有未来预约如何处置（ST-049）——未定义
+end note
+
+note bottom of AuditLog
+  NFR-009 管理员关键操作须留痕：
+  座位状态调整、手动违约登记、
+  黑名单变更、投诉处理。
+  日志只允许追加，不可修改或删除。
+end note
+
+' ============================================================
+' 五、未确认事项（与第 8.2 节待确认问题清单一致）
+' ============================================================
+
+note bottom of Blacklist
+  【未展开的关联】
+  1. 座位状态与预约单状态「以谁为准」的问题（第 8.2 节 Q-017）
+     在结构上已消解：座位不再存储占用状态，
+     预约单是占用关系的唯一权威数据源
+     （第 3.3.4 节、第 4.4.2 节）。
+  2. 违约记录被撤销（FR-024）后，
+     累计违约次数是否回退，尚未定义。
+end note
+
+note bottom of Reservation
+  【座位与预约单的分离约定】
+  座位不再有「已预约」「使用中」状态，
+  占用关系只由本类的「占用区间 [s, e)」与
+  isActive() 表达。因此「某座位此刻能不能约」
+  是查询时计算的结论，不是任何对象上的字段。
+  详见第 5.3.1 节建模约定。
+end note
+
+@enduml
