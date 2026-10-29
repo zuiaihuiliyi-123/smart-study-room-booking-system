@@ -9,6 +9,7 @@ from app.schemas.reservation import (
     CancelRequest,
     ForceCancelRequest,
     ReservationCreate,
+    ReservationRead,
 )
 
 
@@ -31,7 +32,7 @@ def list_my_reservations(
     status: str | None,
     page: int,
     page_size: int,
-) -> PageResult[Reservation]:
+) -> PageResult[ReservationRead]:
     """M4 / FR-030：查询本人预约记录。"""
     raise NotImplementedError("个人预约记录查询待实现")
 
@@ -42,7 +43,7 @@ def list_all_reservations(
     status: str | None,
     page: int,
     page_size: int,
-) -> PageResult[Reservation]:
+) -> PageResult[ReservationRead]:
     """M4 / FR-031：管理员查询全部预约。"""
     raise NotImplementedError("预约记录管理查询待实现")
 
