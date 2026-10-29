@@ -8,4 +8,4 @@ export const createReview = (data: {
 }) => http.post<Review>('/reviews', data)
 
 export const listMyReviews = (params: { page?: number; page_size?: number }) =>
-  http.get<PageResult<Review>>('/reviews/me', params)
+    http.get<PageResult<Review>>('/reviews/me', params)

@@ -47,6 +47,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '我的投诉' },
       },
       {
+        path: 'messages',
+        name: 'student-messages',
+        component: () => import('@/views/student/MessagesView.vue'),
+        meta: { title: '站内消息' },
+      },
+      {
         path: 'profile',
         name: 'student-profile',
         component: () => import('@/views/student/ProfileView.vue'),
@@ -113,20 +119,20 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     redirect: () =>
-      useAuthStore().isAdmin ? '/admin/dashboard' : '/student/home',
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'not-found',
-    component: () => import('@/views/NotFoundView.vue'),
-    meta: { public: true },
-  },
-]
+        useAuthStore().isAdmin ? '/admin/dashboard' : '/student/home',
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/views/NotFoundView.vue'),
+      meta: { public: true },
+    },
+  ]
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes,
-})
+  const router = createRouter({
+    history: createWebHistory(),
+    routes,
+  })
 
 router.beforeEach((to) => {
   const auth = useAuthStore()

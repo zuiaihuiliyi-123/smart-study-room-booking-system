@@ -1,15 +1,107 @@
 <script setup lang="ts">
-import ModulePlaceholder from '@/components/ModulePlaceholder.vue'
+import { onMounted } from 'vue'
+
+import ComplaintForm from '@/components/complaints/ComplaintForm.vue'
+import ComplaintList from '@/components/complaints/ComplaintList.vue'
+import type { TargetType } from '@/components/complaints/complaintMeta'
+import PageHeader from '@/components/PageHeader.vue'
+import { useMyComplaints } from '@/utils/useMyComplaints'
+
+const {
+  items,
+  total,
+  page,
+  pageSize,
+  loading,
+  errorMessage,
+  submitting,
+  newId,
+  focusId,
+  rooms,
+  seats,
+  reservations,
+  load,
+  submit,
+  bootstrap,
+  onPageChange,
+} = useMyComplaints()
+
+function onSubmit(payload: { target_type: TargetType; target_id: number; content: string }): void {
+  void submit(payload)
+}
+
+onMounted(() => {
+  void bootstrap()
+})
 </script>
 
 <template>
-  <ModulePlaceholder
-    title="我的投诉"
-    description="提交投诉并查看处理进度与管理员反馈（FR-042 / FR-043）。"
-    :tasks="[
-      '接入 POST /complaints 提交投诉，校验投诉对象与内容',
-      '接入 GET /complaints/me 展示状态时间线',
-      '展示“待处理 / 处理中 / 已处理 / 已驳回 / 已关闭”状态',
-    ]"
-  />
+  <div class="page">
+    <PageHeader
+      title="我的投诉"
+      subtitle="投诉提交 · 处理进度与反馈；投诉对象为座位 / 自习室 / 预约单 / 用户 4 类"
+    >
+      <template #actions>
+        <el-button :loading="loading" @click="load">刷新列表</el-button>
+      </template>
+    </PageHeader>
+
+    <div class="grid">
+      <ComplaintForm
+        :rooms="rooms"
+        :seats="seats"
+        :reservations="reservations"
+        :submitting="submitting"
+        @submit="onSubmit"
+      />
+
+      <section class="ssr-card">
+        <header class="ssr-card__head">
+          <h3>我的投诉</h3>
+          <span class="ssr-text-muted">共 {{ total }} 条 · 按提交时间倒序</span>
+        </header>
+
+        <ComplaintList
+          :items="items"
+          :loading="loading"
+          :error-message="errorMessage"
+          :new-id="newId"
+          :focus-id="focusId"
+          @retry="load"
+        />
+
+        <div v-if="!loading && !errorMessage && total > pageSize" class="pager">
+          <el-pagination
+            background
+            layout="total, prev, pager, next"
+            :total="total"
+            :current-page="page"
+            :page-size="pageSize"
+            @current-change="onPageChange"
+          />
+        </div>
+      </section>
+    </div>
+  </div>
 </template>
+
+<style scoped>
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.pager {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+</style>

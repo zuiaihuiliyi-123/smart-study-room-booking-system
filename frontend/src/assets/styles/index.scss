@@ -1,7 +1,153 @@
+/* ============================================================
+   智慧自习室预约与管理系统 · 设计系统
+   约束（AGENTS.md §3.8）：组件只允许引用 var(--ssr-*)，禁止硬编码色值。
+   改色流程：先改第 1 节的 SCSS 真值源，再同步第 2 节的 CSS 变量，缺一不可。
+   ============================================================ */
+
+@use 'sass:list';
+
+/* ---------- 1. SCSS 真值源（全站唯一色值出处） ---------- */
+$ssr-primary: #2b5f9e; // 求是蓝，与已走查原型 index.html v1.0 一致
+$ssr-primary-light: #eaf2fb;
+$ssr-primary-deep: #224c7e; // 深蓝：登录页品牌区渐变终点、header 内嵌强调
+$ssr-ink: #12304f;
+$ssr-line: #d6e2f0;
+$ssr-bg: #f5f8fc;
+$ssr-surface: #ffffff;
+$ssr-muted: #6b7a8d; // 非文本用途：描边、图标、图表轴
+$ssr-muted-ink: #5a6879; // 12.5px 说明文本：#6b7a8d 在浅底仅 4.38:1，未达 4.5:1，此处加深
+$ssr-success: #1b7a45;
+$ssr-success-bg: #e6f4ea;
+$ssr-warning: #a9720b;
+$ssr-warning-bg: #fff6e5;
+$ssr-warning-ink: #8f5f08; // 12.5px 文字：#a9720b 在 #fff6e5 上仅 3.84:1，加深到 5.14:1
+$ssr-danger: #b3261e;
+$ssr-danger-bg: #fbe0e0;
+
+/* 状态标签的中性档位（"使用中"是预约派生结论，不是座位资源状态） */
+$ssr-tag-use-bg: #fde7d0;
+$ssr-tag-use-fg: #96500a;
+$ssr-tag-fix-bg: #ededed;
+$ssr-tag-fix-fg: #5b5b5b;
+$ssr-tag-off-bg: #e4e7ec;
+$ssr-tag-off-fg: #4c5563; // 原型 #7a7a7a/#e0e0e0 仅 3.25:1，已加深到 6.09:1
+
+/* 座位矩阵四态（预约座位页）：资源状态 × 时段占用，两者独立呈现（AGENTS.md §4）。
+   每态除色值外还带底纹方向与图标，保证色盲可辨。 */
+$ssr-seat-free-bg: $ssr-success-bg;
+$ssr-seat-free-fg: $ssr-success;
+$ssr-seat-free-line: $ssr-success;
+$ssr-seat-taken-bg: $ssr-tag-use-bg;
+$ssr-seat-taken-fg: $ssr-tag-use-fg;
+$ssr-seat-taken-line: $ssr-warning;
+$ssr-seat-taken-hatch: rgba($ssr-tag-use-fg, 0.18);
+$ssr-seat-fix-bg: $ssr-tag-fix-bg;
+$ssr-seat-fix-fg: $ssr-tag-fix-fg;
+$ssr-seat-fix-line: $ssr-tag-fix-fg;
+$ssr-seat-fix-hatch: rgba($ssr-tag-fix-fg, 0.16);
+$ssr-seat-off-bg: $ssr-tag-off-bg;
+$ssr-seat-off-fg: $ssr-tag-off-fg;
+$ssr-seat-off-line: $ssr-tag-off-fg;
+$ssr-seat-off-hatch: rgba($ssr-tag-off-fg, 0.18);
+
+/* Element Plus 主色派生：light-N = N×10% 白 + 余量本色；dark-2 = 20% 黑 + 80% 本色 */
+$el-primary-light-3: #6b8fbb;
+$el-primary-light-5: #95afcf;
+$el-primary-light-7: #bfcee2;
+$el-primary-light-8: #d5dfec;
+$el-primary-light-9: #eaeff5;
+$el-primary-dark-2: #224c7e;
+
+/* ---------- 2. CSS 变量（组件唯一可见契约） ---------- */
 :root {
-  color: #303133;
-  background-color: #f5f7fa;
-  font-family: 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color-scheme: light;
+
+  /* 主色与中性 */
+  --ssr-primary: #{$ssr-primary};
+  --ssr-primary-light: #{$ssr-primary-light};
+  --ssr-primary-deep: #{$ssr-primary-deep};
+  --ssr-ink: #{$ssr-ink};
+  --ssr-line: #{$ssr-line};
+  --ssr-bg: #{$ssr-bg};
+  --ssr-surface: #{$ssr-surface};
+  --ssr-muted: #{$ssr-muted};
+  --ssr-muted-ink: #{$ssr-muted-ink};
+  --ssr-on-primary: #{$ssr-surface}; // 深蓝底上的文字（对比度 6.49:1）
+
+  /* 语义色 / 底 */
+  --ssr-success: #{$ssr-success};
+  --ssr-success-bg: #{$ssr-success-bg};
+  --ssr-warning: #{$ssr-warning};
+  --ssr-warning-bg: #{$ssr-warning-bg};
+  --ssr-warning-ink: #{$ssr-warning-ink};
+  --ssr-danger: #{$ssr-danger};
+  --ssr-danger-bg: #{$ssr-danger-bg};
+
+  /* 状态标签 */
+  --ssr-tag-use-bg: #{$ssr-tag-use-bg};
+  --ssr-tag-use-fg: #{$ssr-tag-use-fg};
+  --ssr-tag-fix-bg: #{$ssr-tag-fix-bg};
+  --ssr-tag-fix-fg: #{$ssr-tag-fix-fg};
+  --ssr-tag-off-bg: #{$ssr-tag-off-bg};
+  --ssr-tag-off-fg: #{$ssr-tag-off-fg};
+
+  /* 座位矩阵四态 */
+  --ssr-seat-free-bg: #{$ssr-seat-free-bg};
+  --ssr-seat-free-fg: #{$ssr-seat-free-fg};
+  --ssr-seat-free-line: #{$ssr-seat-free-line};
+  --ssr-seat-taken-bg: #{$ssr-seat-taken-bg};
+  --ssr-seat-taken-fg: #{$ssr-seat-taken-fg};
+  --ssr-seat-taken-line: #{$ssr-seat-taken-line};
+  --ssr-seat-fix-bg: #{$ssr-seat-fix-bg};
+  --ssr-seat-fix-fg: #{$ssr-seat-fix-fg};
+  --ssr-seat-fix-line: #{$ssr-seat-fix-line};
+  --ssr-seat-off-bg: #{$ssr-seat-off-bg};
+  --ssr-seat-off-fg: #{$ssr-seat-off-fg};
+  --ssr-seat-off-line: #{$ssr-seat-off-line};
+
+  /* 尺寸与密度 */
+  --ssr-header-h: 56px;
+  --ssr-aside-w: 220px;
+  --ssr-aside-w-collapsed: 64px;
+  --ssr-menu-item-h: 40px;
+  --ssr-crumb-h: 40px;
+  --ssr-main-max: 1440px;
+  --ssr-gutter: 20px;
+  --ssr-radius: 8px;
+  --ssr-radius-sm: 6px;
+  --ssr-font-body: 14px;
+  --ssr-font-table: 13px;
+  --ssr-font-note: 12.5px;
+
+  /* Element Plus 覆盖 */
+  --el-color-primary: var(--ssr-primary);
+  --el-color-primary-light-3: #{$el-primary-light-3};
+  --el-color-primary-light-5: #{$el-primary-light-5};
+  --el-color-primary-light-7: #{$el-primary-light-7};
+  --el-color-primary-light-8: #{$el-primary-light-8};
+  --el-color-primary-light-9: #{$el-primary-light-9};
+  --el-color-primary-dark-2: #{$el-primary-dark-2};
+  --el-color-success: var(--ssr-success);
+  --el-color-warning: var(--ssr-warning);
+  --el-color-danger: var(--ssr-danger);
+  --el-color-error: var(--ssr-danger);
+  --el-text-color-primary: var(--ssr-ink);
+  --el-text-color-regular: var(--ssr-ink);
+  --el-text-color-secondary: var(--ssr-muted-ink);
+  --el-text-color-placeholder: var(--ssr-muted);
+  --el-border-color: var(--ssr-line);
+  --el-border-color-light: var(--ssr-line);
+  --el-border-color-lighter: var(--ssr-line);
+  --el-fill-color-blank: var(--ssr-surface);
+  --el-bg-color-page: var(--ssr-bg);
+  --el-border-radius-base: var(--ssr-radius-sm);
+  --el-font-size-base: var(--ssr-font-body);
+
+  color: var(--ssr-ink);
+  background-color: var(--ssr-bg);
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', 'Segoe UI', sans-serif;
+  font-size: var(--ssr-font-body);
+  line-height: 1.6;
 }
 
 * {
@@ -15,14 +161,494 @@ body,
   margin: 0;
 }
 
+/* ---------- 3. Element Plus 外观收敛（去阴影、加密度、换主色） ---------- */
+.el-card {
+  --el-card-border-color: var(--ssr-line);
+  --el-card-border-radius: var(--ssr-radius);
+  --el-card-padding: 16px 18px;
+  box-shadow: none;
+}
+
+.el-card__header {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--ssr-line);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.el-table {
+  --el-table-border-color: var(--ssr-line);
+  --el-table-header-bg-color: var(--ssr-primary-light);
+  --el-table-header-text-color: var(--ssr-ink);
+  --el-table-text-color: var(--ssr-ink);
+  --el-table-row-hover-bg-color: var(--ssr-primary-light);
+  font-size: var(--ssr-font-table);
+}
+
+/* 紧凑行高（EP 2.9 未暴露 cell padding 变量，只能覆盖规则本身） */
+.el-table .el-table__cell {
+  padding: 7px 0;
+}
+
+.el-table .cell {
+  padding: 0 9px;
+  line-height: 1.5;
+}
+
+.el-table th.el-table__cell {
+  font-weight: 600;
+}
+
+.el-menu {
+  border-right: none;
+  --el-menu-active-color: var(--ssr-primary);
+  --el-menu-hover-bg-color: var(--ssr-primary-light);
+  --el-menu-item-height: var(--ssr-menu-item-h);
+}
+
+.el-menu-item {
+  position: relative;
+  height: var(--ssr-menu-item-h);
+  line-height: var(--ssr-menu-item-h);
+  font-size: var(--ssr-font-body);
+  color: var(--ssr-ink);
+}
+
+/* 选中态 = 3px 主色竖条 + 浅蓝底 + 主色加粗 */
+.el-menu-item.is-active {
+  color: var(--ssr-primary);
+  font-weight: 600;
+  background-color: var(--ssr-primary-light);
+}
+
+.el-menu-item.is-active::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  content: '';
+  background: var(--ssr-primary);
+}
+
+.el-tag {
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  font-size: var(--ssr-font-note);
+  line-height: 22px;
+}
+
+/* 状态标签配色：一处声明，StatusTag.vue 只负责选档位（小字用 *-ink 保证 ≥4.5:1） */
+$tag-variants: (
+  ok: ($ssr-success-bg, $ssr-success),
+  warn: ($ssr-warning-bg, $ssr-warning-ink),
+  err: ($ssr-danger-bg, $ssr-danger),
+  info: ($ssr-primary-light, $ssr-ink),
+  primary: ($ssr-primary-light, $ssr-primary),
+  use: ($ssr-tag-use-bg, $ssr-tag-use-fg),
+  fix: ($ssr-tag-fix-bg, $ssr-tag-fix-fg),
+  off: ($ssr-tag-off-bg, $ssr-tag-off-fg),
+);
+
+@each $name, $pair in $tag-variants {
+  .el-tag.ssr-tag--#{$name} {
+    --el-tag-bg-color: #{list.nth($pair, 1)};
+    --el-tag-text-color: #{list.nth($pair, 2)};
+  }
+}
+
+/* 键盘焦点始终可见（Tab 走查要求） */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ssr-primary);
+  outline-offset: 2px;
+}
+
+/* EP 用 .el-menu-item:focus{outline:none} 覆盖了上面这条零特异性规则，单独补一条 */
+.el-menu-item:focus-visible {
+  outline: 2px solid var(--ssr-primary);
+  outline-offset: -2px;
+}
+
+/* ---------- 4. 页面级通用类 ---------- */
 .page {
-  padding: 20px;
+  max-width: var(--ssr-main-max);
+  padding: var(--ssr-gutter);
+  margin-right: auto;
+}
+
+.table-page {
+  max-width: var(--ssr-main-max);
+  padding: var(--ssr-gutter);
+  margin-right: auto;
 }
 
 .page-card {
   margin-bottom: 16px;
 }
 
-.table-page {
-  padding: 20px;
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  background: var(--ssr-surface);
+  border: 1px solid var(--ssr-line);
+  border-radius: var(--ssr-radius);
+}
+
+.filter-bar__fields {
+  display: flex;
+  flex: 1 1 480px;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.filter-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ssr-text-muted {
+  color: var(--ssr-muted-ink);
+  font-size: var(--ssr-font-note);
+}
+
+/* ---------- 5. 座位矩阵四态（资源状态 × 时段占用） ----------
+   四态不只靠颜色区分：底纹方向 + 边框线型 + 图标三者各不相同，色盲与灰度打印下仍可辨。
+   free = 时段可约；taken = 该时段已被预约；fix = 资源状态维修中；off = 资源状态停用。 */
+.ssr-seat--free {
+  color: var(--ssr-seat-free-fg);
+  background-color: var(--ssr-seat-free-bg);
+  background-image: none;
+  border-color: var(--ssr-seat-free-line);
+  border-style: solid;
+}
+
+.ssr-seat--taken {
+  color: var(--ssr-seat-taken-fg);
+  background-color: var(--ssr-seat-taken-bg);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 3px,
+    #{$ssr-seat-taken-hatch} 3px 6px
+  );
+  border-color: var(--ssr-seat-taken-line);
+  border-style: dashed;
+}
+
+.ssr-seat--fix {
+  color: var(--ssr-seat-fix-fg);
+  background-color: var(--ssr-seat-fix-bg);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 2px,
+    #{$ssr-seat-fix-hatch} 2px 5px
+  );
+  border-color: var(--ssr-seat-fix-line);
+  border-style: solid;
+}
+
+.ssr-seat--off {
+  color: var(--ssr-seat-off-fg);
+  background-color: var(--ssr-seat-off-bg);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 3px,
+    #{$ssr-seat-off-hatch} 3px 5px
+  );
+  border-color: var(--ssr-seat-off-line);
+  border-style: dotted;
+}
+
+/* ---------- 6. 列表 / 表格共用件（学生端其余页面） ---------- */
+/* 卡片容器：与 EmptyState / LoadingBlock 同一套描边，避免各页面重复写 border */
+.ssr-card {
+  padding: 14px 16px;
+  background: var(--ssr-surface);
+  border: 1px solid var(--ssr-line);
+  border-radius: var(--ssr-radius);
+}
+
+.ssr-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--ssr-line);
+}
+
+.ssr-card__head h3 {
+  margin: 0;
+  color: var(--ssr-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* 窄屏表格横向滚动：列宽由各列的 min-width 决定，超宽时在本容器内滚动，不撑破页面 */
+.table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* 从站内消息跳转过来 / 刚提交成功的记录：整行浅蓝底 + 一次性高亮 */
+.el-table .ssr-row-focus > td.el-table__cell {
+  background: var(--ssr-primary-light);
+}
+
+.el-table .ssr-row-new > td.el-table__cell {
+  animation: ssr-row-flash 2.4s ease-out 1;
+}
+
+@keyframes ssr-row-flash {
+  0%,
+  40% {
+    background: var(--ssr-warning-bg);
+  }
+
+  100% {
+    background: transparent;
+  }
+}
+
+/* 未读消息：加粗 + 蓝色圆点 + 「未读」标签三重标识，不只靠颜色 */
+.ssr-unread-dot {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  background: var(--ssr-primary);
+  border-radius: 50%;
+}
+
+/* ---------- 7. 管理端共用件（7 个管理页共用同一套版式：FilterBar → 操作区 → 表格 → 分页） ---------- */
+/* 操作区：FilterBar 之下、表格之上的一排操作按钮与口径说明 */
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.admin-toolbar__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-toolbar__hint {
+  color: var(--ssr-muted-ink);
+  font-size: var(--ssr-font-note);
+}
+
+/* FilterBar 内的字段：标签 + 控件，7 个管理页共用同一版式 */
+.filter-field {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.filter-field__label {
+  color: var(--ssr-muted-ink);
+  font-size: var(--ssr-font-note);
+  white-space: nowrap;
+}
+
+/* 管理端筛选控件与抽屉内表单控件的宽度：集中声明，避免 7 个页面各自重复一份 */
+.w-120 {
+  width: 120px;
+}
+
+.w-130 {
+  width: 130px;
+}
+
+.w-140 {
+  width: 140px;
+}
+
+.w-150 {
+  width: 150px;
+}
+
+.w-160 {
+  width: 160px;
+}
+
+.w-170 {
+  width: 170px;
+}
+
+.w-190 {
+  width: 190px;
+}
+
+.w-200 {
+  width: 200px;
+}
+
+.w-260 {
+  width: 260px;
+}
+
+/* 抽屉 / 对话框内的日期时间选择器 */
+.w-datetime {
+  width: 190px;
+}
+
+.w-full {
+  width: 100%;
+}
+
+/* 投诉处理超时行（BR-014：3 个工作日）：整行危险底色，且同行内直接标注已超时天数 */
+.el-table .ssr-row-overdue > td.el-table__cell {
+  background: var(--ssr-danger-bg);
+}
+
+/* 抽屉与对话框内的分节标题 / 说明 / 底部操作条 */
+.drawer-section {
+  margin: 0 0 10px;
+  color: var(--ssr-ink);
+  font-size: var(--ssr-font-body);
+  font-weight: 600;
+}
+
+.drawer-note {
+  margin: 0 0 10px;
+  color: var(--ssr-muted-ink);
+  font-size: var(--ssr-font-note);
+  line-height: 1.6;
+}
+
+.drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 12px;
+}
+
+/* 座位网格（管理端 FR-003 / FR-031）：格子只承载座位号 + 资源状态 + 该时段占用两个维度 */
+.seat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.seat-grid__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 6px;
+  font-size: var(--ssr-font-note);
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid var(--ssr-line);
+  border-radius: var(--ssr-radius-sm);
+}
+
+.seat-grid__cell:disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.seat-grid__cell.is-selected {
+  outline: 2px solid var(--ssr-primary);
+  outline-offset: 1px;
+}
+
+.seat-grid__no {
+  font-size: var(--ssr-font-body);
+  font-weight: 600;
+}
+
+/* 座位图例：四态除颜色外还有底纹与线型差异，图例逐项说明 */
+.seat-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0;
+  margin: 0 0 10px;
+  font-size: var(--ssr-font-note);
+  color: var(--ssr-muted-ink);
+  list-style: none;
+}
+
+.seat-legend__item {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.seat-legend__swatch {
+  width: 18px;
+  height: 12px;
+  border: 1px solid var(--ssr-line);
+  border-radius: 3px;
+}
+
+/* ---------- 8. 响应式收口（1440 / 1024 / 768 三档走查结论） ---------- */
+
+/* 抽屉宽度自适应：各页按设计稿写死 520～640px，窄屏下用 max-width 兜底，避免溢出视口 */
+.el-drawer {
+  max-width: 92vw;
+}
+
+/* 表格一律在自己的容器里横向滚动，不撑破页面（`.table-wrap` 已是 overflow-x:auto） */
+.table-wrap > .el-table {
+  min-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .page,
+  .table-page {
+    padding: 12px;
+  }
+
+  .filter-bar {
+    padding: 12px;
+  }
+
+  /* 筛选区在窄屏下改成纵向堆叠，控件占满一行，避免"输入框被压成 60px" */
+  .filter-bar__fields {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .filter-field {
+    width: 100%;
+  }
+
+  .filter-field > .el-select,
+  .filter-field > .el-input,
+  .filter-field > .el-date-editor {
+    width: 100%;
+  }
+
+  .filter-bar__actions {
+    justify-content: flex-end;
+    width: 100%;
+  }
 }

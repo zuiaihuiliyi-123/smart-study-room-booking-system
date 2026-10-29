@@ -1,4 +1,5 @@
 export * as authApi from './auth'
+export * as blacklistApi from './blacklist'
 export * as complaintApi from './complaint'
 export * as dashboardApi from './dashboard'
 export * as messageApi from './message'

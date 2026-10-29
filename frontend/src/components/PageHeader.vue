@@ -6,34 +6,49 @@ defineProps<{
 </script>
 
 <template>
-  <div class="page-header">
-    <div>
+  <header class="page-header">
+    <div class="page-header__text">
       <h2>{{ title }}</h2>
       <p v-if="subtitle">{{ subtitle }}</p>
     </div>
     <div class="page-header__actions">
       <slot name="actions" />
     </div>
-  </div>
+  </header>
 </template>
 
 <style scoped>
 .page-header {
   display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+}
+
+.page-header__text {
+  min-width: 0;
 }
 
 h2 {
   margin: 0;
-  font-size: 20px;
+  color: var(--ssr-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 p {
-  margin: 6px 0 0;
-  color: #909399;
-  font-size: 13px;
+  margin: 4px 0 0;
+  color: var(--ssr-muted-ink);
+  font-size: var(--ssr-font-note);
+}
+
+.page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 </style>

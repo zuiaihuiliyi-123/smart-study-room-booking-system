@@ -1,78 +1,9 @@
 <script setup lang="ts">
-import { useRoute, useRouter } from 'vue-router'
-
-import { useAuthStore } from '@/stores/auth'
-
-const route = useRoute()
-const router = useRouter()
-const auth = useAuthStore()
-
-function logout() {
-  auth.logout()
-  router.push('/login')
-}
+import AppShell from '@/layouts/components/AppShell.vue'
+import { adminMenus } from '@/layouts/menu'
 </script>
 
 <template>
-  <el-container class="layout">
-    <el-aside width="220px" class="aside">
-      <div class="brand">智慧自习室 · 管理端</div>
-      <el-menu router :default-active="route.path">
-        <el-menu-item index="/admin/dashboard">数据看板</el-menu-item>
-        <el-menu-item index="/admin/rooms">自习室管理</el-menu-item>
-        <el-menu-item index="/admin/seats">座位管理</el-menu-item>
-        <el-menu-item index="/admin/reservations">预约管理</el-menu-item>
-        <el-menu-item index="/admin/violations">违约管理</el-menu-item>
-        <el-menu-item index="/admin/complaints">投诉处理</el-menu-item>
-        <el-menu-item index="/admin/users">用户管理</el-menu-item>
-        <el-menu-item index="/admin/blacklist">黑名单管理</el-menu-item>
-      </el-menu>
-    </el-aside>
-
-    <el-container>
-      <el-header class="header">
-        <span>{{ route.meta.title }}</span>
-        <div class="user">
-          <span>{{ auth.user?.name ?? '未登录' }}</span>
-          <el-button link type="primary" @click="logout">退出登录</el-button>
-        </div>
-      </el-header>
-      <el-main class="main">
-        <router-view />
-      </el-main>
-    </el-container>
-  </el-container>
+  <!-- 管理端暂无个人资料页，不传 profile-path，下拉项置灰 -->
+  <AppShell :menus="adminMenus" role-label="管理端" />
 </template>
-
-<style scoped>
-.layout {
-  height: 100%;
-}
-.aside {
-  background: #fff;
-  border-right: 1px solid #ebeef5;
-}
-.brand {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #409eff;
-  font-weight: 600;
-}
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
-}
-.user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.main {
-  background: #f5f7fa;
-}
-</style>
