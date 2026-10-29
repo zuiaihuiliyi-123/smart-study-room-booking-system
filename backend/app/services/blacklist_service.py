@@ -22,8 +22,10 @@ def add_entry(
     raise NotImplementedError("手动加入黑名单待实现")
 
 
-def release_entry(db: Session, admin: User, entry_id: int) -> BlacklistEntry:
-    """M5 / FR-044：管理员手动解除黑名单。"""
+def release_entry(
+    db: Session, admin: User, entry_id: int, reason: str
+) -> BlacklistEntry:
+    """M5 / FR-044：管理员手动解除黑名单，须填写解除原因。"""
     raise NotImplementedError("解除黑名单待实现")
 
 

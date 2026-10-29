@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -18,6 +18,9 @@ class ViolationRecord(Base):
     __table_args__ = (
         Index("ix_violation_user_time", "user_id", "created_at"),
         Index("ix_violation_reservation_type", "reservation_id", "type"),
+        CheckConstraint(
+            "type IN ('自动违约', '手动违约')", name="ck_violation_type"
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

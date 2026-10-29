@@ -10,6 +10,7 @@ class SeatCreate(BaseModel):
     seat_no: str = Field(min_length=1, max_length=20)
     seat_type: str = "普通"
     has_power: bool = False
+    near_window: bool = False
 
 
 class SeatStatusUpdate(BaseModel):
@@ -24,4 +25,5 @@ class SeatRead(ORMModel):
     seat_no: str
     seat_type: str
     has_power: bool
+    near_window: bool
     status: str

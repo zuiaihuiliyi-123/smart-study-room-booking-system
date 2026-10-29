@@ -1,6 +1,14 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -11,7 +19,13 @@ class StationMessage(Base):
     """站内通知（FR-060）：不接短信/邮件/微信，失败不得回滚业务。"""
 
     __tablename__ = "station_messages"
-    __table_args__ = (Index("ix_message_user_read", "user_id", "is_read"),)
+    __table_args__ = (
+        Index("ix_message_user_read", "user_id", "is_read"),
+        CheckConstraint(
+            "type IN ('预约通知', '违约通知', '投诉反馈', '系统通知')",
+            name="ck_message_type",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)

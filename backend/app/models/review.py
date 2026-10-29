@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -10,6 +10,9 @@ class Review(Base):
     """评价（DR-006）：同一预约单最多一条评价（BR-013）。"""
 
     __tablename__ = "reviews"
+    __table_args__ = (
+        CheckConstraint("score BETWEEN 1 AND 5", name="ck_review_score"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)

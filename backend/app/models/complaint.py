@@ -1,6 +1,13 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -11,7 +18,17 @@ class Complaint(Base):
     """投诉（DR-007）。"""
 
     __tablename__ = "complaints"
-    __table_args__ = (Index("ix_complaint_user_status", "user_id", "status"),)
+    __table_args__ = (
+        Index("ix_complaint_user_status", "user_id", "status"),
+        CheckConstraint(
+            "target_type IN ('座位', '自习室', '预约单', '用户')",
+            name="ck_complaint_target_type",
+        ),
+        CheckConstraint(
+            "status IN ('待处理', '处理中', '已处理', '已驳回', '已关闭')",
+            name="ck_complaint_status",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(

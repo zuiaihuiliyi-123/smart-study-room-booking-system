@@ -11,6 +11,10 @@ class BlacklistCreate(BaseModel):
     expire_at: datetime | None = None
 
 
+class BlacklistRelease(BaseModel):
+    reason: str = Field(min_length=1, max_length=255)
+
+
 class BlacklistRead(ORMModel):
     id: int
     user_id: int
@@ -19,4 +23,5 @@ class BlacklistRead(ORMModel):
     start_at: datetime
     expire_at: datetime | None = None
     released_at: datetime | None = None
+    release_reason: str | None = None
     operator_id: int | None = None

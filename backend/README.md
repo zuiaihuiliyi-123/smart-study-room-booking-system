@@ -18,7 +18,9 @@ backend/
 │   ├── tasks/               # APScheduler 定时任务
 │   └── utils/               # 时间区间、分页等工具
 ├── alembic/                 # 数据库迁移
-├── scripts/seed.py          # 演示账户
+├── scripts/
+│   ├── init_db.sql          # 本地建库/建账号（方案 A）
+│   └── seed.py              # 演示账户
 ├── tests/                   # Pytest
 ├── alembic.ini
 └── requirements.txt
@@ -27,21 +29,21 @@ backend/
 ## 启动
 
 ```bash
-# 1. 创建数据库（utf8mb4）
-#    CREATE DATABASE smart_study_room CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
 cd backend
+
+# 1. 创建数据库和专用账号（每位开发者本机执行一次）
+#    先修改 scripts/init_db.sql 里的 CHANGE_ME_APP_PASSWORD
+mysql -u root -p --default-character-set=utf8mb4 < scripts/init_db.sql
 
 # 2. 虚拟环境与依赖
 python -m venv .venv
 source .venv/Scripts/activate      # Git Bash；PowerShell 用 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-# 3. 配置
-cp .env.example .env               # 按本机 MySQL 修改 DATABASE_URL
+# 3. 配置（.env 不提交；DATABASE_URL 使用 study_app 和自己的密码）
+cp .env.example .env
 
-# 4. 建表
-alembic revision --autogenerate -m "init"
+# 4. 建表（初始迁移已提交，直接升级；不要再自动生成 "init"）
 alembic upgrade head
 
 # 5. 演示账户（student / student123，admin / admin123）
@@ -53,6 +55,16 @@ uvicorn app.main:app --reload
 
 - Swagger UI：<http://127.0.0.1:8000/docs>
 - 健康检查：<http://127.0.0.1:8000/health>
+- 系统使用说明：见 [`../docs/系统使用说明.md`](../docs/系统使用说明.md)
+- 数据库表结构：见 [`../docs/数据库表结构说明.md`](../docs/数据库表结构说明.md)
+- 数据库初始化与 Alembic 协作流程：见 [`../docs/数据库协作说明.md`](../docs/数据库协作说明.md)
+
+### Alembic 迁移规则
+
+- 迁移由固定负责人生成和审核；其他组员只执行 `alembic upgrade head`。
+- 修改模型后由负责人执行 `alembic revision --autogenerate -m "..."`，审核迁移文件后与模型一起提交。
+- 已经执行过的迁移不要修改；有新增变化就新建 revision。
+- 每次 `git pull` 后先执行 `alembic current` 和 `alembic upgrade head`；提交前执行 `alembic check`。
 
 ## 分层约定
 

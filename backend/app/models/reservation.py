@@ -1,6 +1,7 @@
 from datetime import date, datetime, time
 
 from sqlalchemy import (
+    CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
@@ -31,6 +32,14 @@ class Reservation(Base):
         Index("ix_reservation_seat_date", "seat_id", "reserve_date"),
         Index("ix_reservation_user_date", "user_id", "reserve_date"),
         Index("ix_reservation_status", "status"),
+        CheckConstraint("start_time < end_time", name="ck_reservation_time_order"),
+        CheckConstraint(
+            "status IN ('待使用', '使用中', '已完成', '已取消', '已违约')",
+            name="ck_reservation_status",
+        ),
+        CheckConstraint(
+            "idempotency_key <> ''", name="ck_reservation_idempotency_nonempty"
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
