@@ -46,6 +46,12 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+!frontend/.env.development
+
+# ---- Node / 前端 ----
+node_modules/
+frontend/dist/
+*.local
 
 # ---- 数据库与日志 ----
 *.sqlite3

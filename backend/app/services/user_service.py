@@ -1,5 +1,7 @@
 """M5 用户管理：本人资料与管理员用户查询（FR-040）。"""
 
+from __future__ import annotations
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 

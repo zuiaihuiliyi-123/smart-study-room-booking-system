@@ -44,6 +44,22 @@ def db() -> Iterator[Session]:
 
 
 @pytest.fixture()
+def api_client(db: Session) -> Iterator[TestClient]:
+    """接口测试客户端：把 get_db 覆盖为本用例的内存库，无需本机 MySQL。"""
+    from app.core.database import get_db
+
+    def _override() -> Iterator[Session]:
+        yield db
+
+    app.dependency_overrides[get_db] = _override
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.fixture()
 def make_user(db: Session) -> Callable[..., User]:
     def _make(**kwargs: object) -> User:
         defaults: dict[str, object] = {

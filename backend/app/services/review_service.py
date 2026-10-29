@@ -1,5 +1,7 @@
 """M5 评价管理（FR-041，BR-013：仅本人已完成的预约可评价一次）。"""
 
+from __future__ import annotations
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 

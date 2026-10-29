@@ -1,5 +1,7 @@
 """M5 投诉管理（FR-042/FR-043，状态机 SM-04）。"""
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 
 from sqlalchemy import func, select

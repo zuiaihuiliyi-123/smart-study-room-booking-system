@@ -35,7 +35,12 @@ def get_current_user(
 
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
-    """仅自习室管理员 / 系统管理员可访问。"""
+    """管理端业务接口依赖。
+
+    TODO: 按权限矩阵（BR-018），系统管理员仅负责全局参数与账号配置，
+    不应处理座位、预约、投诉等业务数据；当前骨架暂允许其访问，
+    待系统管理模块落地后再拆分角色依赖。
+    """
     if current_user.role not in (Role.ADMIN.value, Role.SYSTEM_ADMIN.value):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

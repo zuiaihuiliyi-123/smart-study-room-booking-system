@@ -1,5 +1,7 @@
 """M5 黑名单与账户受限（FR-044，BR-009/BR-010，SM-03 的 ST-040～ST-043/ST-047）。"""
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 
 from sqlalchemy import func, select
