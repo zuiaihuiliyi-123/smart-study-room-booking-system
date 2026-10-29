@@ -3,19 +3,19 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.violation import ViolationRecord
 from app.schemas.common import PageResult
-from app.schemas.violation import ManualViolationCreate
+from app.schemas.violation import ManualViolationCreate, ViolationRead
 
 
 def list_my_violations(
     db: Session, user_id: int, page: int, page_size: int
-) -> PageResult[ViolationRecord]:
+) -> PageResult[ViolationRead]:
     """M4 / FR-032：学生查询本人违约记录。"""
     raise NotImplementedError("个人违约记录查询待实现")
 
 
 def list_all_violations(
     db: Session, page: int, page_size: int
-) -> PageResult[ViolationRecord]:
+) -> PageResult[ViolationRead]:
     """M4 / FR-032：管理员查询全部违约记录。"""
     raise NotImplementedError("违约记录管理查询待实现")
 

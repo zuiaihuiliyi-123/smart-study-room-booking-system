@@ -2,11 +2,12 @@ from sqlalchemy.orm import Session
 
 from app.models.message import StationMessage
 from app.schemas.common import PageResult
+from app.schemas.message import MessageRead
 
 
 def list_my_messages(
     db: Session, user_id: int, page: int, page_size: int
-) -> PageResult[StationMessage]:
+) -> PageResult[MessageRead]:
     """M7 / FR-060：查询本人站内通知。"""
     raise NotImplementedError("站内通知查询待实现")
 

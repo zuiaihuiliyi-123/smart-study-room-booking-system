@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     violation_threshold: int = 3
     restriction_days: int = 7
     dashboard_refresh_seconds: int = 10
+    # ST-063：已处理投诉超过该天数未关闭则自动关闭（候选 7 天，BR-014 相关，待确认）
+    complaint_close_days: int = 7
 
 
 @lru_cache
