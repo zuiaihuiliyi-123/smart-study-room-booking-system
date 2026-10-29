@@ -1,6 +1,14 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -10,6 +18,10 @@ class Room(Base):
     """自习室（DR-002）。"""
 
     __tablename__ = "rooms"
+    __table_args__ = (
+        CheckConstraint("capacity >= 0", name="ck_room_capacity"),
+        CheckConstraint("open_time < close_time", name="ck_room_time_order"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(50), unique=True)
@@ -29,7 +41,7 @@ class Area(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     room_id: Mapped[int] = mapped_column(
-        ForeignKey("rooms.id", ondelete="CASCADE"), index=True
+        ForeignKey("rooms.id", ondelete="RESTRICT"), index=True
     )
     name: Mapped[str] = mapped_column(String(50))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

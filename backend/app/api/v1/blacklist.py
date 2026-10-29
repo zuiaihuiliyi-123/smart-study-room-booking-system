@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.core.dependencies import require_admin
 from app.models.blacklist import BlacklistEntry
 from app.models.user import User
-from app.schemas.blacklist import BlacklistCreate, BlacklistRead
+from app.schemas.blacklist import BlacklistCreate, BlacklistRead, BlacklistRelease
 from app.schemas.common import PageResult
 from app.services import blacklist_service
 
@@ -43,7 +43,8 @@ def add_entry(
 )
 def release_entry(
     entry_id: int,
+    payload: BlacklistRelease,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ) -> BlacklistEntry:
-    return blacklist_service.release_entry(db, admin, entry_id)
+    return blacklist_service.release_entry(db, admin, entry_id, payload.reason)

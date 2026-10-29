@@ -56,6 +56,7 @@ export interface Seat {
   seat_no: string
   seat_type: string
   has_power: boolean
+  near_window: boolean
   status: '可用' | '维修中' | '停用'
 }
 
@@ -114,6 +115,7 @@ export interface BlacklistEntry {
   start_at: string
   expire_at: string | null
   released_at: string | null
+  release_reason: string | null
   operator_id: number | null
   /**
    * 手动解除的原因与解除人（ST-043：解除须记录原因）。

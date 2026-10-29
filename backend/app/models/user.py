@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import CheckConstraint, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -11,6 +11,17 @@ class User(Base):
     """用户（DR-001）：学生、教师、自习室管理员、系统管理员。"""
 
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('学生用户', '自习室管理员', '教师用户', '系统管理员')",
+            name="ck_user_role",
+        ),
+        CheckConstraint(
+            "account_status IN ('正常', '受限', '停用')",
+            name="ck_user_account_status",
+        ),
+        CheckConstraint("violation_count >= 0", name="ck_user_violation_count"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(50), comment="姓名")
