@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     attendance,
+    audit_logs,
     auth,
     blacklist,
     complaints,
@@ -23,6 +24,7 @@ api_router.include_router(seats.router)
 api_router.include_router(reservations.router)
 api_router.include_router(attendance.router)
 api_router.include_router(violations.router)
+api_router.include_router(audit_logs.router)
 api_router.include_router(reviews.router)
 api_router.include_router(complaints.router)
 api_router.include_router(blacklist.router)

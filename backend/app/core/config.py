@@ -29,6 +29,9 @@ class Settings(BaseSettings):
         "http://localhost:5173",
     ]
 
+    # 定时任务开关（测试环境关闭，避免后台线程干扰断言）
+    scheduler_enabled: bool = True
+
     # ---- 业务参数（需求规格说明书 BR-001～BR-009，均待业务确认） ----
     reservation_granularity_minutes: int = 30
     advance_booking_days: int = 7

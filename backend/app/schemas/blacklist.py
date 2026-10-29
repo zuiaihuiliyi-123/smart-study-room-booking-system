@@ -11,6 +11,12 @@ class BlacklistCreate(BaseModel):
     expire_at: datetime | None = None
 
 
+class BlacklistRelease(BaseModel):
+    """ST-043：管理员解除黑名单必须填写原因。"""
+
+    reason: str = Field(min_length=1, max_length=255)
+
+
 class BlacklistRead(ORMModel):
     id: int
     user_id: int

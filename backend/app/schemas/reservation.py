@@ -25,6 +25,8 @@ class ReservationRead(ORMModel):
     check_out_time: datetime | None = None
     cancel_time: datetime | None = None
     cancel_reason: str | None = None
+    cancelled_by_id: int | None = None
+    auto_completed: bool = False
     created_at: datetime
 
 

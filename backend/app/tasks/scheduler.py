@@ -1,5 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from app.core.config import settings
 from app.tasks.auto_end_reservation import finish_expired_reservations
 from app.tasks.auto_violation import scan_auto_violations
 from app.tasks.blacklist_expiry import release_expired_restrictions
@@ -9,6 +10,8 @@ scheduler = BackgroundScheduler(timezone="Asia/Shanghai")
 
 
 def start_scheduler() -> None:
+    if not settings.scheduler_enabled:
+        return
     if scheduler.running:
         return
     scheduler.add_job(
@@ -17,6 +20,8 @@ def start_scheduler() -> None:
         minutes=1,
         id="auto_violation",
         replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
     scheduler.add_job(
         finish_expired_reservations,
@@ -24,6 +29,8 @@ def start_scheduler() -> None:
         minutes=1,
         id="auto_end_reservation",
         replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
     scheduler.add_job(
         release_expired_restrictions,
@@ -31,6 +38,8 @@ def start_scheduler() -> None:
         minutes=10,
         id="blacklist_expiry",
         replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
     scheduler.add_job(
         close_stale_complaints,
@@ -38,6 +47,8 @@ def start_scheduler() -> None:
         hours=1,
         id="complaint_auto_close",
         replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
     scheduler.start()
 
