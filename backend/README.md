@@ -48,6 +48,8 @@ alembic upgrade head
 
 # 5. 演示账户（student / student123，admin / admin123）
 python -m scripts.seed
+#    可选：演示自习室 / 分区 / 座位（幂等，同名自习室已存在时跳过）
+python -m scripts.seed_demo
 
 # 6. 启动
 uvicorn app.main:app --reload
@@ -96,4 +98,4 @@ api/v1/*  →  services/*  →  models/*
 pytest
 ```
 
-当前仅包含健康检查与时间区间工具测试；业务测试按需求文档的场景（VS-01～VS-06）补充。
+测试使用 SQLite 内存库与依赖覆盖，覆盖登录/权限、资源、预约与可用性、签到违约、投诉/黑名单、看板、站内消息及主要 HTTP 场景。

@@ -2,7 +2,7 @@
 
 面向高校自习空间的座位预约、使用管理与数据分析平台。
 
-> **当前阶段：可演示闭环。** 本仓库包含需求分析阶段的文档与图模型，以及基于 FastAPI + Vue 3 的前后端实现；M1～M7 业务接口均不再返回 501，前端 17 个页面可演示并以 MSW 联调。
+> **当前阶段：可演示闭环。** 本仓库包含需求分析阶段的文档与图模型，以及基于 FastAPI + Vue 3 的前后端实现；M1～M7 业务接口均不再返回 501，前端 17 个页面默认直连真实后端演示，也可切换为 MSW mock 独立演示。
 
 ## 仓库结构
 
@@ -40,7 +40,7 @@
 | `backend/` | FastAPI · Pydantic 2 · SQLAlchemy 2 · Alembic · MySQL 8.4 · JWT · APScheduler · Pytest | 见 [`backend/README.md`](backend/README.md) |
 | `frontend/` | Vue 3 · TypeScript · Vite · Element Plus · Pinia · ECharts | 见 [`frontend/README.md`](frontend/README.md) |
 
-后端已实现登录、M1 资源、M2 预约、M3 签到与违约、M4 查询、M5 治理、M6 看板与 M7 站内通知；数据库表结构通过单链 Alembic 迁移建立，自动违约/自动结束任务已落地。前端学生端 7 页、管理端 8 页、登录与 404 均可演示。模块划分与功能需求编号的对应关系见 `backend/README.md`。
+后端已实现登录、M1 资源、M2 预约、M3 签到与违约、M4 查询、M5 治理、M6 看板与 M7 站内通知；数据库表结构通过单链 Alembic 迁移建立，自动违约/自动结束任务已落地。前端学生端 7 页、管理端 8 页、登录与 404 均可演示，`.env.development` 默认直连后端。模块划分与功能需求编号的对应关系见 `backend/README.md`。
 
 三周交付安排、P0 基座冻结、任务分工与 VS 验收矩阵见 [`docs/项目开发计划-三周冲刺版.md`](docs/项目开发计划-三周冲刺版.md)。
 
