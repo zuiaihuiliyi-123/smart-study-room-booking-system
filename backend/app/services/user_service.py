@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -24,11 +24,39 @@ def update_my_profile(db: Session, user: User, payload: UserUpdate) -> User:
     return user
 
 
-def list_users(db: Session, page: int, page_size: int) -> PageResult[UserRead]:
+def list_users(
+    db: Session,
+    page: int,
+    page_size: int,
+    *,
+    keyword: str | None = None,
+    role: str | None = None,
+    account_status: str | None = None,
+    violation_min: int | None = None,
+) -> PageResult[UserRead]:
     """M5 / FR-040：管理员查询用户列表与账户状态（分页，按 id 升序）。"""
-    total = db.scalar(select(func.count()).select_from(User)) or 0
+    conditions: list = []
+    if keyword:
+        pattern = f"%{keyword.strip()}%"
+        conditions.append(
+            or_(User.name.like(pattern), User.student_no.like(pattern))
+        )
+    if role:
+        conditions.append(User.role == role)
+    if account_status:
+        conditions.append(User.account_status == account_status)
+    if violation_min is not None:
+        conditions.append(User.violation_count >= violation_min)
+
+    total = (
+        db.scalar(select(func.count()).select_from(User).where(*conditions)) or 0
+    )
     rows = db.scalars(
-        select(User).order_by(User.id).offset(to_offset(page, page_size)).limit(page_size)
+        select(User)
+        .where(*conditions)
+        .order_by(User.id)
+        .offset(to_offset(page, page_size))
+        .limit(page_size)
     )
     return PageResult[UserRead](
         items=[UserRead.model_validate(row) for row in rows],

@@ -10,7 +10,12 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401  确保全部 ORM 模型注册到 Base.metadata
+from app.core.config import settings
 from app.core.database import Base
+
+# 测试环境不启动 APScheduler，避免后台任务连接真实 MySQL
+settings.scheduler_enabled = False
+
 from app.main import app
 from app.models.enums import AccountStatus, ReservationStatus, Role, SeatStatus
 from app.models.reservation import Reservation

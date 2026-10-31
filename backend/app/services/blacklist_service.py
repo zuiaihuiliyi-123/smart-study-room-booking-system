@@ -12,6 +12,7 @@ from app.core.exceptions import BusinessError
 from app.models.blacklist import BlacklistEntry
 from app.models.enums import AccountStatus, BlacklistMode
 from app.models.user import User
+from app.models.violation import ViolationRecord
 from app.schemas.blacklist import BlacklistCreate, BlacklistRead
 from app.schemas.common import PageResult
 from app.services import audit_service
@@ -47,12 +48,46 @@ def _sync_account_status(db: Session, user: User, now: datetime) -> str:
 
 
 def list_entries(
-    db: Session, page: int, page_size: int
+    db: Session,
+    page: int,
+    page_size: int,
+    *,
+    state: str | None = None,
+    mode: str | None = None,
+    user_id: int | None = None,
+    now: datetime | None = None,
 ) -> PageResult[BlacklistRead]:
     """M5 / FR-044：管理员查询黑名单记录（含历史记录，按开始时间倒序）。"""
-    total = db.scalar(select(func.count()).select_from(BlacklistEntry)) or 0
+    current = now or datetime.now()
+    conditions: list = []
+    if state == "生效中":
+        conditions.append(BlacklistEntry.released_at.is_(None))
+        conditions.append(
+            (BlacklistEntry.expire_at.is_(None))
+            | (BlacklistEntry.expire_at > current)
+        )
+    elif state == "已解除":
+        conditions.append(BlacklistEntry.released_at.is_not(None))
+    elif state == "已过期":
+        conditions.append(BlacklistEntry.released_at.is_(None))
+        conditions.append(BlacklistEntry.expire_at.is_not(None))
+        conditions.append(BlacklistEntry.expire_at <= current)
+    if mode:
+        conditions.append(BlacklistEntry.mode == mode)
+    if user_id is not None:
+        conditions.append(BlacklistEntry.user_id == user_id)
+
+    total = (
+        db.scalar(
+            select(func.count())
+            .select_from(BlacklistEntry)
+            .where(*conditions)
+        )
+        or 0
+    )
     rows = db.scalars(
         select(BlacklistEntry)
+        .where(*conditions)
         .order_by(BlacklistEntry.start_at.desc(), BlacklistEntry.id.desc())
         .offset(to_offset(page, page_size))
         .limit(page_size)
@@ -161,16 +196,32 @@ def release_entry(
     return entry
 
 
-def restrict_if_threshold(db: Session, user_id: int) -> BlacklistEntry | None:
+def restrict_if_threshold(
+    db: Session, user_id: int, now: datetime | None = None
+) -> BlacklistEntry | None:
     """BR-009 / BR-010 / ST-040：有效违约次数达到阈值时自动限制。
 
     由自动违约任务调用；幂等——已有有效限制时不重复创建，返回 None。
     """
-    now = datetime.now()
+    now = now or datetime.now()
     user = db.get(User, user_id)
     if user is None:
         return None
-    if user.violation_count < settings.violation_threshold:
+
+    # 以违约记录数回写累计次数，保证计数与记录一致（ST-034 幂等）
+    record_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(ViolationRecord)
+            .where(ViolationRecord.user_id == user_id)
+        )
+        or 0
+    )
+    # 计数与明细取较大值：历史数据可能已回写计数但明细尚未补齐
+    count = max(user.violation_count, record_count)
+    user.violation_count = count
+
+    if count < settings.violation_threshold:
         return None
     if _active_entries(db, user.id, now):
         return None

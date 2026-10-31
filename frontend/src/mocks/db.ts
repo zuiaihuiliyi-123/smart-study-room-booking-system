@@ -296,6 +296,7 @@ export function createSession(userId: number): string {
         start_at: formatDateTime(now),
         expire_at: formatDateTime(new Date(now.getTime() + RULES.restrictionDays * 86_400_000)),
         released_at: null,
+        release_reason: null,
         operator_id: null,
       }
       db.blacklist.push(entry)

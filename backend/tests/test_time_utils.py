@@ -30,5 +30,7 @@ def test_checkin_window() -> None:
 
 def test_cancel_deadline() -> None:
     day = date(2026, 10, 29)
-    assert is_cancellable(datetime(2026, 10, 29, 13, 30), day, time(14, 0), 30)
+    # TB-09：提交时刻 < s − N 分钟；恰好等于截止时刻不可取消
+    assert is_cancellable(datetime(2026, 10, 29, 13, 29), day, time(14, 0), 30)
+    assert not is_cancellable(datetime(2026, 10, 29, 13, 30), day, time(14, 0), 30)
     assert not is_cancellable(datetime(2026, 10, 29, 13, 31), day, time(14, 0), 30)

@@ -1,6 +1,7 @@
 from datetime import date, datetime, time
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -55,6 +56,12 @@ class Reservation(Base):
     check_out_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     cancel_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     cancel_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    cancelled_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, comment="取消操作人（管理员强制取消时必填）"
+    )
+    auto_completed: Mapped[bool] = mapped_column(
+        Boolean, default=False, comment="ST-025 系统自动结束标记"
+    )
     idempotency_key: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(

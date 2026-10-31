@@ -101,10 +101,9 @@ const title = computed(() =>
           {{ formatDateTime(props.entry.released_at) }}
         </el-descriptions-item>
         <el-descriptions-item label="解除原因">
-          <span v-if="props.entry.released_reason">{{ props.entry.released_reason }}</span>
-          <span v-else-if="props.entry.released_at !== null" class="ssr-text-muted">
-            待后端提供字段（后端模型暂无 `released_reason`，解除原因目前只进 `audit_logs`）
-          </span>
+          <span v-if="props.entry.release_reason">{{ props.entry.release_reason }}</span>
+          <span v-else-if="props.entry.released_reason">{{ props.entry.released_reason }}</span>
+          <span v-else-if="props.entry.released_at !== null" class="ssr-text-muted">—</span>
           <span v-else class="ssr-text-muted">—</span>
         </el-descriptions-item>
         <el-descriptions-item label="操作者">

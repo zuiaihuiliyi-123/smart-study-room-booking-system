@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
@@ -40,12 +42,24 @@ def list_my_complaints(
 
 @router.get("", response_model=PageResult[ComplaintRead], summary="投诉列表（管理员）")
 def list_all_complaints(
+    status: str | None = None,
+    target_type: str | None = None,
+    created_from: date | None = None,
+    created_to: date | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> PageResult[ComplaintRead]:
-    return complaint_service.list_all_complaints(db, page, page_size)
+    return complaint_service.list_all_complaints(
+        db,
+        page,
+        page_size,
+        status=status,
+        target_type=target_type,
+        created_from=created_from,
+        created_to=created_to,
+    )
 
 
 @router.patch(

@@ -162,6 +162,7 @@ http.post('/api/v1/seats', ({ request }) =>
         seat_no: seatNo,
         seat_type: payload.seat_type ?? '普通',
         has_power: payload.has_power === true,
+        near_window: payload.near_window === true,
         status: '可用',
       }
       db.seats.push(seat)

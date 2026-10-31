@@ -27,9 +27,21 @@ def update_my_profile(
 
 @router.get("", response_model=PageResult[UserRead], summary="用户列表（管理员）")
 def list_users(
+    keyword: str | None = None,
+    role: str | None = None,
+    account_status: str | None = None,
+    violation_min: int | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> PageResult[UserRead]:
-    return user_service.list_users(db, page, page_size)
+    return user_service.list_users(
+        db,
+        page,
+        page_size,
+        keyword=keyword,
+        role=role,
+        account_status=account_status,
+        violation_min=violation_min,
+    )

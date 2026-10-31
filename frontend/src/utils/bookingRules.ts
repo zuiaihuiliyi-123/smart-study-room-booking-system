@@ -454,15 +454,15 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
   }
 
   const RULE_TO_JUDGEMENT: Record<string, JudgementId> = {
-    '': 'C1',
-    '': 'C3',
-    '': 'C4',
-    '': 'C5',
-    '': 'C5',
-    '': 'C6',
-    '': 'C6',
-    '': 'C6',
-    '': 'C6',
+    'BR-017': 'C1',
+    'BR-006': 'C3',
+    'BR-005': 'C4',
+    'BR-009': 'C5',
+    'BR-010': 'C5',
+    'BR-001': 'C6',
+    'BR-003': 'C6',
+    'BR-004': 'C6',
+    'BR-020': 'C6',
   }
 
   function asText(value: unknown): string {

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -107,12 +107,42 @@ def list_my_complaints(
 
 
 def list_all_complaints(
-    db: Session, page: int, page_size: int
+    db: Session,
+    page: int,
+    page_size: int,
+    *,
+    status: str | None = None,
+    target_type: str | None = None,
+    created_from: date | None = None,
+    created_to: date | None = None,
 ) -> PageResult[ComplaintRead]:
     """M5 / FR-043：管理员查询投诉列表（按提交时间倒序）。"""
-    total = db.scalar(select(func.count()).select_from(Complaint)) or 0
+    conditions: list = []
+    if status:
+        conditions.append(Complaint.status == status)
+    if target_type:
+        conditions.append(Complaint.target_type == target_type)
+    if created_from is not None:
+        conditions.append(
+            Complaint.created_at
+            >= datetime.combine(created_from, datetime.min.time())
+        )
+    if created_to is not None:
+        conditions.append(
+            Complaint.created_at
+            < datetime.combine(created_to, datetime.min.time())
+            + timedelta(days=1)
+        )
+
+    total = (
+        db.scalar(
+            select(func.count()).select_from(Complaint).where(*conditions)
+        )
+        or 0
+    )
     rows = db.scalars(
         select(Complaint)
+        .where(*conditions)
         .order_by(Complaint.created_at.desc(), Complaint.id.desc())
         .offset(to_offset(page, page_size))
         .limit(page_size)

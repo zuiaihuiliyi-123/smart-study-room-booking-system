@@ -81,6 +81,7 @@ http.post('/api/v1/blacklist', ({ request }) =>
       start_at: formatDateTime(now),
       expire_at: expireAt,
       released_at: null,
+      release_reason: null,
       operator_id: admin.id,
       released_reason: null,
       released_by: null,
@@ -118,6 +119,7 @@ http.post('/api/v1/blacklist/:entryId/release', ({ request, params }) =>
     if (reason === '') return abort(400, 'INVALID_ARGUMENT', '解除限制必须填写原因')
 
     entry.released_at = formatDateTime(serverNow())
+    entry.release_reason = reason
     entry.released_reason = reason
     entry.released_by = admin.id
     const target = db.users.find((item) => item.id === entry.user_id)
