@@ -221,7 +221,7 @@ def register_manual(
         message_type=MessageType.VIOLATION,
         title="违约登记通知",
         content=f"你的预约（{reservation.reserve_date}）被管理员登记违约，原因：{reason}",
-        related_type="violation",
+        related_type="违约记录",
         related_id=record.id,
     )
     return record
@@ -275,7 +275,7 @@ def apply_auto_violation(
             f"你预约的 {reservation.reserve_date} "
             f"{reservation.start_time.strftime('%H:%M')} 场次未按时签到，已记录违约。"
         ),
-        related_type="violation",
+        related_type="违约记录",
         related_id=record.id,
     )
     return record

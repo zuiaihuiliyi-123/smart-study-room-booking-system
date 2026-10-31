@@ -239,6 +239,12 @@ def close_room(
     operator_id: int,
 ) -> RoomCloseResult:
     """BR-022 第二步：关闭座位；默认保留冲突预约，仅显式选择时批量取消。"""
+    reason = payload.reason.strip()
+    if not reason:
+        raise BusinessError(
+            "请填写关闭原因", code="REASON_REQUIRED", status_code=422
+        )
+
     room = db.get(Room, room_id)
     if room is None:
         raise BusinessError("自习室不存在", code="ROOM_NOT_FOUND", status_code=404)
@@ -248,6 +254,14 @@ def close_room(
             code="INVALID_ARGUMENT",
             status_code=422,
         )
+    if payload.area_id is not None:
+        area = db.get(Area, payload.area_id)
+        if area is None or area.room_id != room_id:
+            raise BusinessError(
+                "分区不存在或不属于该自习室",
+                code="AREA_NOT_IN_ROOM",
+                status_code=404,
+            )
     seats, affected = _affected(
         db, room_id, payload.area_id, payload.start_at, payload.end_at
     )
@@ -270,7 +284,7 @@ def close_room(
         if payload.cancel_affected:
             record.status = ReservationStatus.CANCELLED.value
             record.cancel_time = now
-            record.cancel_reason = f"场地临时关闭：{payload.reason}"
+            record.cancel_reason = f"场地临时关闭：{reason}"
             record.cancelled_by_id = operator_id
             reservation_service.release_slots(db, record.id)
             cancelled += 1
@@ -280,10 +294,10 @@ def close_room(
                     message_type=MessageType.RESERVATION,
                     title="预约已被取消（场地临时关闭）",
                     content=(
-                        f"因{room.name}场地临时关闭（原因：{payload.reason}），"
+                        f"因{room.name}场地临时关闭（原因：{reason}），"
                         f"你 {record.reserve_date} 的预约已被取消，该情形不计违约。"
                     ),
-                    related_type="reservation",
+                    related_type="预约单",
                     related_id=record.id,
                 )
             )
@@ -295,9 +309,9 @@ def close_room(
                     title="所选座位临时关闭",
                     content=(
                         f"{room.name} {record.reserve_date} 的场地临时关闭"
-                        f"（原因：{payload.reason}），你的预约暂时保留，请留意后续通知。"
+                        f"（原因：{reason}），你的预约暂时保留，请留意后续通知。"
                     ),
-                    related_type="reservation",
+                    related_type="预约单",
                     related_id=record.id,
                 )
             )
@@ -308,7 +322,7 @@ def close_room(
         action_type="ROOM_TEMP_CLOSE",
         target_type="ROOM",
         target_id=room.id,
-        reason=payload.reason,
+        reason=reason,
         before_value=str({"seat_count": len(seats), "affected": actual_ids}),
         after_value=str(
             {

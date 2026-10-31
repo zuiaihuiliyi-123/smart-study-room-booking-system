@@ -19,8 +19,6 @@ export interface SeatOccupancyQuery {
 /**
  * FR-003 / FR-031：按自习室与时段返回「座位资源状态 + 该时段占用」。
  * 占用是实时计算的派生结论，不写进 `seat.status`（AGENTS.md §4）。
- * 后端目前没有该路由（只有 `GET /rooms/{id}/seats` 与 `GET /reservations/available-seats`，
- * 后者按学生资格过滤，不适合管理端使用）。
  */
 export const listSeatOccupancy = (params: SeatOccupancyQuery) =>
   http.get<SeatOccupancy[]>('/seats/occupancy', params)

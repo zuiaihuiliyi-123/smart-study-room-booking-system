@@ -6,10 +6,11 @@ from app.core.security import create_access_token, verify_password
 from app.models.enums import AccountStatus
 from app.models.user import User
 from app.schemas.auth import LoginRequest, TokenResponse
+from app.services import audit_service
 
 
 def login(db: Session, payload: LoginRequest) -> TokenResponse:
-    """FR-040：学号/工号 + 密码登录，签发 JWT。"""
+    """FR-040：学号/工号 + 密码登录，签发 JWT，并记录登录成功审计（NFR-009）。"""
     user = db.scalar(select(User).where(User.student_no == payload.student_no))
     if user is None or not verify_password(payload.password, user.password_hash):
         raise BusinessError(
@@ -23,4 +24,14 @@ def login(db: Session, payload: LoginRequest) -> TokenResponse:
             code="ACCOUNT_DISABLED",
             status_code=403,
         )
+
+    audit_service.record(
+        db,
+        operator_id=user.id,
+        action_type="LOGIN_SUCCESS",
+        target_type="USER",
+        target_id=user.id,
+        reason=f"角色「{user.role}」登录成功",
+    )
+    db.commit()
     return TokenResponse(access_token=create_access_token(str(user.id), user.role))

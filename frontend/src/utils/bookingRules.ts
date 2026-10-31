@@ -447,11 +447,14 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
     USER_CONFLICT: 'C4',
     ACCOUNT_RESTRICTED: 'C5',
     ACCOUNT_DISABLED: 'C5',
+    'ST-047': 'C5',
     TIME_NOT_ALIGNED: 'C6',
     DURATION_EXCEEDED: 'C6',
     DATE_OUT_OF_RANGE: 'C6',
     DAILY_LIMIT: 'C6',
   }
+
+  const CONDITION_IDS: readonly JudgementId[] = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6']
 
   const RULE_TO_JUDGEMENT: Record<string, JudgementId> = {
     'BR-017': 'C1',
@@ -476,17 +479,39 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
   /** 把 axios 错误（status + 响应体）归类为界面可直接渲染的失败描述。 */
   export function mapBookingFailure(status: number | undefined, data: unknown): BookingFailure {
     const body = bodyOf(data)
+    const details = bodyOf(body.details)
+    const params = bodyOf(details.params)
     const code = asText(body.code)
-    const rule = asText(body.rule)
+    // 后端业务错误把判定项放在 details 中：{ condition: 'C3', rule: 'BR-006', params: {...} }；
+    // mock 使用顶层 rule。两种结构都兼容。
+    const rule = asText(body.rule) || asText(details.rule)
+    const condition = asText(details.condition)
     const serverMessage = asText(body.message) || asText(body.detail)
-    const restrictUntil = asText(body.restrict_until)
+    const restrictUntil =
+      asText(body.restrict_until) ||
+      asText(details.restrict_until) ||
+      asText(params.limit_until)
+    const conditionJudgement = CONDITION_IDS.includes(condition as JudgementId)
+      ? (condition as JudgementId)
+      : null
+    const judgement =
+      conditionJudgement ??
+      CODE_TO_JUDGEMENT[code] ??
+      RULE_TO_JUDGEMENT[rule] ??
+      null
 
-    // FR-014 / NFR-003：并发写入冲突（至多一条成功），文案固定，便于用户直接改选时段
-    if (status === 409 || code === 'CONCURRENT_CONFLICT') {
+    // FR-014 / NFR-003：座位时段冲突（C3）与并发写入冲突（至多一条成功）。
+    // C1/C2 资源不可用同样是 409，但必须保留原判定项与提示；C4 是本人冲突，也不能归为座位冲突。
+    const isSeatConflict =
+      judgement === 'C3' ||
+      code === 'CONCURRENT_CONFLICT' ||
+      code === 'ST-035' ||
+      (status === 409 && judgement === null)
+    if (isSeatConflict) {
       return {
         kind: 'conflict',
         message: '该时段已被预约，请重新选择',
-        judgement: null,
+        judgement: 'C3',
         code: code || 'CONCURRENT_CONFLICT',
         rule,
         restrictUntil,
@@ -494,7 +519,11 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
     }
 
     // ST-047：受限账户提示限制原因与预计解除时间；停用账户不展示预计时间
-    if (code === 'ACCOUNT_RESTRICTED' || code === 'ACCOUNT_DISABLED') {
+    if (
+      code === 'ACCOUNT_RESTRICTED' ||
+      code === 'ACCOUNT_DISABLED' ||
+      code === 'ST-047'
+    ) {
       return {
         kind: 'restricted',
         message: serverMessage || '账户当前处于受限状态，暂不可预约',
@@ -505,12 +534,15 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
       }
     }
 
-    // FR-013 E2：所选时段已过期
-    if (code === 'TIME_STARTED') {
+    // FR-013 E2：所选时段已过期（后端用 params.reason 区分“已开始”与“超出提前天数”）
+    const isTimeStarted =
+      code === 'TIME_STARTED' ||
+      (condition === 'C6' && rule === 'BR-002' && asText(params.reason) !== '')
+    if (isTimeStarted) {
       return {
         kind: 'expired',
         message: serverMessage || '该时段已经开始，不能预约，请重新选择时段',
-        judgement: null,
+        judgement: conditionJudgement,
         code,
         rule,
         restrictUntil,
@@ -520,7 +552,7 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
     return {
       kind: 'rule',
       message: serverMessage || '提交失败，请稍后重试',
-      judgement: CODE_TO_JUDGEMENT[code] ?? RULE_TO_JUDGEMENT[rule] ?? null,
+      judgement,
       code: code || `HTTP_${status ?? 0}`,
       rule,
       restrictUntil,

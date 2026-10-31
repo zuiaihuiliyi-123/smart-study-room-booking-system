@@ -13,10 +13,12 @@ const props = withDefaults(
     roleLabel: string
     /** 未读消息数；本轮由外层传入，壳层不自行取数 */
     unreadCount?: number
+    /** 站内消息入口；管理端没有消息页面时关闭 */
+    showMessages?: boolean
     /** 个人资料路由；不传则该下拉项禁用（如管理端暂无资料页） */
     profilePath?: string
   }>(),
-  { unreadCount: 0, profilePath: '' },
+  { unreadCount: 0, showMessages: true, profilePath: '' },
 )
 
 const emit = defineEmits<{ (e: 'messages'): void }>()
@@ -67,6 +69,7 @@ const crumbs = computed(() =>
       :collapsed="collapsed"
       :narrow="narrow"
       :unread-count="props.unreadCount"
+      :show-messages="props.showMessages"
       :profile-path="props.profilePath"
       @messages="emit('messages')"
       @toggle="collapsed = !collapsed"

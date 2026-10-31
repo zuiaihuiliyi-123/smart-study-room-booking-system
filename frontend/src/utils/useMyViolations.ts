@@ -6,9 +6,9 @@
  * - 学生只能查本人的违约记录（BR-018），也**不得看到他人姓名与学号**（NFR-006），
  *   因此「登记人」一列对手动违约只显示操作者编号，不显示管理员姓名。
  *
- * 已知接口限制：后端没有学生可读的「限制记录」接口（`GET /blacklist` 为管理员专属，
- * `UserRead` 也没有到期时间字段），因此预计解除时间取 `CurrentUser.restrict_until`
- * （后端补齐后自动生效），缺失时页面明确标注「待后端提供接口」而不是推算一个日期。
+ * 预计解除时间取 `CurrentUser.restrict_until`（仅自动限制有该时间）。
+ * 管理员手动限制不会到期自动解除，该字段为 null，页面明确说明须由管理员解除，
+ * 不自行推算日期。
  */
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'

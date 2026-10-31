@@ -4,27 +4,37 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.exceptions import BusinessError
 from app.models.blacklist import BlacklistEntry
-from app.models.enums import AccountStatus, BlacklistMode
+from app.models.enums import AccountStatus, BlacklistMode, MessageType
 from app.models.user import User
 from app.models.violation import ViolationRecord
 from app.schemas.blacklist import BlacklistCreate, BlacklistRead
 from app.schemas.common import PageResult
-from app.services import audit_service
+from app.services import audit_service, notification_service
 from app.utils.pagination import to_offset
 
 
 def _active_entries(db: Session, user_id: int, now: datetime) -> list[BlacklistEntry]:
-    """有效限制：未解除，且未到期（无期限视为永久有效）。"""
+    """有效限制：未解除，且仍对账户生效。
+
+    - 管理员手动加入的限制：到期后**不得由系统自动解除**（BR-010 / ST-042），
+      因此在管理员显式解除前始终生效；
+    - 自动限制：到期后由定时任务解除，到期前生效；
+    - 无期限的记录视为永久有效。
+    """
     stmt = select(BlacklistEntry).where(
         BlacklistEntry.user_id == user_id,
         BlacklistEntry.released_at.is_(None),
-        (BlacklistEntry.expire_at.is_(None)) | (BlacklistEntry.expire_at > now),
+        or_(
+            BlacklistEntry.mode == BlacklistMode.MANUAL.value,
+            BlacklistEntry.expire_at.is_(None),
+            BlacklistEntry.expire_at > now,
+        ),
     )
     return list(db.scalars(stmt))
 
@@ -63,13 +73,19 @@ def list_entries(
     if state == "生效中":
         conditions.append(BlacklistEntry.released_at.is_(None))
         conditions.append(
-            (BlacklistEntry.expire_at.is_(None))
-            | (BlacklistEntry.expire_at > current)
+            or_(
+                BlacklistEntry.mode == BlacklistMode.MANUAL.value,
+                BlacklistEntry.expire_at.is_(None),
+                BlacklistEntry.expire_at > current,
+            )
         )
     elif state == "已解除":
         conditions.append(BlacklistEntry.released_at.is_not(None))
     elif state == "已过期":
+        # 只有自动限制会“到期失效”；手动限制到期后仍需管理员解除，
+        # 在解除前仍属生效中，因此不计入“已过期”。
         conditions.append(BlacklistEntry.released_at.is_(None))
+        conditions.append(BlacklistEntry.mode == BlacklistMode.AUTO.value)
         conditions.append(BlacklistEntry.expire_at.is_not(None))
         conditions.append(BlacklistEntry.expire_at <= current)
     if mode:
@@ -106,6 +122,14 @@ def add_entry(db: Session, admin: User, payload: BlacklistCreate) -> BlacklistEn
     - 手动记录到期后**不得由系统自动解除**（BR-010），只能由管理员 ST-043 解除；
     - 同一用户不允许存在两条并行的有效限制。
     """
+    reason = payload.reason.strip()
+    if not reason:
+        raise BusinessError(
+            "请填写限制原因",
+            code="BLACKLIST_REASON_REQUIRED",
+            status_code=422,
+        )
+
     now = datetime.now()
     user = db.get(User, payload.user_id)
     if user is None:
@@ -123,7 +147,7 @@ def add_entry(db: Session, admin: User, payload: BlacklistCreate) -> BlacklistEn
 
     entry = BlacklistEntry(
         user_id=user.id,
-        reason=payload.reason,
+        reason=reason,
         mode=BlacklistMode.MANUAL.value,
         start_at=now,
         expire_at=payload.expire_at,
@@ -138,12 +162,29 @@ def add_entry(db: Session, admin: User, payload: BlacklistCreate) -> BlacklistEn
         action_type="BLACKLIST_ADD",
         target_type="USER",
         target_id=user.id,
-        reason=payload.reason,
+        reason=reason,
         before_value=AccountStatus.NORMAL.value,
         after_value=AccountStatus.RESTRICTED.value,
     )
     db.commit()
     db.refresh(entry)
+
+    expire_text = (
+        f"计划解除时间 {entry.expire_at:%Y-%m-%d %H:%M}，到期后仍须管理员解除"
+        if entry.expire_at is not None
+        else "该限制不设期限，须由管理员解除"
+    )
+    notification_service.notify_safe(
+        user_id=user.id,
+        message_type=MessageType.SYSTEM,
+        title="账户已被限制",
+        content=(
+            f"你的账户已被管理员限制：{entry.reason}，{expire_text}。"
+            "受限期间不能创建新预约，已有预约保持原状。"
+        ),
+        related_type="黑名单",
+        related_id=entry.id,
+    )
     return entry
 
 
@@ -193,6 +234,19 @@ def release_entry(
         )
     db.commit()
     db.refresh(entry)
+
+    if user is not None:
+        notification_service.notify_safe(
+            user_id=user.id,
+            message_type=MessageType.SYSTEM,
+            title="账户限制已解除",
+            content=(
+                f"你的账户限制已被管理员解除（原因：{cleaned_reason}）。"
+                "如账户状态仍为「受限」，说明还存在其它生效中的限制。"
+            ),
+            related_type="黑名单",
+            related_id=entry.id,
+        )
     return entry
 
 
@@ -249,6 +303,23 @@ def restrict_if_threshold(
     )
     db.commit()
     db.refresh(entry)
+
+    expire_text = (
+        f"，预计 {entry.expire_at:%Y-%m-%d %H:%M} 解除"
+        if entry.expire_at is not None
+        else ""
+    )
+    notification_service.notify_safe(
+        user_id=user.id,
+        message_type=MessageType.SYSTEM,
+        title="账户已被自动限制",
+        content=(
+            f"你因累计有效违约达到 {settings.violation_threshold} 次，"
+            f"账户已被自动限制{expire_text}。"
+        ),
+        related_type="黑名单",
+        related_id=entry.id,
+    )
     return entry
 
 
@@ -281,5 +352,18 @@ def release_expired(db: Session, now: datetime | None = None) -> int:
             _sync_account_status(db, user, current)
 
     db.commit()
+
+    for entry in entries:
+        notification_service.notify_safe(
+            user_id=entry.user_id,
+            message_type=MessageType.SYSTEM,
+            title="账户限制已自动解除",
+            content=(
+                "你的账户自动限制期限已届满，系统已解除该条限制。"
+                "若账户仍显示「受限」，说明还存在其它生效中的限制。"
+            ),
+            related_type="黑名单",
+            related_id=entry.id,
+        )
     return len(entries)
 

@@ -15,9 +15,14 @@ const props = defineProps<{
   newId: number | null
   /** 从站内消息跳转过来时高亮的投诉编号 */
   focusId: number | null
+  /** 正在确认关闭的投诉编号（ST-063） */
+  confirmingId?: number | null
 }>()
 
-const emit = defineEmits<{ (e: 'retry'): void }>()
+const emit = defineEmits<{
+  (e: 'retry'): void
+  (e: 'confirm', item: Complaint): void
+}>()
 
 function isHighlighted(item: Complaint): boolean {
   return item.id === props.newId || item.id === props.focusId
@@ -83,6 +88,18 @@ function isHighlighted(item: Complaint): boolean {
           <span class="ssr-text-muted">{{ step.note }}</span>
         </el-timeline-item>
       </el-timeline>
+
+      <div v-if="item.status === '已处理'" class="complaint__actions">
+        <el-button
+          type="success"
+          plain
+          size="small"
+          :loading="props.confirmingId === item.id"
+          @click="emit('confirm', item)"
+        >
+          确认已解决并关闭
+        </el-button>
+      </div>
     </li>
   </ul>
 </template>
@@ -179,6 +196,14 @@ function isHighlighted(item: Complaint): boolean {
   margin-right: 8px;
   font-size: var(--ssr-font-note);
   font-weight: 600;
+}
+
+.complaint__actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px dashed var(--ssr-line);
 }
 
 @media (max-width: 768px) {

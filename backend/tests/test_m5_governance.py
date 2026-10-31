@@ -22,9 +22,18 @@ from app.schemas.user import UserUpdate
 from app.services import (
     blacklist_service,
     complaint_service,
+    notification_service,
     review_service,
     user_service,
 )
+
+
+@pytest.fixture(autouse=True)
+def _disable_external_notifications(monkeypatch):
+    """站内通知使用独立 MySQL 会话，测试中改为空操作。"""
+    monkeypatch.setattr(
+        notification_service, "notify_safe", lambda **kwargs: None
+    )
 
 
 def _error_of(func, *args, **kwargs) -> BusinessError:
@@ -202,18 +211,32 @@ def test_complaint_state_machine_full_flow(db, make_user, make_room) -> None:
     assert processing.handler_id == admin.id
     assert processing.handled_at is not None
 
-    complaint_service.handle_complaint(
+    resolved = complaint_service.handle_complaint(
         db,
         admin,
         complaint.id,
         ComplaintHandle(status=ComplaintStatus.RESOLVED, handle_note="已调整空调"),
     )
-    closed = complaint_service.handle_complaint(
+    assert resolved.status == ComplaintStatus.RESOLVED.value
+
+    # ST-063：管理员不能直接把「已处理」置为「已关闭」
+    error = _error_of(
+        complaint_service.handle_complaint,
         db,
         admin,
         complaint.id,
-        ComplaintHandle(status=ComplaintStatus.CLOSED, handle_note="用户确认"),
+        ComplaintHandle(status=ComplaintStatus.CLOSED, handle_note="管理员关闭"),
     )
+    assert error.code == "COMPLAINT_STATE_INVALID"
+
+    # 只有投诉人本人可以确认关闭
+    other = make_user(student_no="S3999")
+    error = _error_of(
+        complaint_service.confirm_close, db, other.id, complaint.id
+    )
+    assert error.code == "COMPLAINT_NOT_OWNER"
+
+    closed = complaint_service.confirm_close(db, student.id, complaint.id)
     assert closed.status == ComplaintStatus.CLOSED.value
 
     # 终态不可再变更
@@ -225,10 +248,57 @@ def test_complaint_state_machine_full_flow(db, make_user, make_room) -> None:
         ComplaintHandle(status=ComplaintStatus.PROCESSING, handle_note="重开"),
     )
     assert error.code == "COMPLAINT_STATE_INVALID"
+    error = _error_of(
+        complaint_service.confirm_close, db, student.id, complaint.id
+    )
+    assert error.code == "COMPLAINT_STATE_INVALID"
 
+    # 受理、处理、投诉人确认各 1 条审计
     assert (
         db.query(AuditLog).filter(AuditLog.target_type == "COMPLAINT").count() == 3
     )
+
+
+def test_complaint_rejects_blank_content_and_handle_note(
+    db, make_user, make_room
+) -> None:
+    student = make_user(student_no="S3006")
+    admin = make_user(role=Role.ADMIN.value, student_no="ADM3006")
+    room = make_room()
+
+    error = _error_of(
+        complaint_service.create_complaint,
+        db,
+        student.id,
+        ComplaintCreate(
+            target_type=ComplaintTargetType.ROOM,
+            target_id=room.id,
+            content="   ",
+        ),
+    )
+    assert error.code == "COMPLAINT_CONTENT_REQUIRED"
+    assert error.status_code == 422
+
+    complaint = complaint_service.create_complaint(
+        db,
+        student.id,
+        ComplaintCreate(
+            target_type=ComplaintTargetType.ROOM,
+            target_id=room.id,
+            content="空调太冷",
+        ),
+    )
+    error = _error_of(
+        complaint_service.handle_complaint,
+        db,
+        admin,
+        complaint.id,
+        ComplaintHandle(status=ComplaintStatus.PROCESSING, handle_note="   "),
+    )
+    assert error.code == "COMPLAINT_NOTE_REQUIRED"
+    assert error.status_code == 422
+    db.refresh(complaint)
+    assert complaint.status == ComplaintStatus.PENDING.value
 
 
 def test_complaint_can_be_rejected(db, make_user, make_room) -> None:
@@ -447,6 +517,74 @@ def test_release_expired_skips_manual_entries(db, make_user) -> None:
     assert entry.released_at is None
     db.refresh(student)
     assert student.account_status == AccountStatus.RESTRICTED.value
+
+
+def test_expired_manual_entry_remains_active_until_released(db, make_user) -> None:
+    """ST-042：手动限制到期后系统不得自动解除，也不能被新限制绕过。"""
+    admin = make_user(role=Role.ADMIN.value, student_no="ADM4009")
+    student = make_user(
+        student_no="S4009", violation_count=settings.violation_threshold
+    )
+    entry = blacklist_service.add_entry(
+        db,
+        admin,
+        BlacklistCreate(
+            user_id=student.id,
+            reason="手动限制",
+            expire_at=datetime.now() + timedelta(days=1),
+        ),
+    )
+    later = datetime.now() + timedelta(days=2)
+
+    # ST-042 只解除自动限制；手动记录保持未解除
+    assert blacklist_service.release_expired(db, now=later) == 0
+    db.refresh(entry)
+    assert entry.released_at is None
+
+    # 到期后仍是生效中的限制：不得重复加入，也不得再创建自动限制
+    error = _error_of(
+        blacklist_service.add_entry,
+        db,
+        admin,
+        BlacklistCreate(user_id=student.id, reason="再次限制"),
+    )
+    assert error.code == "BLACKLIST_ALREADY_ACTIVE"
+    assert blacklist_service.restrict_if_threshold(db, student.id, now=later) is None
+    db.refresh(student)
+    assert student.account_status == AccountStatus.RESTRICTED.value
+
+    # 只有管理员显式解除后才恢复
+    blacklist_service.release_entry(db, admin, entry.id, "管理员核实后解除")
+    db.refresh(student)
+    assert student.account_status == AccountStatus.NORMAL.value
+
+
+def test_user_read_exposes_auto_restrict_until(db, make_user) -> None:
+    auto_user = make_user(
+        student_no="S4010", violation_count=settings.violation_threshold
+    )
+    entry = blacklist_service.restrict_if_threshold(db, auto_user.id)
+    assert entry is not None
+
+    profile = user_service.to_user_read(db, auto_user)
+    assert profile.restrict_until == entry.expire_at
+
+    admin = make_user(role=Role.ADMIN.value, student_no="ADM4010")
+    manual_user = make_user(student_no="S4011")
+    blacklist_service.add_entry(
+        db,
+        admin,
+        BlacklistCreate(
+            user_id=manual_user.id,
+            reason="手动限制",
+            expire_at=datetime.now() + timedelta(days=3),
+        ),
+    )
+
+    manual_profile = user_service.to_user_read(db, manual_user)
+    # 手动限制不会到期自动解除，不应给出“预计解除时间”
+    assert manual_profile.restrict_until is None
+    assert manual_profile.account_status == AccountStatus.RESTRICTED.value
 
 
 def test_release_expired_releases_auto_entries(db, make_user) -> None:

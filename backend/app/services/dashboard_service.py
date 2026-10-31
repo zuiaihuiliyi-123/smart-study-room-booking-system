@@ -206,7 +206,11 @@ def get_seat_usage_by_slot(
                 overlap = min(record_end, bucket_end) - max(record_start, bucket_start)
                 if overlap > 0:
                     occupied += overlap // settings.reservation_granularity_minutes
-            capacity = len(seats) * ((bucket_end - bucket_start) // 30) * days
+            capacity = (
+                len(seats)
+                * ((bucket_end - bucket_start) // settings.reservation_granularity_minutes)
+                * days
+            )
             rate = round(occupied / capacity, 4) if capacity > 0 else 0.0
             rows.append(
                 SeatUsageSlotRow(

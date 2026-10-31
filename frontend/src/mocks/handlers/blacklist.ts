@@ -2,10 +2,8 @@
  * 黑名单 mock：GET /blacklist、POST /blacklist、POST /blacklist/{id}/release（FR-044）。
  *
  * 路径与 backend/app/api/v1/blacklist.py 完全一致；前端封装见 `src/api/blacklist.ts`。
- * 本文件在既有实现上补了两件事：
- * 1. 列表筛选（state / mode / user_id）——后端目前只有分页参数，属待补参数；
- * 2. 解除时必须带 `reason`（ST-043：解除须记录原因），并回填 `released_reason`
- *    （后端模型暂无该列，解除原因目前只进 `audit_logs`，见接口缺口清单）。
+ * 后端已支持列表筛选（state / mode / user_id）与 `release_reason`；
+ * mock 同步实现，并在解除时额外回填前端兼容字段 `released_reason`。
  */
 import { http } from 'msw'
 
@@ -22,10 +20,13 @@ function sortByStartDesc(items: readonly BlacklistEntry[]): BlacklistEntry[] {
   )
 }
 
-/** 记录状态判定（SM-03 / ST-042）：已解除 → 已解除；未解除且未到期 → 生效中；其余 → 已过期。 */
+/**
+ * 记录状态判定（SM-03 / ST-042）：
+ * 已解除 → 已解除；管理员手动限制在解除前始终生效；自动限制未到期 → 生效中，到期 → 已过期。
+ */
 function stateOf(entry: BlacklistEntry, nowMs: number): '生效中' | '已解除' | '已过期' {
   if (entry.released_at !== null) return '已解除'
-  if (entry.expire_at === null) return '生效中'
+  if (entry.mode === '手动' || entry.expire_at === null) return '生效中'
   return new Date(entry.expire_at).getTime() > nowMs ? '生效中' : '已过期'
 }
 
@@ -92,7 +93,7 @@ http.post('/api/v1/blacklist', ({ request }) =>
     const expireText =
       entry.expire_at === null
       ? '该限制不设期限，需由管理员手动解除'
-      : `预计 ${entry.expire_at.replace('T', ' ').slice(0, 16)} 解除`
+      : `计划解除时间 ${entry.expire_at.replace('T', ' ').slice(0, 16)}，到期后仍须管理员解除`
       pushMessage(target.id, {
         type: '系统通知',
         title: '账户已被限制',

@@ -12,8 +12,11 @@ router = APIRouter(prefix="/users", tags=["用户管理"])
 
 
 @router.get("/me", response_model=UserRead, summary="查看本人资料")
-def my_profile(current_user: User = Depends(get_current_user)) -> User:
-    return current_user
+def my_profile(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UserRead:
+    return user_service.to_user_read(db, current_user)
 
 
 @router.patch("/me", response_model=UserRead, summary="修改本人联系方式")
@@ -21,8 +24,9 @@ def update_my_profile(
     payload: UserUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> User:
-    return user_service.update_my_profile(db, current_user, payload)
+) -> UserRead:
+    updated = user_service.update_my_profile(db, current_user, payload)
+    return user_service.to_user_read(db, updated)
 
 
 @router.get("", response_model=PageResult[UserRead], summary="用户列表（管理员）")

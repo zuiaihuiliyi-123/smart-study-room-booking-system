@@ -74,10 +74,7 @@ const consequence = computed(() => {
       <p v-if="props.restricted">
         <span class="summary__label">预计解除时间：</span>
         <b v-if="props.restrictUntil">{{ props.restrictUntil }}</b>
-        <span v-else>
-          待后端提供接口（当前后端没有学生可读的限制记录查询：<code>GET /blacklist</code>
-          仅管理员可用，<code>GET /users/me</code> 也未返回到期时间）
-        </span>
+        <span v-else>管理员手动限制，没有自动解除时间，须由管理员解除</span>
       </p>
       <p class="summary__label">
         限制口径：累计有效违约满 {{ props.threshold }} 次自动限制 7 天，期满自动解除。

@@ -10,6 +10,7 @@
  */
 import StatusTag from '@/components/StatusTag.vue'
 import type { CurrentUser } from '@/types'
+import { formatDateTime } from '@/utils/format'
 import { contactKindLabel, maskContact } from '@/utils/mask'
 
 const props = defineProps<{
@@ -53,8 +54,11 @@ const emit = defineEmits<{
           </span>
         </el-descriptions-item>
         <el-descriptions-item label="预计解除时间">
-          <span v-if="props.user.restrict_until">{{ props.user.restrict_until }}</span>
-          <span v-else class="ssr-text-muted">待后端提供接口（`UserRead` 目前无该字段）</span>
+          <span v-if="props.user.account_status !== '受限'" class="ssr-text-muted">—</span>
+          <span v-else-if="props.user.restrict_until">
+            {{ formatDateTime(props.user.restrict_until) }}
+          </span>
+          <span v-else class="ssr-text-muted">管理员手动限制，无自动解除时间</span>
         </el-descriptions-item>
       </el-descriptions>
 

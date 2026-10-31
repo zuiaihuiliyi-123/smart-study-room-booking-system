@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, require_admin
+from app.core.dependencies import get_current_user, require_admin, require_student
 from app.models.review import Review
 from app.models.user import User
 from app.schemas.common import PageResult
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/reviews", tags=["M5 评价管理"])
 def create_review(
     payload: ReviewCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_student),
 ) -> Review:
     return review_service.create_review(db, current_user.id, payload)
 

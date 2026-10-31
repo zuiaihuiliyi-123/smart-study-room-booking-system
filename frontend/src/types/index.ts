@@ -9,9 +9,8 @@ export interface CurrentUser {
   violation_count: number
   contact: string | null
   /**
-   * 受限账户的预计解除时间（BR-010）。
-   * 后端 `UserRead` 目前**没有**这个字段，只有预约接口的 403 响应体带 `restrict_until`；
-   * 这里预留为可选：后端补上后界面自动生效，缺失时页面明确标注「待后端提供接口」。
+   * 受限账户的预计解除时间（BR-010 / ST-040）。
+   * 仅“自动限制”有自动解除时间；管理员手动限制返回 null（须管理员解除）。
    */
   restrict_until?: string | null
 }
@@ -118,9 +117,8 @@ export interface BlacklistEntry {
   release_reason: string | null
   operator_id: number | null
   /**
-   * 手动解除的原因与解除人（ST-043：解除须记录原因）。
-   * 后端 `BlacklistEntry` 目前没有这两个字段（解除原因只进 `audit_logs`），
-   * 这里声明为可选：后端补齐后界面自动展示，缺失时显示「—」并标注待后端提供。
+   * 兼容字段：解除原因与解除人（ST-043）。
+   * 后端以 `release_reason` 为准；这两个字段仅在 mock 中回填，界面优先读取 `release_reason`。
    */
   released_reason?: string | null
   released_by?: number | null

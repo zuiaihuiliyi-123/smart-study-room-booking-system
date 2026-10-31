@@ -182,7 +182,9 @@ onMounted(() => {
             <dt>预计解除时间</dt>
             <dd>
               <b v-if="restrictUntil">{{ restrictUntil }}</b>
-              <span v-else class="ssr-text-muted">待后端提供接口（见下方说明）</span>
+              <span v-else class="ssr-text-muted">
+                管理员手动限制，没有自动解除时间，须由管理员解除
+              </span>
             </dd>
           </div>
           <div>
@@ -194,14 +196,6 @@ onMounted(() => {
                 <code>PATCH /users/me</code>（只接受 contact），没有口令修改接口；SRS 也未定义口令自助修改流程，
                   因此这里不放假表单，接口就绪后再接入。
                   </span>
-                </dd>
-              </div>
-              <div v-if="accountStatus === '受限'">
-                <dt>字段说明</dt>
-                <dd class="ssr-text-muted">
-                  预计解除时间需要后端补一个学生可读的字段（如 <code>UserRead.restrict_until</code>）；
-                  受限于 <code>GET /blacklist</code> 仅管理员可用，前端无法在不新增接口的前提下取到该时间，
-                  页面也不会自行推算日期。
                 </dd>
               </div>
             </dl>

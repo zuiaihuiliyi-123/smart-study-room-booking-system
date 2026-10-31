@@ -110,8 +110,8 @@ onMounted(() => {
 
     <p class="ssr-text-muted note">
       点击消息会标记为已读，并按关联对象跳转到对应列表页（列表内高亮该条记录）。
-      后端只有逐条已读接口 <code>POST /messages/{id}/read</code>，没有「全部标为已读」与未读数统计接口，
-      因此未读数由前端按全量列表统计（已登记问题清单）。
+      未读数与列表使用同一份数据统计，避免角标与列表不一致；标记已读目前只有逐条接口
+      <code>POST /messages/{id}/read</code>，没有「全部标为已读」。
     </p>
   </div>
 </template>

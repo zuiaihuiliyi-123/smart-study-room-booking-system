@@ -152,4 +152,28 @@ http.patch('/api/v1/complaints/:complaintId', ({ request, params }) =>
 return json(complaint)
 }),
 ),
+
+/** ST-063：投诉人确认处理结果，将「已处理」投诉关闭。 */
+http.post('/api/v1/complaints/:complaintId/confirm', ({ request, params }) =>
+    safe(() => {
+    const user = requireUser(request)
+    const complaint = getDb().complaints.find(
+      (item) => item.id === Number(param(params, 'complaintId')),
+    )
+    if (!complaint) return abort(404, 'COMPLAINT_NOT_FOUND', '投诉不存在')
+    if (complaint.user_id !== user.id) {
+      return abort(403, 'COMPLAINT_NOT_OWNER', '只能确认本人的投诉')
+    }
+    if (complaint.status !== '已处理') {
+      return abort(
+        409,
+        'STATE_NOT_ALLOWED',
+        `投诉当前为「${complaint.status}」，只有「已处理」的投诉可以确认关闭`,
+      )
+    }
+
+    complaint.status = '已关闭'
+    return json(complaint)
+  }),
+),
 ]

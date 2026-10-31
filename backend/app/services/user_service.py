@@ -2,13 +2,44 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.models.blacklist import BlacklistEntry
+from app.models.enums import BlacklistMode
 from app.models.user import User
 from app.schemas.common import PageResult
 from app.schemas.user import UserRead, UserUpdate
 from app.utils.pagination import to_offset
+
+
+def _restrict_until(
+    db: Session, user_id: int, now: datetime | None = None
+) -> datetime | None:
+    """受限账户的预计解除时间（FR-044 / ST-040）。
+
+    只有自动限制会到期解除（BR-010）；管理员手动限制须由管理员显式解除，
+    因此不返回“自动解除时间”，避免界面给出错误的预计解除日期。
+    """
+    current = now or datetime.now()
+    stmt = select(BlacklistEntry.expire_at).where(
+        BlacklistEntry.user_id == user_id,
+        BlacklistEntry.released_at.is_(None),
+        BlacklistEntry.mode == BlacklistMode.AUTO.value,
+        BlacklistEntry.expire_at.is_not(None),
+        BlacklistEntry.expire_at > current,
+    )
+    expiries = list(db.scalars(stmt).all())
+    return min(expiries) if expiries else None
+
+
+def to_user_read(db: Session, user: User) -> UserRead:
+    """把 ORM 用户转换为响应模型，并补齐黑名单相关的派生字段。"""
+    return UserRead.model_validate(user).model_copy(
+        update={"restrict_until": _restrict_until(db, user.id)}
+    )
 
 
 def update_my_profile(db: Session, user: User, payload: UserUpdate) -> User:
@@ -59,7 +90,7 @@ def list_users(
         .limit(page_size)
     )
     return PageResult[UserRead](
-        items=[UserRead.model_validate(row) for row in rows],
+        items=[to_user_read(db, row) for row in rows],
         total=total,
         page=page,
         page_size=page_size,

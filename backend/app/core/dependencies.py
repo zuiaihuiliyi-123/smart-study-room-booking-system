@@ -71,11 +71,25 @@ def require_student(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> User:
-    """仅学生用户可执行预约、签到、签退、取消等操作（权限矩阵 4.1.1）。"""
+    """仅学生用户可执行的操作（如提交投诉、评价；权限矩阵 4.1.1 R-01）。"""
     if current_user.role != Role.STUDENT.value:
         _record_unauthorized(db, current_user, "学生专属操作")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="该操作仅限学生用户",
+        )
+    return current_user
+
+
+def require_booking_user(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    """预约与签到签退仅限学生 / 教师（R-01 / R-03），管理员不得以个人身份预约。"""
+    if current_user.role not in (Role.STUDENT.value, Role.TEACHER.value):
+        _record_unauthorized(db, current_user, "学生/教师预约操作")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="该操作仅限学生或教师用户",
         )
     return current_user

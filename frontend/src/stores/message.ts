@@ -6,9 +6,9 @@
  * 因此铃铛（StudentLayout）、首页摘要（HomeView）与列表页（MessagesView）
  * 统一读写本 store，`load()` 自带去重（已加载则不重复请求）。
  *
- * 已知接口限制：`/messages/me` 没有「未读数」接口，也没有批量已读接口。
- * 因此这里翻页取全量、由前端统计未读数；标记已读只能逐条调用
- * `POST /messages/{id}/read`（登记在本轮问题清单）。
+ * 未读数与列表使用同一份数据：后端虽提供 `GET /messages/unread-count`，
+ * 但角标若单独取数仍可能与列表不一致，因此这里翻页取全量后统一统计。
+ * 标记已读目前只有逐条接口 `POST /messages/{id}/read`。
  */
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'

@@ -43,15 +43,15 @@ const state = computed(() => {
   const item = props.entry
   if (item === null) return '—'
   if (item.released_at !== null) return '已解除'
-  if (item.expire_at === null) return '生效中'
+  if (item.mode === '手动' || item.expire_at === null) return '生效中'
   return new Date(item.expire_at).getTime() > Date.now() ? '生效中' : '已过期'
 })
 
 const canRelease = computed(() => props.entry !== null && props.entry.released_at === null)
 
-/** 手动限制且未设期限 = 只能由管理员解除（ST-042 的例外） */
-const manualNoExpire = computed(
-  () => props.entry !== null && props.entry.mode === '手动' && props.entry.expire_at === null,
+/** ST-042：手动限制（无论是否设期限）都不会被系统自动解除，只能由管理员解除。 */
+const manualRestriction = computed(
+  () => props.entry !== null && props.entry.mode === '手动' && props.entry.released_at === null,
 )
 
 const title = computed(() =>
@@ -95,6 +95,10 @@ const title = computed(() =>
             不设期限
             <span class="ssr-text-muted">（只能由管理员手动解除）</span>
           </span>
+          <span v-else-if="props.entry.mode === '手动'">
+            {{ formatDateTime(props.entry.expire_at) }}
+            <span class="ssr-text-muted">（到期后系统不自动解除，仍须管理员解除）</span>
+          </span>
           <span v-else>{{ formatDateTime(props.entry.expire_at) }}（期满自动解除）</span>
         </el-descriptions-item>
         <el-descriptions-item label="解除时间">
@@ -114,10 +118,12 @@ const title = computed(() =>
         </el-descriptions-item>
       </el-descriptions>
 
-      <el-alert v-if="manualNoExpire" class="notice" type="warning" :closable="false" show-icon title="该限制不会自动解除">
+      <el-alert v-if="manualRestriction" class="notice" type="warning" :closable="false" show-icon title="该限制不会自动解除">
         <p>
-          这是<strong>管理员手动</strong>加入且未设期限的限制：系统不得自动解除，必须由管理员在此手动解除，
-          解除时须填写原因。
+          这是<strong>管理员手动</strong>加入的限制
+          <template v-if="props.entry.expire_at === null">（未设期限）</template>
+          <template v-else>（即使期限已到）</template>：
+          按 BR-010 / ST-042，系统不得自动解除，必须由管理员在此手动解除，解除时须填写原因。
         </p>
       </el-alert>
 

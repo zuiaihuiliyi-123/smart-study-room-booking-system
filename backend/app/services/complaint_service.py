@@ -10,17 +10,19 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.exceptions import BusinessError
 from app.models.complaint import Complaint
-from app.models.enums import ComplaintStatus, ComplaintTargetType
+from app.models.enums import ComplaintStatus, ComplaintTargetType, MessageType
 from app.models.reservation import Reservation
 from app.models.room import Room
 from app.models.seat import Seat
 from app.models.user import User
 from app.schemas.common import PageResult
 from app.schemas.complaint import ComplaintCreate, ComplaintHandle, ComplaintRead
-from app.services import audit_service
+from app.services import audit_service, notification_service
 from app.utils.pagination import to_offset
 
-# SM-04（ST-060～ST-063）：允许的状态迁移
+# SM-04（ST-060～ST-063）：管理员可执行的状态迁移。
+# ST-063「已处理 → 已关闭」由投诉人确认或系统超时触发，不属于管理员操作，
+# 因此 RESOLVED 的管理员迁移集合为空（投诉人确认见 confirm_close）。
 _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     ComplaintStatus.PENDING.value: {
         ComplaintStatus.PROCESSING.value,  # ST-060 受理
@@ -29,9 +31,7 @@ _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     ComplaintStatus.PROCESSING.value: {
         ComplaintStatus.RESOLVED.value,  # ST-062 录入处理结果
     },
-    ComplaintStatus.RESOLVED.value: {
-        ComplaintStatus.CLOSED.value,  # ST-063 关闭
-    },
+    ComplaintStatus.RESOLVED.value: set(),
     ComplaintStatus.REJECTED.value: set(),
     ComplaintStatus.CLOSED.value: set(),
 }
@@ -68,11 +68,17 @@ def create_complaint(
     )
     _ensure_target_exists(db, target_type, payload.target_id)
 
+    content = payload.content.strip()
+    if not content:
+        raise BusinessError(
+            "投诉内容不能为空", code="COMPLAINT_CONTENT_REQUIRED", status_code=422
+        )
+
     complaint = Complaint(
         user_id=user_id,
         target_type=target_type,
         target_id=payload.target_id,
-        content=payload.content,
+        content=content,
         status=ComplaintStatus.PENDING.value,
     )
     db.add(complaint)
@@ -160,12 +166,20 @@ def handle_complaint(
 ) -> Complaint:
     """M5 / FR-043：受理、处理或驳回投诉。
 
-    - 只允许 SM-04 中定义的迁移（待处理→处理中/已驳回；处理中→已处理；已处理→已关闭）；
-    - 必须填写处理说明，记录处理人与处理时间（NFR-009 审计）。
+    - 只允许 SM-04 中定义的管理员迁移（待处理→处理中/已驳回；处理中→已处理）；
+      「已处理→已关闭」只能由投诉人确认（confirm_close）或系统超时（close_stale）触发；
+    - 必须填写处理说明，记录处理人与处理时间（NFR-009 审计）；
+    - 处理结果同步写入投诉人的站内消息（FR-043 / FR-060）。
     """
     complaint = db.get(Complaint, complaint_id)
     if complaint is None:
         raise BusinessError("投诉不存在", code="COMPLAINT_NOT_FOUND", status_code=404)
+
+    note = payload.handle_note.strip()
+    if not note:
+        raise BusinessError(
+            "处理说明不能为空", code="COMPLAINT_NOTE_REQUIRED", status_code=422
+        )
 
     current = complaint.status
     target = (
@@ -182,7 +196,7 @@ def handle_complaint(
 
     complaint.status = target
     complaint.handler_id = admin.id
-    complaint.handle_note = payload.handle_note
+    complaint.handle_note = note
     complaint.handled_at = datetime.now()
 
     audit_service.record(
@@ -191,9 +205,58 @@ def handle_complaint(
         action_type="COMPLAINT_HANDLE",
         target_type="COMPLAINT",
         target_id=complaint.id,
-        reason=payload.handle_note,
+        reason=note,
         before_value=current,
         after_value=target,
+    )
+    db.commit()
+    db.refresh(complaint)
+
+    notification_service.notify_safe(
+        user_id=complaint.user_id,
+        message_type=MessageType.COMPLAINT,
+        title=f"投诉状态更新：{target}",
+        content=(
+            f"你对{complaint.target_type}的投诉（#{complaint.id}）"
+            f"状态更新为「{target}」。处理说明：{note}"
+        ),
+        related_type="投诉",
+        related_id=complaint.id,
+    )
+    return complaint
+
+
+def confirm_close(db: Session, user_id: int, complaint_id: int) -> Complaint:
+    """ST-063：投诉人确认处理结果，将「已处理」投诉关闭。
+
+    管理员不能直接置为「已关闭」；只有投诉人本人可在已处理状态下关闭。
+    """
+    complaint = db.get(Complaint, complaint_id)
+    if complaint is None:
+        raise BusinessError("投诉不存在", code="COMPLAINT_NOT_FOUND", status_code=404)
+    if complaint.user_id != user_id:
+        raise BusinessError(
+            "只能确认本人的投诉", code="COMPLAINT_NOT_OWNER", status_code=403
+        )
+    if complaint.status != ComplaintStatus.RESOLVED.value:
+        raise BusinessError(
+            f"当前状态为「{complaint.status}」，只有「已处理」的投诉可以确认关闭",
+            code="COMPLAINT_STATE_INVALID",
+            status_code=409,
+            details={"status": complaint.status},
+        )
+
+    before = complaint.status
+    complaint.status = ComplaintStatus.CLOSED.value
+    audit_service.record(
+        db,
+        operator_id=user_id,
+        action_type="COMPLAINT_CONFIRM",
+        target_type="COMPLAINT",
+        target_id=complaint.id,
+        reason="投诉人确认处理结果",
+        before_value=before,
+        after_value=complaint.status,
     )
     db.commit()
     db.refresh(complaint)
@@ -220,4 +283,18 @@ def close_stale(db: Session, now: datetime | None = None) -> int:
     for row in rows:
         row.status = ComplaintStatus.CLOSED.value
     db.commit()
+
+    # ST-063：超时自动关闭须以站内提示告知投诉人（FR-060 仅站内）
+    for row in rows:
+        notification_service.notify_safe(
+            user_id=row.user_id,
+            message_type=MessageType.COMPLAINT,
+            title="投诉已自动关闭",
+            content=(
+                f"你对{row.target_type}的投诉（#{row.id}）超过关闭时限，系统已自动关闭。"
+                f"处理说明：{row.handle_note or '—'}"
+            ),
+            related_type="投诉",
+            related_id=row.id,
+        )
     return len(rows)

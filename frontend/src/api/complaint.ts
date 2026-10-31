@@ -29,3 +29,7 @@ export const listMyComplaints = (params: { page?: number; page_size?: number }) 
       complaintId: number,
       data: { status: string; handle_note: string },
     ) => http.patch<Complaint>(`/complaints/${complaintId}`, data)
+
+    /** ST-063：投诉人确认处理结果，将「已处理」投诉关闭。 */
+    export const confirmComplaint = (complaintId: number) =>
+      http.post<Complaint>(`/complaints/${complaintId}/confirm`)

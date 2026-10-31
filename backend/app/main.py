@@ -19,7 +19,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
-    description="智慧自习室预约与管理系统 API（开发骨架）",
+    description="智慧自习室预约与管理系统 API",
     docs_url="/docs",
     openapi_url="/openapi.json",
     lifespan=lifespan,

@@ -17,7 +17,7 @@ import type {
   Violation,
 } from '@/types'
 
-import { RULES } from './rules'
+import { RULES, restrictionUntil } from './rules'
 import { buildSeed } from './seed'
 import { formatDateTime, serverNow } from './time'
 
@@ -114,6 +114,7 @@ export function publicUser(user: UserRecord): CurrentUser {
     account_status: user.account_status,
     violation_count: user.violation_count,
     contact: user.contact,
+    restrict_until: restrictionUntil(getDb(), user.id),
   }
 }
 

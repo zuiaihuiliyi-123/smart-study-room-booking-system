@@ -7,24 +7,15 @@ export const listRooms = () => http.get<Room[]>('/rooms')
 export const createRoom = (data: Partial<Room> & { reason?: string }) =>
   http.post<Room>('/rooms', data)
 
-/**
- * 修改自习室（FR-001）。
- *
- * `reason` 为审计事由（NFR-009）：后端 `RoomCreate` 目前没有该字段（未知字段默认被忽略），
- * 需要后端在写库时把 reason 落到 `audit_logs`；见交付说明的接口缺口清单。
- */
+/** 修改自习室（FR-001）。`reason` 为审计事由（NFR-009），后端写入 `audit_logs`。 */
 export const updateRoom = (roomId: number, data: Partial<Room> & { reason?: string }) =>
   http.patch<Room>(`/rooms/${roomId}`, data)
 
-/** 新增分区（FR-001）。`reason` 同上，为审计事由。 */
+/** 新增分区（FR-001）。 */
 export const createArea = (roomId: number, name: string, reason?: string) =>
   http.post<Area>(`/rooms/${roomId}/areas`, { name, reason })
 
-/**
- * 分区列表（FR-001 / 座位筛选需要）。
- * 后端目前**没有**该只读路由（`api/v1/rooms.py` 只有 POST 建区域），调用失败时前端降级为
- * 按座位号前缀推断分区名并明确标注，不编造名称（见 `utils/adminData.ts`）。
- */
+/** 分区列表（FR-001 / 座位筛选需要）。 */
 export const listAreas = (roomId: number) => http.get<Area[]>(`/rooms/${roomId}/areas`)
 
 export interface RoomCloseQuery {

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, require_admin
+from app.core.dependencies import get_current_user, require_admin, require_student
 from app.models.complaint import Complaint
 from app.models.user import User
 from app.schemas.common import PageResult
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/complaints", tags=["M5 投诉管理"])
 def create_complaint(
     payload: ComplaintCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_student),
 ) -> Complaint:
     return complaint_service.create_complaint(db, current_user.id, payload)
 
@@ -74,3 +74,17 @@ def handle_complaint(
     admin: User = Depends(require_admin),
 ) -> Complaint:
     return complaint_service.handle_complaint(db, admin, complaint_id, payload)
+
+
+@router.post(
+    "/{complaint_id}/confirm",
+    response_model=ComplaintRead,
+    summary="投诉人确认并关闭投诉",
+)
+def confirm_complaint(
+    complaint_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_student),
+) -> Complaint:
+    """ST-063：仅投诉人本人可在「已处理」状态下确认关闭。"""
+    return complaint_service.confirm_close(db, current_user.id, complaint_id)

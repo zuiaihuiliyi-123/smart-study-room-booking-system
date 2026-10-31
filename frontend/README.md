@@ -41,5 +41,5 @@ npm run dev          # http://127.0.0.1:5173
 
 - 登录后 token 存于 `localStorage`（`ssr_token`），Axios 请求拦截器统一附加 `Authorization: Bearer`。
 - 路由守卫按角色区分学生端（`/student/*`）与管理端（`/admin/*`）。
-- 页面骨架统一使用 `ModulePlaceholder`，其中列出该页待接入的接口与需求编号。
-- 管理端看板已接入 ECharts 容器，数据接入见 `views/admin/DashboardView.vue` 中的 TODO；看板按 FR-053 每 10 秒刷新。
+- 所有路由页面均已实现，`ModulePlaceholder` 已删除；页面直接对接 API 或 MSW mock。
+- 管理端看板已接入 ECharts 与真实聚合接口，按 FR-053 每 10 秒刷新。

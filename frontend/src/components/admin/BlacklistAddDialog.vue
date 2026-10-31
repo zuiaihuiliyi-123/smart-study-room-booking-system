@@ -2,7 +2,7 @@
 /**
  * 手动加入黑名单对话框（ST-041）。
  *
- * 必填项：用户、限制原因；期限可选（不填表示不设期限，须管理员手动解除，ST-042 的例外情形）。
+ * 必填项：用户、限制原因；期限可选。手动限制无论是否设期限都不会自动解除（ST-042）。
  * 提交前会弹一次 `ElMessageBox.confirm` 二次确认（含审计提示），因此本组件本身不是确认环节。
  */
 import { computed, reactive, ref, watch } from 'vue'
@@ -133,8 +133,8 @@ async function onSubmit(): Promise<void> {
           placeholder="解除时间"
         />
         <p class="ssr-text-muted hint">
-          不设期限时，系统<strong>不会</strong>自动解除（存在管理员手动限制时不得自动解除），
-          必须由管理员手动解除。
+          手动加入的限制<strong>无论是否设定期限，系统都不会自动解除</strong>；
+          「期限」仅作计划解除时间，到期后仍须管理员手动解除。
         </p>
       </el-form-item>
     </el-form>

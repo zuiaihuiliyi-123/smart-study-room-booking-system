@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, require_admin
+from app.core.dependencies import get_current_user, require_admin, require_booking_user
 from app.models.reservation import Reservation
 from app.models.seat import Seat
 from app.models.user import User
@@ -29,7 +29,7 @@ router = APIRouter(prefix="/reservations", tags=["M2 预约管理"])
 def create_reservation(
     payload: ReservationCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_booking_user),
 ) -> Reservation:
     return reservation_service.create_reservation(db, current_user, payload)
 
@@ -134,7 +134,7 @@ def cancel_my_reservation(
     reservation_id: int,
     payload: CancelRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_booking_user),
 ) -> MessageResponse:
     reservation_service.cancel_my_reservation(
         db, current_user.id, reservation_id, payload

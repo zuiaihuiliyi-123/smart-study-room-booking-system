@@ -250,6 +250,12 @@ def update_status_batch(
 
     按 BR-019 口径不自动取消任何预约，只把冲突清单返回给调用方持续提示。
     """
+    reason = payload.reason.strip()
+    if not reason:
+        raise BusinessError(
+            "请填写调整原因", code="REASON_REQUIRED", status_code=422
+        )
+
     unique_ids = sorted(set(payload.seat_ids))
     seats = list(
         db.scalars(select(Seat).where(Seat.id.in_(unique_ids))).all()
@@ -283,7 +289,7 @@ def update_status_batch(
         action_type="SEAT_STATUS_BATCH",
         target_type="SEAT",
         target_id=None,
-        reason=payload.reason,
+        reason=reason,
         before_value=str({"seat_ids": unique_ids}),
         after_value=str(
             {

@@ -3,10 +3,10 @@
  *
  * 口径要点：
  * - 记录状态只有三种（SM-03 / ST-042）：**生效中 / 已解除 / 已过期**；
- * - 手动加入（ST-041）必填原因与期限，加入后账户转「受限」；
+ * - 手动加入（ST-041）原因必填、期限可选，加入后账户转「受限」；
  * - 手动解除（ST-043）必填原因，记录操作者、时间与原因；
- * - **ST-042 例外**：若该账户存在**管理员手动设置**且仍生效的限制，系统**不得自动解除**——
- *   界面必须显式说明这一点（BR-010 / ST-042）；
+ * - **ST-042 例外**：管理员手动设置的限制（无论是否设期限、是否到期）系统都**不得自动解除**，
+ *   必须由管理员手动解除；界面显式说明这一点（BR-010 / ST-042）；
  * - NFR-009：加入与解除都提示「本次操作将记入审计日志」并收集原因。
  */
 import { computed, ref } from 'vue'
@@ -133,10 +133,15 @@ function openDetail(entry: BlacklistEntry): void {
   detailVisible.value = true
 }
 
-/** 记录状态（SM-03 / ST-042）：已解除 → 已解除；未解除且未到期 → 生效中；其余 → 已过期 */
+/**
+ * 记录状态（SM-03 / ST-042）：
+ * - 已解除 → 已解除；
+ * - 管理员手动限制在解除前始终生效（即使已过期限，系统也不得自动解除）；
+ * - 自动限制未到期 → 生效中，到期后由定时任务解除，解除前仍算生效中（页面用「已过期」提示到期）。
+ */
 function stateOf(entry: BlacklistEntry): string {
   if (entry.released_at !== null) return '已解除'
-  if (entry.expire_at === null) return '生效中'
+  if (entry.mode === '手动' || entry.expire_at === null) return '生效中'
   return new Date(entry.expire_at).getTime() > Date.now() ? '生效中' : '已过期'
 }
 

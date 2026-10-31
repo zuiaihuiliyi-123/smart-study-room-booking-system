@@ -21,7 +21,8 @@ const props = defineProps<{
 }>()
 
 const restrictText = computed(() =>
-    restrictUntilText(props.error?.restrictUntil ?? '') || '服务端未返回解除时间',
+    restrictUntilText(props.error?.restrictUntil ?? '') ||
+    '管理员手动限制，须由管理员解除',
 )
 
 const emit = defineEmits<{

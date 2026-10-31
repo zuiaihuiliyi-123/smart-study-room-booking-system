@@ -6,7 +6,12 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.exceptions import BusinessError
 from app.models.blacklist import BlacklistEntry
-from app.models.enums import AccountStatus, ReservationStatus, SeatStatus
+from app.models.enums import (
+    AccountStatus,
+    BlacklistMode,
+    ReservationStatus,
+    SeatStatus,
+)
 from app.models.reservation import Reservation
 from app.models.room import Room
 from app.models.seat import Seat
@@ -177,9 +182,11 @@ def check_reservation_rules(
         }
         if entry is not None:
             params["reason"] = entry.reason
-            params["limit_until"] = (
-                entry.expire_at.isoformat() if entry.expire_at else None
-            )
+            if entry.mode == BlacklistMode.AUTO.value and entry.expire_at is not None:
+                # 只有自动限制有“预计解除时间”；手动限制须由管理员解除（BR-010 / ST-042）
+                params["limit_until"] = entry.expire_at.isoformat()
+            elif entry.mode == BlacklistMode.MANUAL.value:
+                params["manual_restriction"] = True
         message = (
             "账户当前为「受限」，暂不能创建预约"
             if user.account_status == AccountStatus.RESTRICTED.value
@@ -339,6 +346,14 @@ def list_available_seats(
             "结束时间必须晚于开始时间，且一次预约不得跨日",
             code="C6_BR-020",
             status_code=422,
+            details=_details(
+                "C6",
+                "BR-020",
+                {
+                    "start_time": start_time.isoformat(),
+                    "end_time": end_time.isoformat(),
+                },
+            ),
         )
 
     room = db.get(Room, room_id)
@@ -349,6 +364,7 @@ def list_available_seats(
             "该自习室已停用，当前不可预约",
             code="C2",
             status_code=409,
+            details=_details("C2", "BR-017", {"room_id": room.id}),
         )
     open_time = _parse_room_time(room.open_time)
     close_time = _parse_room_time(room.close_time)

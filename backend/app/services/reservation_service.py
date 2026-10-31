@@ -249,7 +249,7 @@ def _create_once(
             f"请于开始前 {settings.checkin_early_minutes} 分钟至开始后 "
             f"{settings.checkin_late_minutes} 分钟内签到。"
         ),
-        related_type="reservation",
+        related_type="预约单",
         related_id=reservation.id,
     )
     return reservation
@@ -440,7 +440,7 @@ def cancel_my_reservation(
         message_type=MessageType.RESERVATION,
         title="预约已取消",
         content=f"你的预约（{reservation.reserve_date}）已取消，该时段已重新开放。",
-        related_type="reservation",
+        related_type="预约单",
         related_id=reservation.id,
     )
     return reservation
@@ -499,7 +499,7 @@ def force_cancel(
         message_type=MessageType.RESERVATION,
         title="预约已被管理员取消",
         content=f"你的预约（{reservation.reserve_date}）已被管理员取消，原因：{reason}",
-        related_type="reservation",
+        related_type="预约单",
         related_id=reservation.id,
     )
     return reservation
