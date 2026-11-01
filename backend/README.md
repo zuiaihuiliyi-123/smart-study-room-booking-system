@@ -55,6 +55,15 @@ python -m scripts.seed_demo
 uvicorn app.main:app --reload
 ```
 
+Windows 上完成首次配置后，可直接双击或执行 `start.bat` 启动（无需激活虚拟环境，不受 PowerShell 执行策略限制）：
+
+```powershell
+cd backend
+.\start.bat
+```
+
+脚本内容为 `.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000`，并会检查 `.venv` 与 `.env`。启动顺序与故障排查见 [`../docs/系统使用说明.md`](../docs/系统使用说明.md) 第 3、7 节。
+
 - Swagger UI：<http://127.0.0.1:8000/docs>
 - 健康检查：<http://127.0.0.1:8000/health>
 - 系统使用说明：见 [`../docs/系统使用说明.md`](../docs/系统使用说明.md)
