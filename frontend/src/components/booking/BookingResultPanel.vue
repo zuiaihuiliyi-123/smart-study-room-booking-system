@@ -81,7 +81,7 @@ const emit = defineEmits<{
     <EmptyState
       v-else-if="props.groups.length === 0"
       description="当前筛选条件下没有座位"
-      action-text="清空座位类型 / 插座筛选"
+      action-text="清空座位类型 / 靠窗 / 插座筛选"
       @action="emit('clear-seat-filter')"
     />
 

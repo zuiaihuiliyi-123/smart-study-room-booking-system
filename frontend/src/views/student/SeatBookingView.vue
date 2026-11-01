@@ -52,6 +52,7 @@ function onSelect(cell: MatrixCell) {
 function clearSeatFilter() {
   filters.seatType = ''
   filters.powerOnly = false
+  filters.windowOnly = false
 }
 
 // 切回「今天」时若原时段已过，自动收敛到下一个可预约时段

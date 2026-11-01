@@ -75,6 +75,7 @@ export function useSeatBooking() {
     endTime: '',
     seatType: '',
     powerOnly: false,
+    windowOnly: false,
   })
 
 const selectedSeatId = ref<number | null>(null)
@@ -117,7 +118,8 @@ const visibleSeats = computed(() =>
     seats.value.filter(
     (seat) =>
       (filters.seatType === '' || seat.seat_type === filters.seatType) &&
-      (!filters.powerOnly || seat.has_power),
+      (!filters.powerOnly || seat.has_power) &&
+      (!filters.windowOnly || seat.near_window),
   ),
 )
 
@@ -240,15 +242,57 @@ function defaultSlotAvoidingSelf(): { startTime: string; endTime: string } {
   return slot
 }
 
-function applyDefaults() {
-  const first = rooms.value[0] ?? null
-  filters.roomId = first?.id ?? null
-  filters.reserveDate = todayIso(clock.value)
+/** 明天的 ISO 日期（今天已无可预约时段时用于顺延默认日期）。 */
+function nextIsoDate(iso: string): string {
+  const next = new Date(`${iso}T00:00:00`)
+  next.setDate(next.getDate() + 1)
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(
+    next.getDate(),
+  ).padStart(2, '0')}`
+}
+
+/**
+ * 今天是否还剩可预约时段：把「当前时刻向上取整到粒度」当作最早可选的开始时间，
+ * 它再放一个最小粒度仍不超过闭馆时间，今天才算还可约。
+ * 例：闭馆 22:00、粒度 30 分钟时，21:30 是今天最后一个可选的开始时间。
+ */
+function todayHasSlotLeft(): boolean {
+  const open = parseTimeToMinutes(openTime.value) ?? 8 * 60
+  const close = parseTimeToMinutes(closeTime.value) ?? 22 * 60
+  const now = clock.value
+  const aligned = ceilToStep(Math.max(open, now.getHours() * 60 + now.getMinutes()))
+  return aligned + BOOKING_RULES.granularity <= close
+}
+
+/**
+ * 今天已过最后一个可选的开始时间时，把默认日期顺延到明天。
+ *
+ * 否则页面一进来就落在「该时段已经开始，不能预约」上：座位列表为空，
+ * 依赖座位数据的筛选（座位类型、可约数量）也跟着一起变空。
+ */
+function shiftDateIfTodayOver(): boolean {
+  if (filters.reserveDate !== todayKey.value || todayHasSlotLeft()) return false
+  filters.reserveDate = nextIsoDate(todayKey.value)
+  return true
+}
+
+/** 默认时段：今天还可约就沿用「当前时刻对齐」，否则顺延到明天。返回是否顺延。 */
+function applyDefaultSlot(): boolean {
+  const shifted = shiftDateIfTodayOver()
   const slot = defaultSlotAvoidingSelf()
   filters.startTime = slot.startTime
   filters.endTime = slot.endTime
+  return shifted
+}
+
+function applyDefaults(): boolean {
+  const first = rooms.value[0] ?? null
+  filters.roomId = first?.id ?? null
+  filters.reserveDate = todayIso(clock.value)
   filters.seatType = ''
   filters.powerOnly = false
+  filters.windowOnly = false
+  return applyDefaultSlot()
 }
 
 function validationError(): string | null {
@@ -338,7 +382,7 @@ async function bootstrap() {
     loading.value = false
     return
   }
-  applyDefaults()
+  if (applyDefaults()) ElMessage.info('今天已无可预约时段，已自动切到明天')
   await query()
   // 首屏默认时段若与本人既有有效预约重叠（C4），自动顺延到冲突结束之后，
   // 否则用户一进页面就只看到「该时段不可预约」而看不到座位矩阵。
@@ -349,7 +393,7 @@ async function bootstrap() {
 }
 
 function resetFilters() {
-  applyDefaults()
+  if (applyDefaults()) ElMessage.info('今天已无可预约时段，已自动切到明天')
   void query()
 }
 
@@ -362,6 +406,7 @@ function resetFilters() {
  * 3. 立即按新自习室重新取数，用户不必再点一次「查询」才看到新馆的座位矩阵。
  */
 function applyRoomChange() {
+  const shifted = shiftDateIfTodayOver()
   const open = parseTimeToMinutes(openTime.value) ?? 8 * 60
   const close = parseTimeToMinutes(closeTime.value) ?? 22 * 60
   const start = parseTimeToMinutes(filters.startTime)
@@ -373,12 +418,18 @@ function applyRoomChange() {
   }
   selectedSeatId.value = null
   drawerVisible.value = false
+  if (shifted) ElMessage.info('今天已无可预约时段，已自动切到明天')
   void query()
 }
 
 /** 换回今天时若原时段已过，自动收敛到下一个可预约时段。 */
 function applyDateChange() {
   if (filters.reserveDate !== todayKey.value) return
+  // 今天已经过了最后一个可选的开始时间：顺延到明天，而不是留一个必然失败的时段
+  if (applyDefaultSlot()) {
+    ElMessage.info('今天已无可预约时段，已自动切到明天')
+    return
+  }
   const now = clock.value
   const start = parseTimeToMinutes(filters.startTime)
   if (start !== null && start <= now.getHours() * 60 + now.getMinutes()) {

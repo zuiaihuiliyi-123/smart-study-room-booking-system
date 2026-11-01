@@ -19,9 +19,7 @@ function freeCount(cells: readonly MatrixCell[]): number {
 <template>
   <section class="seat-matrix" aria-label="座位矩阵">
     <div class="seat-legend">
-      <p class="seat-legend__head">
-        四态图例（图标 + 底纹 + 边框线型均不同，不只靠颜色区分）
-      </p>
+      <p class="seat-legend__head">图例</p>
       <ul class="seat-legend__list">
         <li v-for="state in SEAT_STATE_ORDER" :key="state" class="seat-legend__item">
           <span class="seat-legend__chip" :class="SEAT_STATE_CLASS[state]">
