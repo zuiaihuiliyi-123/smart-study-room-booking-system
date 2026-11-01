@@ -140,6 +140,9 @@ function onClose() {
           预计解除时间：{{ restrictUntilText(props.failure.restrictUntil) }}
           <span class="ssr-text-muted">（限制 7 天，期满自动解除）</span>
         </p>
+        <p v-else-if="props.failure.kind === 'restricted'">
+          该限制为管理员手动限制，须由管理员解除，没有自动解除时间。
+        </p>
         <p v-if="failedJudgementText">
           未通过检查：{{ failedJudgementText }}
         </p>

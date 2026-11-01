@@ -50,6 +50,8 @@ export function relatedObjectText(message: StationMessage): string {
     export function relatedRoute(message: StationMessage): string | null {
     const target = relatedTarget(message.related_type)
     if (!target) return null
+    // 黑名单记录没有学生端列表页，跳到「我的违约」查看账户状态提示，不带 focus（记录 id 不是违约 id）
+    if (message.related_type === '黑名单') return target.route
     return message.related_id === null ? target.route : `${target.route}?focus=${message.related_id}`
 }
 

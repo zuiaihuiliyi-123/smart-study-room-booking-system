@@ -27,7 +27,8 @@ export const REFRESH_INTERVAL_MS = 10_000
 const COUNTDOWN_SECONDS = REFRESH_INTERVAL_MS / 1000
 /** 图 3 取前 N 名 */
 export const TOP_N = 8
-const VIOLATION_PAGE_SIZE = 200
+/** 后端 `GET /violations` 的 `page_size` 上限是 100（`le=100`），超过会被判 422 */
+const VIOLATION_PAGE_SIZE = 100
 const MAX_VIOLATION_PAGES = 5
 
 export type RefreshSource = 'initial' | 'auto' | 'manual' | 'resume'
@@ -151,25 +152,25 @@ async function loadTopViolators(
       page,
       page_size: VIOLATION_PAGE_SIZE,
     })
-  sample = result.total
-  for (const record of result.items) {
-    counters.set(record.user_id, (counters.get(record.user_id) ?? 0) + 1)
+    sample = result.total
+    for (const record of result.items) {
+      counters.set(record.user_id, (counters.get(record.user_id) ?? 0) + 1)
+    }
+    if (page * VIOLATION_PAGE_SIZE >= result.total) break
+    if (page === MAX_VIOLATION_PAGES) truncated = true
   }
-  if (page * VIOLATION_PAGE_SIZE >= result.total) break
-  if (page === MAX_VIOLATION_PAGES) truncated = true
-}
 
-const items = [...counters.entries()]
-  .map(([userId, count]) => ({
-  user_id: userId,
-  name: dir?.usersById.get(userId)?.name ?? `用户 #${userId}`,
-  student_no: dir?.usersById.get(userId)?.student_no ?? `#${userId}`,
-  count,
-}))
-  .sort((left, right) => right.count - left.count || left.user_id - right.user_id)
-  .slice(0, TOP_N)
+  const items = [...counters.entries()]
+    .map(([userId, count]) => ({
+      user_id: userId,
+      name: dir?.usersById.get(userId)?.name ?? `用户 #${userId}`,
+      student_no: dir?.usersById.get(userId)?.student_no ?? `#${userId}`,
+      count,
+    }))
+    .sort((left, right) => right.count - left.count || left.user_id - right.user_id)
+    .slice(0, TOP_N)
 
-return { items, sample, truncated }
+  return { items, sample, truncated }
 }
 
 async function refresh(source: RefreshSource = 'manual'): Promise<void> {

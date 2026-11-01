@@ -20,3 +20,14 @@ class TrendPoint(BaseModel):
     date: date
     reservations: int
     violations: int
+
+
+class SeatUsageSlotRow(BaseModel):
+    """图 1：某自习室在某时段桶内的座位占用率。"""
+
+    room_id: int
+    room_name: str
+    slot: str
+    occupied: int
+    capacity: int
+    rate: float

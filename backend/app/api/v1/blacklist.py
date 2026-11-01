@@ -14,12 +14,17 @@ router = APIRouter(prefix="/blacklist", tags=["M5 黑名单"])
 
 @router.get("", response_model=PageResult[BlacklistRead], summary="黑名单记录（管理员）")
 def list_entries(
+    state: str | None = None,
+    mode: str | None = None,
+    user_id: int | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> PageResult[BlacklistRead]:
-    return blacklist_service.list_entries(db, page, page_size)
+    return blacklist_service.list_entries(
+        db, page, page_size, state=state, mode=mode, user_id=user_id
+    )
 
 
 @router.post(

@@ -1,6 +1,13 @@
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -16,6 +23,9 @@ class ViolationRecord(Base):
 
     __tablename__ = "violation_records"
     __table_args__ = (
+        UniqueConstraint(
+            "reservation_id", "type", name="uq_violation_reservation_type"
+        ),
         Index("ix_violation_user_time", "user_id", "created_at"),
         Index("ix_violation_reservation_type", "reservation_id", "type"),
         CheckConstraint(

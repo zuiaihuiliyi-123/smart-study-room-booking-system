@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError
@@ -50,7 +51,16 @@ def create_review(db: Session, user_id: int, payload: ReviewCreate) -> Review:
         content=payload.content,
     )
     db.add(review)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # 并发重复提交由 reviews.reservation_id 唯一约束兜底（BR-013）
+        db.rollback()
+        raise BusinessError(
+            "该预约单已评价过，不能重复评价",
+            code="REVIEW_ALREADY_EXISTS",
+            status_code=409,
+        ) from None
     db.refresh(review)
     return review
 

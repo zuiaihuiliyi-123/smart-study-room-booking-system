@@ -181,7 +181,9 @@ onMounted(() => {
             <dt>预计解除时间</dt>
             <dd>
               <b v-if="restrictUntil">{{ restrictUntil }}</b>
-              <span v-else class="ssr-text-muted">暂无法查询，请联系管理员</span>
+              <span v-else class="ssr-text-muted">
+                管理员手动限制，没有自动解除时间，须由管理员解除
+              </span>
             </dd>
           </div>
           <div>

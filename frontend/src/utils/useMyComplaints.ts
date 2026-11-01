@@ -9,9 +9,9 @@
  */
 import { nextTick, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
-import { createComplaint, listMyComplaints } from '@/api/complaint'
+import { confirmComplaint, createComplaint, listMyComplaints } from '@/api/complaint'
 import { listRooms } from '@/api/room'
 import type { TargetType } from '@/components/complaints/complaintMeta'
 import type { Complaint, Reservation, Room } from '@/types'
@@ -39,6 +39,8 @@ export function useMyComplaints() {
   const loading = ref(true)
   const errorMessage = ref('')
   const submitting = ref(false)
+  /** 正在确认关闭的投诉编号（ST-063） */
+  const confirmingId = ref<number | null>(null)
   /** 最近一次提交成功的投诉编号：用于列表高亮并滚动到该条 */
   const newId = ref<number | null>(null)
   const focusId = ref<number | null>(parseFocusId(route.query.focus))
@@ -100,6 +102,36 @@ async function submit(payload: ComplaintFormPayload): Promise<void> {
 }
 }
 
+/** ST-063：投诉人确认处理结果，将「已处理」投诉关闭。 */
+async function confirmClose(item: Complaint): Promise<void> {
+  if (item.status !== '已处理') return
+  try {
+    await ElMessageBox.confirm(
+      `确认投诉 #${item.id} 已处理完成并关闭？关闭后不可再变更。`,
+      '确认关闭投诉',
+      {
+        type: 'info',
+        confirmButtonText: '确认关闭',
+        cancelButtonText: '返回',
+      },
+    )
+  } catch {
+    return
+  }
+
+  confirmingId.value = item.id
+  try {
+    const updated = await confirmComplaint(item.id)
+    const index = items.value.findIndex((record) => record.id === updated.id)
+    if (index >= 0) items.value[index] = updated
+    ElMessage.success('已确认处理结果，投诉已关闭')
+  } catch {
+    // 失败提示由 request.ts 拦截器统一给出
+  } finally {
+    confirmingId.value = null
+  }
+}
+
 function onPageChange(next: number): void {
   page.value = next
   newId.value = null
@@ -119,6 +151,7 @@ return {
   loading,
   errorMessage,
   submitting,
+  confirmingId,
   newId,
   focusId,
   rooms,
@@ -126,6 +159,7 @@ return {
   reservations,
   load,
   submit,
+  confirmClose,
   bootstrap,
   onPageChange,
 }

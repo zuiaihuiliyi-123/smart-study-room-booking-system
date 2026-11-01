@@ -114,35 +114,42 @@ function findSeatConflict(
   )
 }
 
-/** 当前生效的限制截止时间（ISO 字符串），无限制返回 null。 */
+/**
+ * 当前生效的**自动**限制截止时间（ISO 字符串），无自动限制返回 null。
+ *
+ * 手动限制不产生“自动解除时间”（BR-010 / ST-042），因此不在此处返回。
+ */
 export function restrictionUntil(db: MockDb, userId: number): string | null {
   const nowMs = serverNow().getTime()
   const active = db.blacklist.filter(
     (item) =>
       item.user_id === userId &&
       item.released_at === null &&
+      item.mode === '自动' &&
       item.expire_at !== null &&
       new Date(item.expire_at).getTime() > nowMs,
   )
   if (active.length === 0) return null
   const expiries = active.map((item) => item.expire_at ?? '')
-  return expiries.sort().at(-1) ?? null
+  return expiries.sort()[0] ?? null
 }
 
 /**
  * 是否存在生效中的限制（BR-010 / ST-042）。
  *
- * 与 `restrictionUntil` 的区别：**不设期限的管理员手动限制**（`expire_at === null`）也算生效中。
-   * ST-042 要求「存在管理员手动限制时系统不得自动解除」，因此判断账户能否恢复「正常」时必须用它，
-   * 而不能只看有没有到期时间。
-   */
+ * 与 `restrictionUntil` 的区别：管理员手动限制**无论是否设期限**都算生效中。
+ * ST-042 要求「存在管理员手动限制时系统不得自动解除」，因此判断账户能否恢复
+ * 「正常」时必须用它，而不能只看有没有到期时间。
+ */
     export function hasActiveRestriction(db: MockDb, userId: number): boolean {
     const nowMs = serverNow().getTime()
     return db.blacklist.some(
       (item) =>
           item.user_id === userId &&
           item.released_at === null &&
-          (item.expire_at === null || new Date(item.expire_at).getTime() > nowMs),
+          (item.mode === '手动' ||
+              item.expire_at === null ||
+              new Date(item.expire_at).getTime() > nowMs),
       )
     }
 
@@ -154,12 +161,12 @@ export function restrictionUntil(db: MockDb, userId: number): string | null {
       if (user.account_status === '受限') {
         const until = restrictionUntil(db, user.id)
         if (until === null) {
-          // 不设期限的管理员手动限制：没有自动解除时间，ST-042 要求必须由管理员解除
+          // 管理员手动限制没有自动解除时间；ST-042 要求必须由管理员解除
           return fail(
             403,
             'ACCOUNT_RESTRICTED',
             hasActiveRestriction(db, user.id)
-              ? '账户当前处于受限状态（管理员手动限制，不设期限），须由管理员解除后恢复，暂不可预约'
+              ? '账户当前处于受限状态（管理员手动限制），须由管理员解除后恢复，暂不可预约'
               : '账户当前处于受限状态，暂不可预约，请联系管理员',
           )
         }

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, require_admin
+from app.core.dependencies import get_current_user, require_admin, require_booking_user
 from app.models.reservation import Reservation
 from app.models.seat import Seat
 from app.models.user import User
@@ -29,7 +29,7 @@ router = APIRouter(prefix="/reservations", tags=["M2 预约管理"])
 def create_reservation(
     payload: ReservationCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_booking_user),
 ) -> Reservation:
     return reservation_service.create_reservation(db, current_user, payload)
 
@@ -37,13 +37,25 @@ def create_reservation(
 @router.get("/me", response_model=PageResult[ReservationRead], summary="本人预约记录")
 def list_my_reservations(
     status: str | None = None,
+    reserve_date_from: date | None = None,
+    reserve_date_to: date | None = None,
+    room_id: int | None = None,
+    seat_id: int | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> PageResult[ReservationRead]:
     return reservation_service.list_my_reservations(
-        db, current_user.id, status=status, page=page, page_size=page_size
+        db,
+        current_user.id,
+        status=status,
+        page=page,
+        page_size=page_size,
+        reserve_date_from=reserve_date_from,
+        reserve_date_to=reserve_date_to,
+        room_id=room_id,
+        seat_id=seat_id,
     )
 
 
@@ -58,10 +70,15 @@ def list_available_seats(
     start_time: time,
     end_time: time,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> list[Seat]:
     return availability_service.list_available_seats(
-        db, room_id, reserve_date, start_time, end_time
+        db,
+        room_id,
+        reserve_date,
+        start_time,
+        end_time,
+        user_id=current_user.id,
     )
 
 
@@ -72,14 +89,40 @@ def list_available_seats(
 )
 def list_all_reservations(
     status: str | None = None,
+    reserve_date_from: date | None = None,
+    reserve_date_to: date | None = None,
+    room_id: int | None = None,
+    seat_id: int | None = None,
+    student_no: str | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> PageResult[ReservationRead]:
     return reservation_service.list_all_reservations(
-        db, status=status, page=page, page_size=page_size
+        db,
+        status=status,
+        page=page,
+        page_size=page_size,
+        reserve_date_from=reserve_date_from,
+        reserve_date_to=reserve_date_to,
+        room_id=room_id,
+        seat_id=seat_id,
+        student_no=student_no,
     )
+
+
+@router.get(
+    "/{reservation_id}",
+    response_model=ReservationRead,
+    summary="预约单详情（管理员）",
+)
+def get_reservation(
+    reservation_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> Reservation:
+    return reservation_service.get_reservation(db, reservation_id)
 
 
 @router.post(
@@ -91,7 +134,7 @@ def cancel_my_reservation(
     reservation_id: int,
     payload: CancelRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_booking_user),
 ) -> MessageResponse:
     reservation_service.cancel_my_reservation(
         db, current_user.id, reservation_id, payload

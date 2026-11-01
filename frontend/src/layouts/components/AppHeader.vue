@@ -13,10 +13,12 @@ const props = withDefaults(
     /** ≤1024px 时出现折叠按钮 */
     narrow: boolean
     unreadCount?: number
+    /** 站内消息入口；管理端没有消息页面时关闭，避免出现点了没反应的按钮 */
+    showMessages?: boolean
     /** 个人资料路由；不传则该下拉项禁用 */
     profilePath?: string
   }>(),
-  { unreadCount: 0, profilePath: '' },
+  { unreadCount: 0, showMessages: true, profilePath: '' },
 )
 
 const emit = defineEmits<{
@@ -81,6 +83,7 @@ function onCommand(command: string) {
       </button>
 
       <el-badge
+        v-if="props.showMessages"
         class="app-header__badge"
         :value="props.unreadCount"
         :max="99"

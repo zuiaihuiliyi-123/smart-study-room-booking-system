@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from app.schemas.common import ORMModel
+from app.schemas.user import UserRead
 
 
 class LoginRequest(BaseModel):
@@ -13,11 +13,5 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-class CurrentUser(ORMModel):
-    id: int
-    name: str
-    student_no: str
-    role: str
-    account_status: str
-    violation_count: int
-    contact: str | None = None
+class CurrentUser(UserRead):
+    """当前登录用户；字段与用户列表/资料响应保持一致。"""

@@ -26,10 +26,15 @@ def test_implemented_room_endpoint_returns_list(api_client) -> None:
     assert response.json() == []
 
 
-def test_unimplemented_service_still_raises(db) -> None:
-    # 尚未实现的模块（M6 看板）在服务层仍抛 NotImplementedError，路由层映射为 501
-    with pytest.raises(NotImplementedError):
-        dashboard_service.get_overview(db)
+def test_dashboard_overview_returns_zero_on_empty_db(db) -> None:
+    # M6 已实现：空库返回全 0，而不是 501
+    overview = dashboard_service.get_overview(db)
+
+    assert overview.seat_total == 0
+    assert overview.in_use == 0
+    assert overview.today_reservations == 0
+    assert overview.today_violations == 0
+    assert overview.restricted_accounts == 0
 
 
 def test_protected_endpoint_requires_login(api_client) -> None:

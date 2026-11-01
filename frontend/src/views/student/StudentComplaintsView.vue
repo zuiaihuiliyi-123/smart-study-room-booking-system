@@ -15,6 +15,7 @@ const {
   loading,
   errorMessage,
   submitting,
+  confirmingId,
   newId,
   focusId,
   rooms,
@@ -22,6 +23,7 @@ const {
   reservations,
   load,
   submit,
+  confirmClose,
   bootstrap,
   onPageChange,
 } = useMyComplaints()
@@ -67,7 +69,9 @@ onMounted(() => {
           :error-message="errorMessage"
           :new-id="newId"
           :focus-id="focusId"
+          :confirming-id="confirmingId"
           @retry="load"
+          @confirm="confirmClose"
         />
 
         <div v-if="!loading && !errorMessage && total > pageSize" class="pager">

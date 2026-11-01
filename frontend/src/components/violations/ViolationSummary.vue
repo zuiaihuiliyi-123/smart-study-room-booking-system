@@ -75,7 +75,7 @@ const consequence = computed(() => {
         <p v-if="props.restricted">
           <span class="summary__label">预计解除时间：</span>
           <b v-if="props.restrictUntil">{{ props.restrictUntil }}</b>
-          <span v-else>暂无法查询，请联系管理员</span>
+          <span v-else>管理员手动限制，没有自动解除时间，须由管理员解除</span>
         </p>
         <p class="summary__label">
           限制规则：累计有效违约满 {{ props.threshold }} 次自动限制 7 天，期满自动解除。

@@ -4,9 +4,7 @@ import type { PageResult, Reservation, Seat } from '@/types'
 /**
  * 预约列表查询参数。
  *
- * 管理端需要按「日期区间 / 自习室 / 状态 / 学号」全量查询（FR-030 的管理端口径、FR-031、FR-032），
- * 而后端 `GET /reservations` 目前只接受 `status / page / page_size`——其余参数属**待补接口**，
- * 前端按最终口径先写好，后端补齐后无需改动业务代码（见交付说明的接口缺口清单）。
+ * 管理端按「日期区间 / 自习室 / 状态 / 学号」全量查询（FR-030 的管理端口径、FR-031、FR-032）。
  */
 export interface ReservationQuery {
   status?: string
@@ -35,7 +33,7 @@ export const listMyReservations = (params: ReservationQuery) =>
 export const listAllReservations = (params: ReservationQuery) =>
   http.get<PageResult<Reservation>>('/reservations', params)
 
-/** 预约单详情（管理端详情抽屉）。后端尚无该只读路由，见接口缺口清单。 */
+/** 预约单详情（管理端详情抽屉）。 */
 export const getReservation = (reservationId: number) =>
   http.get<Reservation>(`/reservations/${reservationId}`)
 

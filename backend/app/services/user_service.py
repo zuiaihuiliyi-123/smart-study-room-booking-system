@@ -2,13 +2,44 @@
 
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from datetime import datetime
+
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.models.blacklist import BlacklistEntry
+from app.models.enums import BlacklistMode
 from app.models.user import User
 from app.schemas.common import PageResult
 from app.schemas.user import UserRead, UserUpdate
 from app.utils.pagination import to_offset
+
+
+def _restrict_until(
+    db: Session, user_id: int, now: datetime | None = None
+) -> datetime | None:
+    """受限账户的预计解除时间（FR-044 / ST-040）。
+
+    只有自动限制会到期解除（BR-010）；管理员手动限制须由管理员显式解除，
+    因此不返回“自动解除时间”，避免界面给出错误的预计解除日期。
+    """
+    current = now or datetime.now()
+    stmt = select(BlacklistEntry.expire_at).where(
+        BlacklistEntry.user_id == user_id,
+        BlacklistEntry.released_at.is_(None),
+        BlacklistEntry.mode == BlacklistMode.AUTO.value,
+        BlacklistEntry.expire_at.is_not(None),
+        BlacklistEntry.expire_at > current,
+    )
+    expiries = list(db.scalars(stmt).all())
+    return min(expiries) if expiries else None
+
+
+def to_user_read(db: Session, user: User) -> UserRead:
+    """把 ORM 用户转换为响应模型，并补齐黑名单相关的派生字段。"""
+    return UserRead.model_validate(user).model_copy(
+        update={"restrict_until": _restrict_until(db, user.id)}
+    )
 
 
 def update_my_profile(db: Session, user: User, payload: UserUpdate) -> User:
@@ -24,14 +55,42 @@ def update_my_profile(db: Session, user: User, payload: UserUpdate) -> User:
     return user
 
 
-def list_users(db: Session, page: int, page_size: int) -> PageResult[UserRead]:
+def list_users(
+    db: Session,
+    page: int,
+    page_size: int,
+    *,
+    keyword: str | None = None,
+    role: str | None = None,
+    account_status: str | None = None,
+    violation_min: int | None = None,
+) -> PageResult[UserRead]:
     """M5 / FR-040：管理员查询用户列表与账户状态（分页，按 id 升序）。"""
-    total = db.scalar(select(func.count()).select_from(User)) or 0
+    conditions: list = []
+    if keyword:
+        pattern = f"%{keyword.strip()}%"
+        conditions.append(
+            or_(User.name.like(pattern), User.student_no.like(pattern))
+        )
+    if role:
+        conditions.append(User.role == role)
+    if account_status:
+        conditions.append(User.account_status == account_status)
+    if violation_min is not None:
+        conditions.append(User.violation_count >= violation_min)
+
+    total = (
+        db.scalar(select(func.count()).select_from(User).where(*conditions)) or 0
+    )
     rows = db.scalars(
-        select(User).order_by(User.id).offset(to_offset(page, page_size)).limit(page_size)
+        select(User)
+        .where(*conditions)
+        .order_by(User.id)
+        .offset(to_offset(page, page_size))
+        .limit(page_size)
     )
     return PageResult[UserRead](
-        items=[UserRead.model_validate(row) for row in rows],
+        items=[to_user_read(db, row) for row in rows],
         total=total,
         page=page,
         page_size=page_size,

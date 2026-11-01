@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     attendance,
+    audit,
     auth,
     blacklist,
     complaints,
@@ -26,5 +27,6 @@ api_router.include_router(violations.router)
 api_router.include_router(reviews.router)
 api_router.include_router(complaints.router)
 api_router.include_router(blacklist.router)
+api_router.include_router(audit.router)
 api_router.include_router(dashboard.router)
 api_router.include_router(messages.router)

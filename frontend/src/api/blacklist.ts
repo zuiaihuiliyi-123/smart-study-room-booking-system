@@ -8,7 +8,9 @@
 import { http } from './request'
 import type { BlacklistEntry, PageResult } from '@/types'
 
-/** 记录状态：生效中（未解除且未到期）/ 已解除（管理员手动解除）/ 已过期（到期自动失效） */
+/**
+ * 记录状态：生效中（未解除；手动限制到期后仍生效）/ 已解除 / 已过期（仅自动限制到期）。
+ */
 export type BlacklistState = '生效中' | '已解除' | '已过期'
 
 export interface BlacklistQuery {
@@ -24,8 +26,8 @@ export const listBlacklist = (params: BlacklistQuery) =>
     http.get<PageResult<BlacklistEntry>>('/blacklist', params)
 
   /**
-   * ST-041：手动加入黑名单（原因必填 + 期限）。
-   * `expire_at` 为 null 时由后端按 BR-010 的 7 天给出默认期限。
+   * ST-041：手动加入黑名单（原因必填；期限可选）。
+   * `expire_at` 为 null 表示不设期限；手动限制无论是否设期限都不会自动解除，须管理员解除。
    */
   export const addBlacklist = (data: {
     user_id: number
@@ -33,10 +35,6 @@ export const listBlacklist = (params: BlacklistQuery) =>
     expire_at: string | null
   }) => http.post<BlacklistEntry>('/blacklist', data)
 
-/**
- * ST-043：手动解除（原因必填）。
- * 后端 `release_entry` 目前不接收请求体，解除原因只进 `audit_logs`（NFR-009）；
- * 请求体字段属**待补接口**，见交付说明的接口缺口清单。
- */
+/** ST-043：手动解除（原因必填，后端写入 `release_reason` 与审计日志）。 */
 export const releaseBlacklist = (entryId: number, data: { reason: string }) =>
     http.post<BlacklistEntry>(`/blacklist/${entryId}/release`, data)

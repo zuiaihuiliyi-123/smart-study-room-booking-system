@@ -172,7 +172,9 @@ const judgements = computed<JudgementItem[]>(() => {
     availableIds: availableIds.value,
     usage: usage.value,
     accountStatus: auth.user?.account_status ?? '正常',
-    restrictUntil: restrictUntilText(failure.value?.restrictUntil ?? ''),
+    restrictUntil: restrictUntilText(
+      failure.value?.restrictUntil || auth.user?.restrict_until || '',
+    ),
     dayOffset: dayOffsetFromToday(clock.value, filters.reserveDate),
   })
 })

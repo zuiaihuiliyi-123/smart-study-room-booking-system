@@ -128,11 +128,10 @@ onMounted(() => {
 
     <el-alert class="notice" type="warning" :closable="false" show-icon title="自动解除的边界">
       <p>
-        限制期满后系统会自动解除账户限制，条件是<strong>该账户不存在其它生效中的限制</strong>。
-        若存在<strong>管理员手动设置</strong>且仍生效的限制，系统<strong>不会</strong>自动解除，需要管理员手动解除。
+        只有<strong>自动限制</strong>会在期满后由系统解除，条件是<strong>该账户不存在其它生效中的限制</strong>。
       </p>
       <p>
-        「不设期限」的手动记录因此会一直生效，直到管理员手动解除——列表中已标注「不设期限（仅可手动解除）」。
+        因此手动记录即使设定了期限，到期后仍会保持生效；「不设期限」的记录同样只能由管理员解除。
       </p>
     </el-alert>
 

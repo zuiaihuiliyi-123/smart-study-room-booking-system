@@ -48,10 +48,21 @@ alembic upgrade head
 
 # 5. 演示账户（student / student123，admin / admin123）
 python -m scripts.seed
+#    可选：演示自习室 / 分区 / 座位（幂等，同名自习室已存在时跳过）
+python -m scripts.seed_demo
 
 # 6. 启动
 uvicorn app.main:app --reload
 ```
+
+Windows 上完成首次配置后，可直接双击或执行 `start.bat` 启动（无需激活虚拟环境，不受 PowerShell 执行策略限制）：
+
+```powershell
+cd backend
+.\start.bat
+```
+
+脚本内容为 `.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000`，并会检查 `.venv` 与 `.env`。启动顺序与故障排查见 [`../docs/系统使用说明.md`](../docs/系统使用说明.md) 第 3、7 节。
 
 - Swagger UI：<http://127.0.0.1:8000/docs>
 - 健康检查：<http://127.0.0.1:8000/health>
@@ -75,7 +86,7 @@ api/v1/*  →  services/*  →  models/*
 ```
 
 - 路由只做参数绑定、鉴权与响应声明，不写业务规则。
-- M1～M7 的业务逻辑集中在 `services/`；尚未实现的接口抛出 `NotImplementedError`，统一返回 HTTP 501。
+- M1～M7 的业务逻辑集中在 `services/`；接口均已实现，不再返回 501（保留统一异常处理器作兜底）。
 - 预约冲突、幂等、自动违约等规则见需求规格说明书 `docs/` 与各服务函数的 docstring。
 
 ## 模块对照
@@ -96,4 +107,4 @@ api/v1/*  →  services/*  →  models/*
 pytest
 ```
 
-当前仅包含健康检查与时间区间工具测试；业务测试按需求文档的场景（VS-01～VS-06）补充。
+测试使用 SQLite 内存库与依赖覆盖，覆盖登录/权限、资源、预约与可用性、签到违约、投诉/黑名单、看板、站内消息及主要 HTTP 场景。
