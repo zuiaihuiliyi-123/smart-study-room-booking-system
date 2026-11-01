@@ -16,7 +16,7 @@ import LoadingBlock from '@/components/LoadingBlock.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { seatIdLabel, userLabelOf } from '@/utils/adminData'
-import { bracketRangeText } from '@/utils/bookingRules'
+import { timeRangeText } from '@/utils/bookingRules'
 import { formatDateTime } from '@/utils/format'
 import { useReservationManage } from '@/utils/useReservationManage'
 
@@ -65,7 +65,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="预约管理"
-      subtitle="预约全量查询 · 强制取消（不计违约）· 手动违约登记（累加次数）· 同一预约单两个操作互斥"
+      subtitle="查询全部预约单，处理待使用与使用中的异常"
     />
 
     <FilterBar :loading="loading" @search="onSearch" @reset="onReset">
@@ -85,7 +85,7 @@ onMounted(() => {
 
       <label class="filter-field">
         <span class="filter-field__label">自习室</span>
-        <el-select v-model="roomId" class="w-160" clearable placeholder="全部自习室">
+        <el-select v-model="roomId" class="w-160" clearable placeholder="全部自习室" @change="onSearch">
           <el-option v-for="room in rooms" :key="room.id" :label="room.name" :value="room.id" />
         </el-select>
       </label>
@@ -155,9 +155,9 @@ onMounted(() => {
 
             <el-table-column label="预约日期" width="112" prop="reserve_date" />
 
-            <el-table-column label="时段（左闭右开）" width="132">
+            <el-table-column label="时段" width="132">
               <template #default="{ row }">
-                {{ bracketRangeText(row.start_time, row.end_time) }}
+                {{ timeRangeText(row.start_time, row.end_time) }}
               </template>
             </el-table-column>
 
@@ -233,15 +233,15 @@ onMounted(() => {
     <el-alert class="notice" type="info" :closable="false" show-icon title="「强制取消」与「手动违约登记」的区别">
       <p>
         <strong>强制取消</strong>只对「待使用」有效，用于事前终止；
-          不产生违约记录、不累加违约次数，取消后该时段立即对其他同学开放。
-          </p>
-          <p>
-            <strong>手动违约登记</strong>只对「使用中」有效，用于事后追责；
-              必填原因并写入审计日志，会累加用户违约次数，累计 3 次触发 7 天限制。
-              </p>
-              <p>两者互斥：同一预约单不会同时出现两个可用按钮。</p>
-              <p>列表中「签到 / 签退」只显示时刻（同一预约单只涉及一天），完整时间见详情抽屉。</p>
-            </el-alert>
+        不产生违约记录、不累加违约次数，取消后该时段立即对其他同学开放。
+      </p>
+      <p>
+        <strong>手动违约登记</strong>只对「使用中」有效，用于事后追责；
+        必填原因并写入审计日志，会累加用户违约次数，累计 3 次触发 7 天限制。
+      </p>
+      <p>同一预约单只会出现其中一个可用按钮。</p>
+      <p>时段含开始时间、不含结束时间；「签到 / 签退」只显示时刻，完整时间见详情抽屉。</p>
+    </el-alert>
 
             <ReservationDetailDrawer
               v-model="detailVisible"

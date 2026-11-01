@@ -58,7 +58,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="我的预约"
-      subtitle="记录查询 · 取消 · 签到签退 · 评价；时段口径为左闭右开 [s, e)"
+      subtitle="查看预约记录，取消预约、签到签退与评价"
     >
       <template #actions>
         <el-button :loading="loading" @click="refresh()">刷新</el-button>
@@ -107,14 +107,11 @@ onMounted(() => {
         @current-change="onPageChange"
         @size-change="onPageSizeChange"
       />
-      <p class="ssr-text-muted pager__note">
-        共 {{ total }} 条（page / page_size / total 与服务端一致）；状态筛选走
-        <code>status</code> 参数，日期与自习室维度后端尚未提供查询参数。
-          </p>
-        </div>
+      <p class="ssr-text-muted pager__note">共 {{ total }} 条</p>
+    </div>
 
-        <p class="ssr-text-muted rules-note">
-          取消口径：距开始<b>不少于 30 分钟</b>可无损取消；不足 30 分钟时用户不能自行取消，
+    <p class="ssr-text-muted rules-note">
+          取消规则：距开始<b>不少于 30 分钟</b>可无损取消；不足 30 分钟时用户不能自行取消，
           且该情形不计违约，只能由管理员强制取消。签到窗口为开始前 15 分钟至开始后 15 分钟。
         </p>
 

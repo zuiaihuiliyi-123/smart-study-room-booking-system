@@ -47,7 +47,7 @@ function cancelEdit(): void {
 async function saveContact(): Promise<void> {
   const next = contactDraft.value.trim()
   if (next.length > 100) {
-    ElMessage.warning('联系方式不能超过 100 字（与后端字段约束一致）')
+    ElMessage.warning('联系方式不能超过 100 字')
     return
   }
   saving.value = true
@@ -72,7 +72,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="个人资料"
-      subtitle="用户信息管理（身份信息只读，仅联系方式可自行修改）"
+      subtitle="查看个人资料，修改联系方式"
     >
       <template #actions>
         <el-button :loading="loading" @click="load">刷新</el-button>
@@ -97,8 +97,8 @@ onMounted(() => {
     <template v-else-if="profile">
       <section class="ssr-card block">
         <header class="ssr-card__head">
-          <h3>基本信息（只读）</h3>
-          <span class="ssr-text-muted">数据来源：GET /users/me（统一身份认证同步，本系统只读入不回写）</span>
+          <h3>基本信息</h3>
+          <span class="ssr-text-muted">由学校统一身份认证同步，这里不能修改</span>
         </header>
 
         <el-descriptions :column="2" border>
@@ -120,15 +120,15 @@ onMounted(() => {
         </el-descriptions>
 
         <p class="ssr-text-muted note">
-          姓名、学号与角色由统一身份认证同步，本系统只读；与 已裁定管理员亦不可编辑身份信息，
-          学生端同样不提供编辑入口。账户状态只能经 的黑名单 / 停用流程变更，不能自助修改。
+          姓名、学号与角色由统一身份认证同步，本系统不接受修改；管理员与学生端都不提供编辑入口。
+          账户状态只会因违约或管理员处理而变更，不能自行修改。
         </p>
       </section>
 
       <section class="ssr-card block">
         <header class="ssr-card__head">
-          <h3>联系方式（唯一可自行修改的字段）</h3>
-          <span class="ssr-text-muted">PATCH /users/me · 无审核</span>
+          <h3>联系方式（可自行修改）</h3>
+          <span class="ssr-text-muted">保存后立即生效</span>
         </header>
 
         <div v-if="!editing" class="contact">
@@ -153,15 +153,14 @@ onMounted(() => {
         </div>
 
         <p class="ssr-text-muted note">
-          本人资料页显示联系方式原值（属于本人数据）；学生端其他列表不展示他人姓名、学号与联系方式
-          （个人信息脱敏）。
+          本页展示你自己的联系方式；其他同学看不到你的姓名、学号与联系方式。
         </p>
       </section>
 
       <section class="ssr-card block">
         <header class="ssr-card__head">
           <h3>账户与安全</h3>
-          <span class="ssr-text-muted">账户状态 · 口令存储</span>
+          <span class="ssr-text-muted">账户状态 · 登录密码</span>
         </header>
 
         <dl class="security">
@@ -182,35 +181,23 @@ onMounted(() => {
             <dt>预计解除时间</dt>
             <dd>
               <b v-if="restrictUntil">{{ restrictUntil }}</b>
-              <span v-else class="ssr-text-muted">待后端提供接口（见下方说明）</span>
+              <span v-else class="ssr-text-muted">暂无法查询，请联系管理员</span>
             </dd>
           </div>
           <div>
             <dt>修改密码</dt>
             <dd>
               <el-button size="small" disabled>修改密码</el-button>
-              <span class="ssr-text-muted">
-                待后端提供接口：后端仅有 <code>GET /users/me</code> 与
-                <code>PATCH /users/me</code>（只接受 contact），没有口令修改接口；SRS 也未定义口令自助修改流程，
-                  因此这里不放假表单，接口就绪后再接入。
-                  </span>
-                </dd>
-              </div>
-              <div v-if="accountStatus === '受限'">
-                <dt>字段说明</dt>
-                <dd class="ssr-text-muted">
-                  预计解除时间需要后端补一个学生可读的字段（如 <code>UserRead.restrict_until</code>）；
-                  受限于 <code>GET /blacklist</code> 仅管理员可用，前端无法在不新增接口的前提下取到该时间，
-                  页面也不会自行推算日期。
-                </dd>
-              </div>
-            </dl>
-          </section>
-        </template>
+              <span class="ssr-text-muted">暂未开通自助修改，请联系管理员处理。</span>
+            </dd>
+          </div>
+        </dl>
+      </section>
+    </template>
 
-        <div v-else class="ssr-card block">
-          <el-empty description="未取得用户信息，请重新登录后再试" />
-        </div>
+    <div v-else class="ssr-card block">
+      <el-empty description="未取得用户信息，请重新登录后再试" />
+    </div>
       </div>
 </template>
 
@@ -225,7 +212,7 @@ onMounted(() => {
 }
 
 .link {
-  color: var(--ssr-primary);
+  color: var(--ssr-primary-ink);
   font-weight: 600;
 }
 

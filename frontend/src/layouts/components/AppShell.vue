@@ -159,7 +159,7 @@ const crumbs = computed(() =>
 }
 
 .app-crumb__link {
-  color: var(--ssr-primary);
+  color: var(--ssr-primary-ink);
   text-decoration: none;
 }
 

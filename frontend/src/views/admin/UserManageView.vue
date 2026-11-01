@@ -68,7 +68,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="用户管理"
-      subtitle="用户信息查询 · 只读：不可编辑姓名 / 学号与口令 · 手机号与邮箱一律掩码"
+      subtitle="查看用户信息、账户状态与累计违约次数"
     />
 
     <FilterBar :loading="loading" @search="onSearch" @reset="onReset">
@@ -161,17 +161,17 @@ onMounted(() => {
               </template>
             </el-table-column>
 
-            <el-table-column label="联系方式（已掩码）" min-width="200">
+            <el-table-column label="联系方式" min-width="200">
               <template #default="{ row }">
                 <div>{{ maskContact(row.contact) }}</div>
-                <div class="ssr-text-muted">{{ contactKindLabel(row.contact) }} · 掩码</div>
+                <div class="ssr-text-muted">{{ contactKindLabel(row.contact) }}</div>
               </template>
             </el-table-column>
 
             <el-table-column label="预计解除时间" min-width="150">
               <template #default="{ row }">
                 <span v-if="row.restrict_until">{{ row.restrict_until }}</span>
-                <span v-else class="ssr-text-muted">待后端提供接口</span>
+                <span v-else class="ssr-text-muted">暂无法查询</span>
               </template>
             </el-table-column>
 
@@ -206,13 +206,13 @@ onMounted(() => {
       </template>
     </section>
 
-    <el-alert class="notice" type="info" :closable="false" show-icon title="权限与脱敏口径">
+    <el-alert class="notice" type="info" :closable="false" show-icon title="权限与隐私说明">
       <p>
-        + 管理员<strong>仅可查询</strong>用户信息，<strong>不可编辑</strong>姓名、学号、院系等身份信息与口令；
-        联系方式是用户唯一可自行修改的字段，管理员亦不得代改。因此本页没有任何编辑入口。
+        管理员<strong>仅可查询</strong>用户信息，<strong>不可编辑</strong>姓名、学号、院系等身份信息与密码；
+        联系方式只能由用户本人修改，管理员不能代改。因此本页没有任何编辑入口。
       </p>
       <p>
-        列表中手机号与邮箱一律掩码（本页掩码逻辑集中在 <code>utils/mask.ts</code>）。
+        列表中手机号与邮箱只显示部分数字显示。
         账户状态变更不在此页执行，请到「黑名单管理」页面处理。
       </p>
     </el-alert>

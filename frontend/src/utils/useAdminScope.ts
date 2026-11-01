@@ -64,7 +64,7 @@ export function useAdminScope() {
   /** 界面与审计提示里统一使用的范围说明 */
   const scopeLabel = computed(() =>
       unleveled.value
-      ? `全部自习室（本版按管理员不分级建模；当前共 ${rooms.value.length} 间）`
+      ? `全部自习室（当前共 ${rooms.value.length} 间）`
       : `授权范围内自习室（${rooms.value.length} 间）`,
   )
 

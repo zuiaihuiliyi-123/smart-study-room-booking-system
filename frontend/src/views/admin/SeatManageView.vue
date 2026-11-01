@@ -100,7 +100,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="座位管理"
-      subtitle="资源状态查询 · 座位信息维护 · 当前时段占用展示 · 批量调整须先列冲突清单并二次确认"
+      subtitle="按自习室和时段查看座位，批量调整座位状态"
     />
 
     <FilterBar :loading="loading" @search="onSearch" @reset="onReset">
@@ -139,7 +139,7 @@ onMounted(() => {
       </label>
 
       <label class="filter-field">
-        <span class="filter-field__label">占用判定日期</span>
+        <span class="filter-field__label">占用日期</span>
         <el-date-picker
           v-model="reserveDate"
           class="w-150"
@@ -234,7 +234,7 @@ onMounted(() => {
         已被预约<strong>不会</strong>改动座位状态；调整座位状态也<strong>不会</strong>自动取消任何预约。
       </p>
       <p>
-        已选 {{ selectedSeats.length }} 个座位；批量调整会先让你查询冲突清单，再二次确认。
+        已选 {{ selectedSeats.length }} 个座位；批量调整前会先让你查看冲突清单，确认后才会执行。
         当前时段可约座位 {{ availableIds.size }} 个。
       </p>
     </el-alert>

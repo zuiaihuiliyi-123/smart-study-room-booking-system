@@ -102,9 +102,7 @@ const title = computed(() =>
         </el-descriptions-item>
         <el-descriptions-item label="解除原因">
           <span v-if="props.entry.released_reason">{{ props.entry.released_reason }}</span>
-          <span v-else-if="props.entry.released_at !== null" class="ssr-text-muted">
-            待后端提供字段（后端模型暂无 `released_reason`，解除原因目前只进 `audit_logs`）
-          </span>
+          <span v-else-if="props.entry.released_at !== null" class="ssr-text-muted">未记录</span>
           <span v-else class="ssr-text-muted">—</span>
         </el-descriptions-item>
         <el-descriptions-item label="操作者">
@@ -117,12 +115,12 @@ const title = computed(() =>
 
       <el-alert v-if="manualNoExpire" class="notice" type="warning" :closable="false" show-icon title="该限制不会自动解除">
         <p>
-          这是<strong>管理员手动</strong>加入且未设期限的限制：系统不得自动解除，必须由管理员在此手动解除，
+          这是<strong>管理员手动</strong>加入且未设期限的限制：到期后不会自动解除，需要管理员在这里手动解除，
           解除时须填写原因。
         </p>
       </el-alert>
 
-      <el-form v-if="canRelease" label-width="96px" @submit.prevent>
+      <el-form v-if="canRelease" label-width="112px" @submit.prevent>
         <el-form-item label="解除原因">
           <el-input
             v-model="reason"

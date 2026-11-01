@@ -35,7 +35,7 @@ function freeCount(cells: readonly MatrixCell[]): number {
       </ul>
       <p class="seat-legend__twodim">
         说明：<strong>资源状态</strong>（可用 / 维修中 / 停用）与<strong>时段占用</strong>
-        （是否已被有效预约）是两个独立维度，鼠标悬停座位可同时看到两者。
+        （是否已被有效预约）是两件互不影响的事，鼠标悬停座位可同时看到两者。
       </p>
     </div>
 
@@ -109,7 +109,7 @@ function freeCount(cells: readonly MatrixCell[]): number {
   justify-content: center;
   width: 26px;
   height: 26px;
-  font-size: 13px;
+  font-size: 14px;
   border-width: 1px;
   border-radius: var(--ssr-radius-sm);
 }
@@ -139,13 +139,13 @@ function freeCount(cells: readonly MatrixCell[]): number {
 
 .seat-group__head h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .seat-group__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
   gap: 8px;
   padding: 0;
   margin: 0;

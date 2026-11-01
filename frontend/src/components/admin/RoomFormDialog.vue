@@ -106,7 +106,7 @@ function close(): void {
   >
     <AuditNotice :scope="props.scopeLabel" :extra="`本次为${props.room === null ? '新增' : '修改'}自习室：名称、位置、开放时间与容量将写入资源表。`" />
 
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="96px" label-position="right">
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="112px" label-position="right">
       <el-form-item label="自习室名称" prop="name">
         <el-input v-model="form.name" maxlength="50" show-word-limit placeholder="如：第一自习室" />
       </el-form-item>

@@ -68,13 +68,13 @@ function disabledDate(value: Date): boolean {
 const topSourceText = computed(() => {
   if (violationSample.value === 0) return '所选区间内没有违约记录'
   const extra = violationsTruncated.value ? '（超过分页上限，仅统计前 1000 条）' : ''
-  return `数据来源：由 /violations 明细聚合（所选区间共 ${violationSample.value} 条，取前 ${TOP_N} 名）${extra}；后端暂无 Top N 接口，且该接口无自习室参数，因此图 3 为全站口径（不受上方「自习室」筛选影响）`
+  return `数据来源：违约记录汇总（所选区间共 ${violationSample.value} 条，取前 ${TOP_N} 名）${extra}；该统计覆盖全站，不受上方「自习室」筛选影响`
 })
 
 /* ---------- 图表的读屏描述（canvas 对读屏不可读，用一句话交代「图在讲什么」） ---------- */
 const seatUsageLabel = computed(
   () =>
-    `柱状图：各自习室各时段座位占用率，统计周期 ${dateRange.value[0]} 至 ${dateRange.value[1]}，数据截至 ${updatedText.value}。具体数值见页面下方口径说明与提示框。`,
+    `柱状图：各自习室各时段座位占用率，统计周期 ${dateRange.value[0]} 至 ${dateRange.value[1]}，数据截至 ${updatedText.value}。具体数值见页面下方说明与悬浮提示。`,
 )
 const trendLabel = computed(
   () =>
@@ -90,7 +90,7 @@ const topViolatorsLabel = computed(
   <div class="page">
     <PageHeader
       title="数据看板"
-      subtitle="统计口径 · 数据读取周期 10 秒（不是违约判定周期，后者由后端扫描，≤1 分钟）"
+      subtitle="关键指标的实时统计，每 10 秒自动更新一次"
     />
 
     <!-- 顶部状态条：数据截至时间 / 自动刷新次数 / 下次刷新倒计时 / 手动刷新 -->
@@ -127,11 +127,12 @@ const topViolatorsLabel = computed(
           start-placeholder="开始日期"
           end-placeholder="结束日期"
           :disabled-date="disabledDate"
+          @change="applyFilters"
         />
       </label>
       <label class="filter-field">
         <span class="filter-field__label">自习室</span>
-        <el-select v-model="roomId" class="w-170">
+        <el-select v-model="roomId" class="w-170" @change="applyFilters">
           <el-option label="全部自习室" value="all" />
           <el-option v-for="room in roomOptions" :key="room.id" :label="room.name" :value="room.id" />
         </el-select>
@@ -187,7 +188,7 @@ const topViolatorsLabel = computed(
           :label="seatUsageLabel"
         />
         <p class="dash-caption">
-          口径：占用率 = 被「待使用 / 使用中 / 已完成」预约覆盖的 30 分钟座位块数 ÷
+          统计方式：占用率 = 被「待使用 / 使用中 / 已完成」预约覆盖的 30 分钟座位块数 ÷
           （座位数 × 时段块数 × 统计天数）；已取消与已违约的预约不占用时段。
           纵轴按所选范围的实际最大值自适应（不锁 100%），绝对值见 tooltip。
         </p>
@@ -207,7 +208,7 @@ const topViolatorsLabel = computed(
           :label="trendLabel"
         />
         <p class="dash-caption">
-          口径：每日有效预约数 = 当日创建且未被取消的预约单；每日违约数 = 当日产生的违约记录（自动 + 手动）。
+          每日有效预约数按当日创建且未被取消的预约单统计；每日违约数按当日产生的违约记录统计（含系统判定与管理员登记）。
           无记录的日期取 0 而非断点。
         </p>
       </section>
@@ -228,11 +229,10 @@ const topViolatorsLabel = computed(
         <p class="dash-caption">{{ topSourceText }}</p>
       </section>
 
-      <el-alert class="dash-alert" type="info" :closable="false" show-icon title="关于「10 秒」的口径">
+      <el-alert class="dash-alert" type="info" :closable="false" show-icon title="关于「10 秒」自动刷新">
         <p>
-          <strong>{{ refreshCycleText }}</strong> 是<strong>数据读取周期</strong>
-          （唯一有原文来源的量化指标），只决定本页多久重新拉一次聚合值；
-          违约判定由后端扫描任务负责，周期 ≤1 分钟，与本页刷新无关。
+          <strong>{{ refreshCycleText }}</strong> 是<strong>数据读取周期</strong>，
+          只决定本页多久读取一次统计值；违约是否成立由系统判定，与这里的刷新频率无关。
         </p>
         <p>
           因此任何数字都以「数据截至时间」为准：失败时保留上一次成功读取的数据并提示该时刻，<strong>不会用 0 值冒充故障</strong>。

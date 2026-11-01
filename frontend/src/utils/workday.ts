@@ -73,7 +73,7 @@ export function complaintSla(
   workdays: number = COMPLAINT_SLA_WORKDAYS,
 ): ComplaintSla {
   const deadline = complaintDeadline(createdAt, workdays)
-  const note = `处理时限 ${workdays} 个工作日（跳过周六 / 周日；法定节假日无数据源，本版不计算）`
+  const note = `处理时限 ${workdays} 个工作日（跳过周六 / 周日，法定节假日不计入）`
   if (deadline === null) {
     return { deadline: null, deadlineText: '—', overdue: false, overdueDays: 0, remainingWorkdays: 0, note }
   }

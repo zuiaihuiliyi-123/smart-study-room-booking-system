@@ -54,13 +54,13 @@ const emit = defineEmits<{
         </el-descriptions-item>
         <el-descriptions-item label="预计解除时间">
           <span v-if="props.user.restrict_until">{{ props.user.restrict_until }}</span>
-          <span v-else class="ssr-text-muted">待后端提供接口（`UserRead` 目前无该字段）</span>
+          <span v-else class="ssr-text-muted">暂无法查询</span>
         </el-descriptions-item>
       </el-descriptions>
 
-      <el-alert class="notice" type="info" :closable="false" show-icon title="只读说明">
+      <el-alert class="notice" type="info" :closable="false" show-icon title="这些信息能不能改">
         <p>
-          本版裁定：管理员<strong>仅可查询</strong>用户信息，<strong>不可编辑</strong>姓名、学号、院系等身份信息与口令，
+          管理员<strong>仅可查询</strong>用户信息，<strong>不可编辑</strong>姓名、学号、院系等身份信息与密码，
           也不可代改联系方式。
         </p>
         <p>

@@ -79,7 +79,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="黑名单管理"
-      subtitle="黑名单查询 / 手动加入 / 手动解除 · 存在管理员手动限制时系统不得自动解除"
+      subtitle="查看、加入与解除黑名单限制"
     />
 
     <FilterBar :loading="loading" @search="onSearch" @reset="onReset">
@@ -129,7 +129,7 @@ onMounted(() => {
     <el-alert class="notice" type="warning" :closable="false" show-icon title="自动解除的边界">
       <p>
         限制期满后系统会自动解除账户限制，条件是<strong>该账户不存在其它生效中的限制</strong>。
-        若存在<strong>管理员手动设置</strong>且仍生效的限制，系统<strong>不得</strong>自动解除，必须由管理员手动解除。
+        若存在<strong>管理员手动设置</strong>且仍生效的限制，系统<strong>不会</strong>自动解除，需要管理员手动解除。
       </p>
       <p>
         「不设期限」的手动记录因此会一直生效，直到管理员手动解除——列表中已标注「不设期限（仅可手动解除）」。
@@ -153,52 +153,52 @@ onMounted(() => {
 
       <template v-else>
         <div class="table-wrap">
-          <el-table :data="items" size="small" border style="min-width: 1240px">
-            <el-table-column label="记录号" width="92">
+          <el-table :data="items" size="small" border style="min-width: 1100px">
+            <el-table-column label="记录号" width="84">
               <template #default="{ row }">
                 <el-button link type="primary" @click="openDetail(row)">#{{ row.id }}</el-button>
               </template>
             </el-table-column>
 
-            <el-table-column label="用户" min-width="170">
+            <el-table-column label="用户" min-width="180">
               <template #default="{ row }">{{ userLabelOf(directory, row.user_id) }}</template>
             </el-table-column>
 
-            <el-table-column label="限制原因" min-width="200">
+            <el-table-column label="限制原因" min-width="172">
               <template #default="{ row }">{{ row.reason }}</template>
             </el-table-column>
 
-            <el-table-column label="来源" width="90">
+            <el-table-column label="来源" width="84">
               <template #default="{ row }">
                 <StatusTag kind="blacklist" :value="row.mode" />
               </template>
             </el-table-column>
 
-            <el-table-column label="状态" width="96">
+            <el-table-column label="状态" width="92">
               <template #default="{ row }">
                 <StatusTag kind="blacklistState" :value="stateOf(row)" />
               </template>
             </el-table-column>
 
-            <el-table-column label="加入时间" width="150">
+            <el-table-column label="加入时间" width="146">
               <template #default="{ row }">{{ formatDateTime(row.start_at) }}</template>
             </el-table-column>
 
-            <el-table-column label="限制期限" min-width="170">
+            <el-table-column label="限制期限" min-width="150">
               <template #default="{ row }">{{ expireText(row) }}</template>
             </el-table-column>
 
-            <el-table-column label="解除时间" width="150">
+            <el-table-column label="解除时间" width="146">
               <template #default="{ row }">{{ formatDateTime(row.released_at) }}</template>
             </el-table-column>
 
-            <el-table-column label="操作者" min-width="150">
+            <el-table-column label="操作者" min-width="124">
               <template #default="{ row }">
                 {{ row.operator_id === null ? '系统自动' : operatorLabelOf(directory, row.operator_id) }}
               </template>
             </el-table-column>
 
-            <el-table-column label="操作" width="110" fixed="right">
+            <el-table-column label="操作" width="104" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="openDetail(row)">
                   {{ row.released_at === null ? '解除 / 详情' : '详情' }}
@@ -226,11 +226,11 @@ onMounted(() => {
     <el-alert class="notice" type="info" :closable="false" show-icon title="脱敏与留痕">
       <p>
         本页只展示用户姓名与学号用于辨识（管理员可查询用户信息）；手机号与邮箱不在此页出现，
-        如需查看请在「用户管理」中以掩码形式查看。
+        如需查看请在「用户管理」中查看部分数字。
       </p>
       <p>
         加入与解除限制都会记入审计日志：记录操作者、时间与原因；黑名单记录保留 1 年，
-        本版不提供导出。
+        本页不提供导出。
       </p>
     </el-alert>
 

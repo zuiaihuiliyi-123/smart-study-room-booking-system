@@ -56,7 +56,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="违约记录管理"
-      subtitle="违约记录查询 · 只读：不含导出与申诉（两项均已裁定排除）；手动违约登记入口在「预约管理」页"
+      subtitle="查询学生的违约记录"
     />
 
     <FilterBar :loading="loading" @search="onSearch" @reset="onReset">
@@ -136,7 +136,7 @@ onMounted(() => {
               </template>
             </el-table-column>
 
-            <el-table-column label="违约原因" min-width="220">
+            <el-table-column label="违约原因" min-width="220" show-overflow-tooltip>
               <template #default="{ row }">{{ row.reason }}</template>
             </el-table-column>
 
@@ -179,13 +179,13 @@ onMounted(() => {
       </template>
     </section>
 
-    <el-alert class="notice" type="info" :closable="false" show-icon title="口径说明">
+    <el-alert class="notice" type="info" :closable="false" show-icon title="说明">
       <p>
-        有效违约记录 = 「自动违约」（签到截止后系统判定）与「手动违约」（管理员登记）
-        两类；累计达到 3 次由系统限制账户 7 天。
+        违约记录分两类：「自动违约」由系统在签到截止后判定，「手动违约」由管理员登记。
+        累计达到 3 次，系统会限制该账户 7 天。
       </p>
       <p>
-        本页不含导出（已裁定排除）。审计留痕由后端记录，本版同样不提供审计日志导出。
+        本页不提供记录导出；违约处理过程由系统自动留痕。
       </p>
     </el-alert>
 

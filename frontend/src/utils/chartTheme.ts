@@ -6,31 +6,31 @@
  * 因此改色时**两处必须同步**（这条约定写在 index.scss 文件头）。
  */
 
-/** 与 index.scss 第 1 节一一对应 */
+/** 与 index.scss 第 1 节一一对应（Linear 暗色：近黑底 + 靛紫主色 + 白 10% 描边） */
 export const chartColors = {
-  primary: '#2b5f9e',
-  primaryLight: '#eaf2fb',
-  ink: '#12304f',
-  line: '#d6e2f0',
-  surface: '#ffffff',
-  muted: '#6b7a8d',
-  mutedInk: '#5a6879',
-  success: '#1b7a45',
-  warning: '#a9720b',
-  danger: '#b3261e',
+  primary: '#5e6ad2',
+  primaryLight: 'rgba(255, 255, 255, 0.06)',
+  ink: '#f4f4f5',
+  line: 'rgba(255, 255, 255, 0.1)',
+  surface: '#17171a',
+  muted: '#71717a',
+  mutedInk: '#a1a1aa',
+  success: '#27ae60',
+  warning: '#f2c94c',
+  danger: '#eb5757',
 } as const
 
 /**
  * 分类色（多个自习室并排对比时用）。
- * 刻意避开状态色语义，只取主色深浅与低饱和辅助色，保证与全站配色同源。
+ * 只取 Linear 品牌紫、提亮紫与四个语义色，保证与全站配色同源且暗底上可辨。
  */
 export const categoryColors = [
-  '#2b5f9e',
-  '#1b7a45',
-  '#a9720b',
-  '#6b3fa0',
-  '#0f7a83',
-  '#96500a',
+  '#5e6ad2',
+  '#8b5cf6',
+  '#27ae60',
+  '#f2c94c',
+  '#2d9cdb',
+  '#eb5757',
 ] as const
 
 export function seriesColor(index: number): string {

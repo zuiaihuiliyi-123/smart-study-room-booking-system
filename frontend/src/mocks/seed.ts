@@ -142,10 +142,10 @@ export function buildSeed(): MockDb {
       capacity: spec.areas.length * 10,
       enabled: true,
     })
-  for (const block of spec.areas) {
-    areas.push({ id: areaId, room_id: spec.id, name: block.name })
-    for (let index = 1; index <= 10; index += 1) {
-      const seatNo = `${block.prefix}-${String(index).padStart(2, '0')}`
+    for (const block of spec.areas) {
+      areas.push({ id: areaId, room_id: spec.id, name: block.name })
+      for (let index = 1; index <= 10; index += 1) {
+        const seatNo = `${block.prefix}-${String(index).padStart(2, '0')}`
         seats.push({
           id: seatId,
           room_id: spec.id,
@@ -153,6 +153,7 @@ export function buildSeed(): MockDb {
           seat_no: seatNo,
           seat_type: block.seatType,
           has_power: block.seatType === '带电源' || (block.seatType === '靠窗' && index % 4 === 0),
+          near_window: block.seatType === '靠窗',
           status: SEAT_STATUS[seatNo] ?? '可用',
         })
         seatId += 1
@@ -545,6 +546,7 @@ const blacklist: BlacklistEntry[] = [
     start_at: formatDateTime(addDays(now, -2)),
     expire_at: formatDateTime(addDays(now, 5)),
     released_at: null,
+    release_reason: null,
     operator_id: null,
   },
   {
@@ -555,6 +557,7 @@ const blacklist: BlacklistEntry[] = [
     start_at: formatDateTime(addDays(now, -20)),
     expire_at: formatDateTime(addDays(now, -13)),
     released_at: formatDateTime(addDays(now, -13)),
+    release_reason: '当事人提交情况说明，经核实后提前解除',
     operator_id: 5,
     released_reason: '当事人提交情况说明，经核实后提前解除',
     released_by: 5,

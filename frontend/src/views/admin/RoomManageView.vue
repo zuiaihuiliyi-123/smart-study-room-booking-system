@@ -67,7 +67,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="自习室管理"
-      subtitle="自习室与区域管理 · 座位信息维护 · 以「停用」代替物理删除；批量停用须先列清单再二次确认"
+      subtitle="查看与维护自习室、分区和座位归属"
     />
 
     <FilterBar :loading="loading" @search="onSearch" @reset="onReset">
@@ -147,7 +147,7 @@ onMounted(() => {
 
             <el-table-column label="容量" width="88" prop="capacity" />
 
-            <el-table-column label="分区 / 座位" width="120">
+            <el-table-column label="分区 / 座位" width="140">
               <template #default="{ row }">
                 <span v-if="directoryFailed">—</span>
                 <span v-else>{{ areaCount(row.id) }} 个分区 / {{ seatCount(row.id) }} 座</span>

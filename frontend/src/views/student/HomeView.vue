@@ -177,19 +177,23 @@ onMounted(() => {
 .welcome {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
-  padding: 16px 18px;
+  padding: 18px 22px;
   margin-bottom: 16px;
-  color: var(--ssr-on-primary);
-  background: linear-gradient(120deg, var(--ssr-primary), var(--ssr-primary-deep));
+  color: var(--ssr-ink);
+  /* Linear：欢迎条也是一档卡片（1px 描边 + 卡片底色），不用装饰性渐变 */
+  background: var(--ssr-surface);
+  border: 1px solid var(--ssr-line);
   border-radius: var(--ssr-radius);
 }
 
 .welcome__mark {
   flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
+  color: var(--ssr-primary-ink);
+  font-size: 20px;
 }
 
 .welcome__text {
@@ -199,21 +203,22 @@ onMounted(() => {
 
 .welcome__text h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: 21px;
+  letter-spacing: 0.2px;
   font-weight: 600;
 }
 
 .welcome__text p {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 6px;
+  gap: 4px 8px;
   align-items: baseline;
-  margin: 5px 0 0;
-  font-size: var(--ssr-font-note);
+  margin: 7px 0 0;
+  font-size: 14px;
 }
 
 .welcome__text .ssr-text-muted {
-  color: rgb(255 255 255 / 82%);
+  color: var(--ssr-muted-ink);
 }
 
 .home-grid {
@@ -239,9 +244,9 @@ onMounted(() => {
 .entry {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   align-items: flex-start;
-  padding: 14px 16px;
+  padding: 16px 18px;
   font-family: inherit;
   text-align: left;
   background: var(--ssr-surface);
@@ -250,17 +255,22 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.entry {
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
 .entry:hover {
-  border-color: var(--ssr-primary);
+  background: var(--ssr-surface-raised);
+  border-color: var(--ssr-primary-ink);
 }
 
 .entry__icon {
-  color: var(--ssr-primary);
+  color: var(--ssr-primary-ink);
   font-size: 18px;
 }
 
 .entry__title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
 

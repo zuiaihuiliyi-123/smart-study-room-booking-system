@@ -39,7 +39,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="我的投诉"
-      subtitle="投诉提交 · 处理进度与反馈；投诉对象为座位 / 自习室 / 预约单 / 用户 4 类"
+      subtitle="提交投诉并跟进处理进度"
     >
       <template #actions>
         <el-button :loading="loading" @click="load">刷新列表</el-button>

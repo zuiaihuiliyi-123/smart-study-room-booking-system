@@ -276,6 +276,9 @@ function validationError(): string | null {
   return null
 }
 
+/** 查询轮次：切换自习室 / 时段会连发多次，回来的顺序未必与发出的顺序一致。 */
+let querySeq = 0
+
 /**
  * 校验不通过时**不再发请求**，但要保证界面不卡在「正在查询…」：
  * 之前只弹一条会消失的 toast，`loading` 留在 true，页面就永远转圈（收口轮修掉）。
@@ -302,6 +305,7 @@ async function query() {
   }
   loading.value = true
   loadError.value = null
+  const seq = (querySeq += 1)
   try {
     const data = await loadSlotAvailability(
       filters.roomId,
@@ -309,15 +313,18 @@ async function query() {
       filters.startTime,
       filters.endTime,
     )
+    // 期间用户又换了自习室 / 时段：本次结果已过期，丢弃，避免旧馆座位盖住新馆
+    if (seq !== querySeq) return
     seats.value = data.seats
     availableIds.value = data.availableIds
     myReservations.value = data.myReservations
   } catch (error) {
+    if (seq !== querySeq) return
     // 失败不清空已选条件：filters 与 selectedSeatId 保持原值
     availableIds.value = null
     loadError.value = toBookingFailure(error)
   } finally {
-    loading.value = false
+    if (seq === querySeq) loading.value = false
   }
 }
 
@@ -344,7 +351,14 @@ function resetFilters() {
   void query()
 }
 
-/** 换自习室后把时段收进新馆的开放时间，避免留下必然失败的组合。 */
+/**
+ * 换自习室后自动刷新。
+ *
+ * 座位集合、占用情况、开放时间都随自习室变，所以这里一次做完三件事：
+ * 1. 把时段收进新馆的开放时间（否则会留下必然失败的组合）；
+ * 2. 清空已选座位并关掉抽屉——旧座位属于旧馆，留着会让提交指向别的自习室；
+ * 3. 立即按新自习室重新取数，用户不必再点一次「查询」才看到新馆的座位矩阵。
+ */
 function applyRoomChange() {
   const open = parseTimeToMinutes(openTime.value) ?? 8 * 60
   const close = parseTimeToMinutes(closeTime.value) ?? 22 * 60
@@ -355,6 +369,9 @@ function applyRoomChange() {
     filters.startTime = slot.startTime
     filters.endTime = slot.endTime
   }
+  selectedSeatId.value = null
+  drawerVisible.value = false
+  void query()
 }
 
 /** 换回今天时若原时段已过，自动收敛到下一个可预约时段。 */

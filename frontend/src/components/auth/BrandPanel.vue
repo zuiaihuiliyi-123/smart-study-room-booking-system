@@ -44,13 +44,10 @@ const capabilities = [
   align-items: center;
   min-width: 0;
   padding: 48px 56px;
-  color: var(--ssr-on-primary);
-  background: linear-gradient(
-  155deg,
-  var(--ssr-primary) 0%,
-  var(--ssr-primary-deep) 62%,
-  var(--ssr-ink) 100%
-  );
+  color: var(--ssr-ink);
+  /* Linear：不用装饰性渐变背景，品牌区就是一档卡片底色 + 1px 描边 */
+  background: var(--ssr-surface);
+  border-right: 1px solid var(--ssr-line);
 }
 
 .brand__inner {
@@ -60,6 +57,7 @@ const capabilities = [
 .brand__mark {
   width: 56px;
   height: 56px;
+  color: var(--ssr-primary-deep);
 }
 
 h1 {
@@ -93,11 +91,11 @@ h1 {
 .brand__cap-id {
   flex: 0 0 auto;
   padding: 1px 7px;
-  color: var(--ssr-primary-deep);
+  color: var(--ssr-ink);
   font-size: var(--ssr-font-note);
-  /* 白底深蓝字（8.74:1）；18% 白底 + 白字只有 4.32:1，不达 AA */
-  background: var(--ssr-on-primary);
-  border-radius: 10px;
+  /* 白 6% 底 + 近白字：暗色下 12:1；改用主色小字只有 4.2:1，不达 AA */
+  background: var(--ssr-primary-light);
+  border-radius: var(--ssr-radius-sm);
 }
 
 .brand__foot {

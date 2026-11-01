@@ -95,7 +95,7 @@ function rowClass(data: { row: Violation }): string {
 }
 
 .link {
-  color: var(--ssr-primary);
+  color: var(--ssr-primary-ink);
 }
 </style>
 

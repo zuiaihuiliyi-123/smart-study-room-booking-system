@@ -108,7 +108,7 @@ const cardItems = computed(() => {
       key: 'today_violations',
       label: '今日违约',
       unit: '条',
-      hint: '当日违约记录（自动 + 手动）',
+      hint: '当日违约记录（含系统判定与管理员登记）',
       count: value?.today_violations ?? 0,
       tone: 'danger' as const,
     },
@@ -116,7 +116,7 @@ const cardItems = computed(() => {
       key: 'restricted_accounts',
       label: '受限账户',
       unit: '人',
-      hint: '「受限」账户数；账户不归属自习室，为全局口径',
+      hint: '「受限」账户数；账户不归属自习室，覆盖全站',
       count: value?.restricted_accounts ?? 0,
       tone: 'warning' as const,
     },
@@ -125,8 +125,12 @@ const cardItems = computed(() => {
 
 /* ---------- 数据读取 ---------- */
 let requestSeq = 0
-/** 恢复可见时若正好有请求在飞，不硬塞第二个请求，等它回来后再补一次（见 finally） */
-let pendingResume = false
+/**
+ * 请求在飞时又来了新的刷新意图（切自习室 / 改周期 / 手动刷新 / 恢复可见）：
+ * 不硬塞第二个请求，先记下来，等当前这次回来后在 finally 里补一次。
+ * 少了这一步，切换自习室若正好撞上一次心跳，用户要等下一个 10 秒才看到新数据。
+ */
+let pendingRefresh: RefreshSource | null = null
 
 /**
  * 图 3 的数据源：后端没有"用户违约次数 Top N"接口，因此从 `/violations` 明细聚合。
@@ -170,7 +174,11 @@ return { items, sample, truncated }
 
 async function refresh(source: RefreshSource = 'manual'): Promise<void> {
   // 防重入：上一次还没回来就跳过本次（任务要求），不叠加请求
-  if (inFlight.value) return
+  if (inFlight.value) {
+    // 心跳不必排队（下一秒还会再来）；用户操作类意图必须补上，否则筛选改了却不刷新
+    if (source !== 'auto') pendingRefresh = source
+    return
+  }
   inFlight.value = true
   const seq = (requestSeq += 1)
   const params = query.value
@@ -211,11 +219,12 @@ async function refresh(source: RefreshSource = 'manual'): Promise<void> {
   if (seq === requestSeq) {
     inFlight.value = false
     loading.value = false
-    // 恢复可见时被防重入挡掉的那次读取，在这里补上（保证「切回立即拉一次」）
-    if (pendingResume) {
-      pendingResume = false
+    // 恢复可见 / 改筛选时被防重入挡掉的那次读取，在这里补上（保证「切回立即拉一次」）
+    if (pendingRefresh !== null) {
+      const next = pendingRefresh
+      pendingRefresh = null
       countdown.value = COUNTDOWN_SECONDS
-      void refresh('resume')
+      void refresh(next)
     }
   }
 }
@@ -255,12 +264,8 @@ function handleVisibility(): void {
   }
   countdown.value = COUNTDOWN_SECONDS
   startTimer()
-  // 正在读取时不叠第二个请求（防重入），等它回来再补一次
-  if (inFlight.value) {
-    pendingResume = true
-  } else {
-    void refresh('resume')
-  }
+  // 正在读取时不叠第二个请求（refresh 内部会记下这次意图并在回来后再补一次）
+  void refresh('resume')
 }
 
 /* ---------- 对外操作 ---------- */

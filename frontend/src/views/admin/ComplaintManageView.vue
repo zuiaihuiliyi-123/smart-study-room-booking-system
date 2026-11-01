@@ -78,7 +78,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="投诉处理"
-      subtitle="投诉受理 / 处理 / 驳回 · 处理时限 3 个工作日（超时仅站内提示，不设自动升级）· 状态流转严格按「待处理 → 处理中 → 已处理 / 已驳回」"
+      subtitle="受理并处理学生投诉，跟进处理进度"
     />
 
     <FilterBar :loading="loading" @search="onSearch" @reset="onReset">
@@ -167,7 +167,7 @@ onMounted(() => {
               </template>
             </el-table-column>
 
-            <el-table-column label="提交时间" width="140">
+            <el-table-column label="提交时间" width="152">
               <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
             </el-table-column>
 
@@ -214,14 +214,14 @@ onMounted(() => {
       </template>
     </section>
 
-    <el-alert class="notice" type="info" :closable="false" show-icon title="超时口径与处理时限">
+    <el-alert class="notice" type="info" :closable="false" show-icon title="处理时限">
       <p>
         投诉自提交起 <strong>{{ slaWorkdays }} 个工作日</strong>内应给出处理结果；
-        本版按「跳过周六 / 周日」计算（法定节假日无数据源，不计算），表中同时给出精确截止时刻。
+        按「跳过周六 / 周日」计算（法定节假日不计入），表中同时给出精确截止时刻。
       </p>
       <p>
-        需求原文说明：超时通过<strong>站内提示</strong>提醒受理人，<strong>不设自动升级</strong>（异常流程），
-        因此本页只做标红与天数提示，不会自动关闭或升级投诉。
+        超时只通过<strong>站内提示</strong>提醒处理人，不会自动升级或关闭投诉；
+        本页只做标红与超时天数提示。
       </p>
     </el-alert>
 

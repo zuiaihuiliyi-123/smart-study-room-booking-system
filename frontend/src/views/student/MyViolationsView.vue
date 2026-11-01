@@ -42,7 +42,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="我的违约"
-      subtitle="违规记录查询 · 账户状态；仅本人数据，不展示他人姓名"
+      subtitle="查看自己的违约记录与账户状态"
     >
       <template #actions>
         <el-button :loading="refreshing" @click="refresh()">刷新</el-button>
@@ -69,7 +69,7 @@ onMounted(() => {
       <header class="ssr-card__head">
         <h3>违约记录</h3>
         <span class="ssr-text-muted">
-          共 {{ total }} 条 · 记录保留期限 1 年；本版不提供记录撤销与申诉入口（两项均已裁定排除）
+          共 {{ total }} 条 · 记录保留 1 年；违约记录不可撤销，也不提供申诉入口
         </span>
       </header>
 

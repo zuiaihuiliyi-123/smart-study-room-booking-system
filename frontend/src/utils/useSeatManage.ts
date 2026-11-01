@@ -88,7 +88,7 @@ export function useSeatManage() {
 
   const timeError = computed(() => {
     if (startTime.value === '' || endTime.value === '') return '请选择查询时段'
-    return endTime.value > startTime.value ? '' : '结束时刻必须晚于开始时刻（区间为左闭右开 [s, e)）'
+    return endTime.value > startTime.value ? '' : '结束时刻必须晚于开始时刻（时段含开始、不含结束）'
   })
 
 const windowStart = computed(() => `${reserveDate.value}T${startTime.value}`)
@@ -152,7 +152,7 @@ const gridGroups = computed<SeatGridGroup[]>(() => {
       return {
         seat,
         state,
-        occupancy: hit ? occupancyText(seat, availableIds.value) : '未判定',
+        occupancy: hit ? occupancyText(seat, availableIds.value) : '暂无法判断',
       }
     }),
 }))
@@ -182,7 +182,7 @@ async function load(force = false): Promise<void> {
     }
     if (timeError.value !== '') {
       // 时段非法时不发请求：只保留资源状态，明确标注占用「未判定」，不猜测
-      occupancyNote.value = `${timeError.value}；当前仅展示资源状态，时段占用未判定。`
+      occupancyNote.value = `${timeError.value}；当前仅展示资源状态，时段占用暂无法判断。`
       items.value = (directory.value?.seatsByRoom.get(roomId.value) ?? []).map((seat) => ({
         seat,
         occupied: false,
@@ -334,12 +334,12 @@ async function executeStatusChange(): Promise<void> {
     ? `已列出 ${conflicts.value.length} 条冲突的有效预约：系统只作提示，不会自动取消。`
     : conflictsQueried.value
     ? '该窗口内没有冲突的有效预约。'
-    : '你还没有查询冲突清单（要求先列清单再决定）。'
+    : '请先查询冲突清单，再决定如何处理。'
 
   try {
     await ElMessageBox.confirm(
       `将 ${count} 个座位的资源状态调整为「${targetStatus.value}」${count > 1 ? '（批量操作）' : ''}。${impact}本次操作将记入审计日志，确认执行？`,
-      count > 1 ? '二次确认：批量调整座位状态' : '确认：调整座位资源状态',
+      count > 1 ? '确认操作：批量调整座位状态' : '确认操作：调整座位资源状态',
       { type: 'warning', confirmButtonText: '确认执行', cancelButtonText: '返回检查' },
     )
   } catch {
@@ -355,7 +355,7 @@ async function executeStatusChange(): Promise<void> {
     })
   const extra =
     result.conflicts.length > 0
-    ? `；服务端复核到 ${result.conflicts.length} 条冲突预约，已保留原状态并持续提示`
+    ? `；复核发现 ${result.conflicts.length} 条冲突预约，已保留原状态并持续提示`
     : ''
   ElMessage.success(`已更新 ${result.updated.length} 个座位的资源状态${extra}`)
   invalidateAdminDirectory()

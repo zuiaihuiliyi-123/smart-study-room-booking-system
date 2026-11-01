@@ -62,7 +62,7 @@ watch(() => filters.reserveDate, applyDateChange)
   <div class="page booking-page">
     <PageHeader
       title="预约座位"
-      subtitle="按自习室、日期与时段查询可预约座位；选中座位后逐项校验并创建预约"
+      subtitle="按自习室、日期与时段查找可预约的座位，选中后创建预约"
     />
 
     <div class="booking-layout">

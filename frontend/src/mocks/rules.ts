@@ -167,11 +167,11 @@ export function restrictionUntil(db: MockDb, userId: number): string | null {
           403,
           'ACCOUNT_RESTRICTED',
           `账户当前处于受限状态，预计 ${readableDateTime(until)} 解除限制，暂不可预约`,
-      { rule: 'BR-009', restrict_until: until },
-    )
-  }
-  return ok(user)
-}
+          { rule: 'BR-009', restrict_until: until },
+        )
+      }
+      return ok(user)
+    }
 
 /** 解析并校验时段：粒度、时长上限、可预约日期范围（BR-001～BR-003）。 */
 export function parseSlot(input: SlotInput): Result<Slot> {

@@ -123,8 +123,8 @@ async function execute(): Promise<boolean> {
 
   try {
     await ElMessageBox.confirm(
-      `关闭范围：${room.value.name}（${scopeLine}）；关闭窗口：${startAt.value.replace('T', ' ')} ~ ${endAt.value.replace('T', ' ')}（左闭右开）。处理方式：${cancelLine}。本次操作将记入审计日志。确认执行？`,
-      '二次确认：场地临时关闭',
+      `关闭范围：${room.value.name}（${scopeLine}）；关闭窗口：${startAt.value.replace('T', ' ')} ~ ${endAt.value.replace('T', ' ')}（含开始、不含结束）。处理方式：${cancelLine}。本次操作将记入审计日志。确认执行？`,
+      '确认操作：场地临时关闭',
       { type: 'warning', confirmButtonText: '确认执行', cancelButtonText: '返回检查' },
     )
   } catch {

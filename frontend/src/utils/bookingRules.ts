@@ -62,14 +62,9 @@ export function shortTime(value: string | null | undefined): string {
   return (value ?? '').slice(0, 5)
 }
 
-/** 形如 `18:30–20:30`；区间口径为左闭右开 `[s, e)`。 */
+/** 形如 `18:30–20:30`：全站展示时段统一用它（列表、抽屉、确认框）。 */
 export function timeRangeText(startTime: string, endTime: string): string {
   return `${shortTime(startTime)}–${shortTime(endTime)}`
-}
-
-/** 形如 `[14:00, 16:00)`：把左闭右开口径直接写进文案（预约列表的「时段」列）。 */
-export function bracketRangeText(startTime: string, endTime: string): string {
-  return `[${shortTime(startTime)}, ${shortTime(endTime)})`
 }
 
 /** 预约开始时刻；日期或时间不合法时返回 null（不猜测缺省值）。 */
@@ -235,9 +230,9 @@ export function seatCellState(seat: Seat, availableIds: ReadonlySet<number>): Se
 /** tooltip 的「时段占用」一行：与资源状态分开呈现，不合并成一个状态（AGENTS.md §4）。 */
 export function occupancyText(seat: Seat, availableIds: ReadonlySet<number> | null): string {
   if (seat.status !== '可用') {
-    return '未判定（资源状态非「可用」，接口不返回该座位的占用信息）'
+    return '暂无法判断（该座位当前不可预约，无占用信息）'
   }
-  if (availableIds === null) return '未判定'
+  if (availableIds === null) return '暂无法判断'
   return availableIds.has(seat.id)
     ? '可约（该时段不存在其他有效预约）'
     : '已被预约（该时段存在其他有效预约）'
@@ -347,81 +342,81 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
   return [
     {
       id: 'C1',
-      title: '资源状态',
-      condition: '座位资源状态 = “可用”',
-      rules: [''],
+      title: '座位状态',
+      condition: '座位当前可以预约',
+      rules: [],
       state: c1Pass ? 'pass' : 'fail',
       detail: c1Pass
-        ? `座位 ${seat.seat_no} 资源状态为「可用」`
-        : `座位 ${seat.seat_no} 资源状态为「${seat.status}」，维修中 / 停用的座位不可被预约`,
+        ? `座位 ${seat.seat_no} 当前可以预约`
+        : `座位 ${seat.seat_no} 正在维修或已停用，暂时不能预约`,
       bullets: [],
     },
     {
       id: 'C2',
-      title: '所属自习室',
-      condition: '所属自习室处于启用状态，且目标时段落在开放时间内',
+      title: '自习室开放',
+      condition: '自习室开放，且所选时段在开放时间内',
       rules: [],
       state: c2Pass ? 'pass' : 'fail',
       detail: c2Pass
-        ? `${room.name} 处于启用状态，开放时间 ${shortTime(room.open_time)}–${shortTime(room.close_time)}，所选时段 ${range} 落在开放时间内`
-        : `${room.name}${room.enabled ? '' : ' 当前未启用'}；开放时间 ${shortTime(room.open_time)}–${shortTime(room.close_time)}，所选时段 ${range} 不在可预约范围内`,
+        ? `${room.name} 开放时间 ${shortTime(room.open_time)}–${shortTime(room.close_time)}，所选 ${range} 在开放时间内`
+        : `${room.name}${room.enabled ? '' : ' 当前已关闭'}，开放时间 ${shortTime(room.open_time)}–${shortTime(room.close_time)}，所选 ${range} 不在开放时间内`,
       bullets: [],
     },
     {
       id: 'C3',
       title: '座位时段占用',
-      condition: '不存在其他有效预约单，其占用区间与目标区间满足 s_new < e_old ∧ s_old < e_new',
-      rules: [''],
+      condition: '所选时段这个座位还没有被预约',
+      rules: [],
       state: c3State,
       detail:
-      c3State === 'pass'
-        ? `座位 ${seat.seat_no} 在 ${range} 无其他有效预约`
-        : c3State === 'fail'
-        ? `座位 ${seat.seat_no} 在 ${range} 已被其他有效预约占用`
-        : '未判定：资源状态非「可用」或本次查询未返回可用座位集合',
-      bullets: ['左闭右开 [s, e)：相邻时段（如 18:30–20:30 与 20:30–21:30）不冲突'],
+        c3State === 'pass'
+          ? `座位 ${seat.seat_no} 在 ${range} 没有其他预约`
+          : c3State === 'fail'
+          ? `座位 ${seat.seat_no} 在 ${range} 已被别人预约`
+          : '这个座位当前不能预约，无法确认时段占用',
+      bullets: ['时段含开始、不含结束：18:30–20:30 与 20:30–21:30 首尾相接，不算冲突'],
     },
     {
       id: 'C4',
-      title: '用户时段占用',
-      condition: '该用户在同一时段不存在其他有效预约单',
-      rules: [''],
+      title: '我的时段占用',
+      condition: '你在这个时段没有别的预约',
+      rules: [],
       state: c4Pass ? 'pass' : 'fail',
       detail: c4Pass
-        ? `你在 ${ctx.reserveDate} ${range} 没有其他有效预约`
+        ? `你在 ${ctx.reserveDate} ${range} 没有其他预约`
         : `你已有预约单 #${usage.conflict?.id ?? '-'}（${timeRangeText(
-                  usage.conflict?.start_time ?? '',
-                  usage.conflict?.end_time ?? '',
-                )}）与该时段重叠，同一用户同一时段不得存在两条有效预约`,
-        bullets: [],
-      },
-      {
-        id: 'C5',
-        title: '用户资格',
-        condition: '账户状态 = “正常”',
-        rules: ['', '', ''],
-        state: c5Pass ? 'pass' : 'fail',
-        detail: c5Pass
-          ? '账户状态为「正常」'
-          : `账户状态为「${ctx.accountStatus}」${ctx.restrictUntil ? `，预计 ${ctx.restrictUntil} 解除限制` : ''}，暂不可预约`,
-        bullets: [],
-      },
-      {
-        id: 'C6',
-        title: '规则约束',
-        condition: '四个约束全部满足：粒度对齐、提前天数、单次时长、每日次数',
-        rules: [],
-        state: c6Pass ? 'pass' : 'fail',
-        detail: c6Pass ? '四条规则约束全部满足' : '存在未满足的规则约束，详见下方逐条参数',
-        bullets: [
-          `粒度：须对齐 ${BOOKING_RULES.granularity} 分钟 —— ${aligned ? '已对齐' : `未对齐（${range}）`}`,
-          `提前天数：最多提前 ${BOOKING_RULES.advanceDays} 天 —— 所选日期为第 ${ctx.dayOffset} 天（${advanceOk ? '符合' : '超出范围'}）`,
-          `单次时长：上限 ${BOOKING_RULES.maxHours} 小时 —— 本次 ${durationText(minutes)}（${durationOk ? '符合' : '超出上限'}）`,
-          `每日次数：每人每日最多 ${BOOKING_RULES.dailyLimit} 条有效预约 —— 当日已 ${usage.dailyCount} 条（${dailyOk ? '符合' : '已达上限'}）`,
-        ],
-      },
-    ]
-  }
+            usage.conflict?.start_time ?? '',
+            usage.conflict?.end_time ?? '',
+          )}）与这个时段重叠，同一时段只能有一条预约`,
+      bullets: [],
+    },
+    {
+      id: 'C5',
+      title: '账户状态',
+      condition: '账户状态正常，可以预约',
+      rules: [],
+      state: c5Pass ? 'pass' : 'fail',
+      detail: c5Pass
+        ? '账户状态为「正常」'
+        : `账户状态为「${ctx.accountStatus}」${ctx.restrictUntil ? `，预计 ${ctx.restrictUntil} 解除限制` : ''}，暂不可预约`,
+      bullets: [],
+    },
+    {
+      id: 'C6',
+      title: '时段与次数限制',
+      condition: '时段、天数、时长与每日次数都在允许范围内',
+      rules: [],
+      state: c6Pass ? 'pass' : 'fail',
+      detail: c6Pass ? '上面四项都在允许范围内' : '有项目超出允许范围，见下方逐条说明',
+      bullets: [
+        `开始与结束时间要落在整 ${BOOKING_RULES.granularity} 分钟 —— ${aligned ? '已对齐' : `需要调整（当前 ${range}）`}`,
+        `最多提前 ${BOOKING_RULES.advanceDays} 天 —— 所选日期是第 ${ctx.dayOffset} 天（${advanceOk ? '符合' : '超出范围'}）`,
+        `单次最长 ${BOOKING_RULES.maxHours} 小时 —— 本次 ${durationText(minutes)}（${durationOk ? '符合' : '超出上限'}）`,
+        `每人每天最多 ${BOOKING_RULES.dailyLimit} 条有效预约 —— 当天已有 ${usage.dailyCount} 条（${dailyOk ? '符合' : '已达上限'}）`,
+      ],
+    },
+  ]
+}
 
   /* ------------------------------------------------------------------ 失败归类 */
 
@@ -453,16 +448,17 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
     DAILY_LIMIT: 'C6',
   }
 
+  /** 服务端只回 `rule` 不回 `code` 时的兜底映射（键为后端规则标识）。 */
   const RULE_TO_JUDGEMENT: Record<string, JudgementId> = {
-    '': 'C1',
-    '': 'C3',
-    '': 'C4',
-    '': 'C5',
-    '': 'C5',
-    '': 'C6',
-    '': 'C6',
-    '': 'C6',
-    '': 'C6',
+    'BR-017': 'C1',
+    'BR-006': 'C3',
+    'BR-005': 'C4',
+    'BR-009': 'C5',
+    'BR-010': 'C5',
+    'BR-001': 'C6',
+    'BR-002': 'C6',
+    'BR-003': 'C6',
+    'BR-004': 'C6',
   }
 
   function asText(value: unknown): string {

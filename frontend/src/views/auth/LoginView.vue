@@ -115,7 +115,7 @@ async function submit() {
           <div v-show="showDemo" id="login-demo-body" class="login__demo-body">
             <p>学生：student / student123</p>
             <p>管理员：admin / admin123</p>
-            <p>后端目前仅 /auth/login 与 /health 可用，其余接口统一返回 501。</p>
+            <p>演示数据为内置样例，与真实数据无关。</p>
           </div>
         </div>
       </div>
@@ -127,7 +127,7 @@ async function submit() {
 .login {
   display: flex;
   min-height: 100%;
-  background: var(--ssr-surface);
+  background: var(--ssr-bg);
 }
 
 /* 品牌区的视觉样式在 components/auth/BrandPanel.vue；这里只管栅格占位 */
@@ -143,7 +143,7 @@ async function submit() {
   justify-content: center;
   min-width: 0;
   padding: 24px 20px;
-  background: var(--ssr-surface);
+  background: var(--ssr-bg);
   border-left: 1px solid var(--ssr-line);
 }
 
@@ -189,7 +189,7 @@ async function submit() {
   gap: 6px;
   align-items: center;
   padding: 4px 0;
-  color: var(--ssr-primary);
+  color: var(--ssr-primary-ink);
   font-family: inherit;
   font-size: var(--ssr-font-note);
   background: transparent;

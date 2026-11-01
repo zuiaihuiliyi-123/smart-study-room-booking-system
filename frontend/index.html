@@ -1,9 +1,18 @@
 <!doctype html>
-<html lang="zh-CN">
+<!-- class="dark"：全站暗色（Linear 风格），Element Plus 暗色变量挂在 html.dark 上 -->
+<html lang="zh-CN" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
     <title>智慧自习室预约与管理系统</title>
+    <style>
+      /* 首屏底色：样式文件加载完成前也不闪白 */
+      html,
+      body {
+        background: #0a0a0b;
+      }
+    </style>
   </head>
   <body>
     <div id="app"></div>

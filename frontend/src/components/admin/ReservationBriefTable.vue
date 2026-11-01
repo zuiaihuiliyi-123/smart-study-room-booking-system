@@ -16,7 +16,7 @@ import {
   userLabelOf,
   type AdminDirectory,
 } from '@/utils/adminData'
-import { bracketRangeText } from '@/utils/bookingRules'
+import { timeRangeText } from '@/utils/bookingRules'
 
 const props = withDefaults(
   defineProps<{
@@ -72,9 +72,9 @@ function onRowClick(row: Reservation): void {
 
         <el-table-column label="预约日期" width="112" prop="reserve_date" />
 
-        <el-table-column label="时段（左闭右开）" width="132">
+        <el-table-column label="时段" width="126">
           <template #default="{ row }">
-            {{ bracketRangeText(row.start_time, row.end_time) }}
+            {{ timeRangeText(row.start_time, row.end_time) }}
           </template>
         </el-table-column>
 

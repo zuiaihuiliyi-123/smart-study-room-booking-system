@@ -22,7 +22,7 @@ import type { Reservation } from '@/types'
 import { loadSeatDirectory, toBookingFailure, type SeatRef } from '@/utils/bookingData'
 import {
   BOOKING_RULES,
-  bracketRangeText,
+  timeRangeText,
   cancelDeadlineAt,
   checkinWindow,
 } from '@/utils/bookingRules'
@@ -248,7 +248,7 @@ async function onCancel(item: Reservation): Promise<void> {
   }
   try {
     await ElMessageBox.confirm(
-      `预约单 #${item.id}（${item.reserve_date} ${bracketRangeText(item.start_time, item.end_time)}）距开始超过 ${BOOKING_RULES.cancelBefore} 分钟，属于无损取消：不产生违约记录，该时段立即对其他同学开放。`,
+      `预约单 #${item.id}（${item.reserve_date} ${timeRangeText(item.start_time, item.end_time)}）距开始超过 ${BOOKING_RULES.cancelBefore} 分钟，属于无损取消：不产生违约记录，该时段立即对其他同学开放。`,
       '确认取消预约',
       {
         confirmButtonText: '确认取消',

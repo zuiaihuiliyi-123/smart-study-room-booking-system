@@ -4,6 +4,9 @@ import ElementPlus from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 import 'element-plus/dist/index.css'
+// Element Plus 暗色变量（挂在 html.dark 上）；必须排在 index.scss 之前，
+// 让 index.scss 第 2 节能用同层选择器 html.dark 覆盖主色与圆角。
+import 'element-plus/theme-chalk/dark/css-vars.css'
 import '@/assets/styles/index.scss'
 
 import App from './App.vue'

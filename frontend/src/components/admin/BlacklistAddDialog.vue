@@ -91,7 +91,7 @@ async function onSubmit(): Promise<void> {
       :extra="'黑名单记录保留 1 年；加入时必须填写限制原因，加入后账户转为「受限」，该用户无法创建新预约。'"
     />
 
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="96px">
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="112px">
       <el-form-item label="用户" prop="user_id">
         <el-select
           v-model="form.user_id"
@@ -133,7 +133,7 @@ async function onSubmit(): Promise<void> {
           placeholder="解除时间"
         />
         <p class="ssr-text-muted hint">
-          不设期限时，系统<strong>不会</strong>自动解除（存在管理员手动限制时不得自动解除），
+          不设期限时，系统<strong>不会</strong>自动解除，
           必须由管理员手动解除。
         </p>
       </el-form-item>

@@ -29,8 +29,8 @@ const emit = defineEmits<{
 const OCCUPANCY_SHORT: Record<SeatCellState, string> = {
   free: '可约',
   taken: '已约',
-  fix: '占用未判定',
-  off: '占用未判定',
+  fix: '占用未知',
+  off: '占用未知',
 }
 
 function isSelected(seatId: number): boolean {

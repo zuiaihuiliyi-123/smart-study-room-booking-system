@@ -15,7 +15,7 @@ import { listAreas, listRooms } from '@/api/room'
 import { listSeats } from '@/api/seat'
 import { listUsers } from '@/api/user'
 import type { Area, CurrentUser, Reservation, Room, Seat } from '@/types'
-import { bracketRangeText, isEffectiveReservation } from '@/utils/bookingRules'
+import { timeRangeText, isEffectiveReservation } from '@/utils/bookingRules'
 
 export interface AdminDirectory {
   rooms: Room[]
@@ -163,9 +163,9 @@ export function areaLabelOf(
   )
   if (prefixes.size === 1) {
     const [prefix] = [...prefixes]
-    if (/^[A-Z]{1,3}$/.test(prefix)) return `分区 ${prefix}（名称待后端提供接口）`
+    if (/^[A-Z]{1,3}$/.test(prefix)) return `分区 ${prefix}`
   }
-  return `分区 #${areaId}（名称待后端提供接口）`
+  return `分区 #${areaId}`
 }
 
 export function seatLabelOf(directory: AdminDirectory | null, seat: Seat | null): string {
@@ -198,7 +198,7 @@ export function reservationLabelOf(
 ): string {
   const record = directory?.reservationsById.get(reservationId)
   if (!record) return `预约单 #${reservationId}`
-  return `#${record.id} · ${record.reserve_date} ${bracketRangeText(record.start_time, record.end_time)} · ${seatIdLabel(directory, record.seat_id)}`
+  return `#${record.id} · ${record.reserve_date} ${timeRangeText(record.start_time, record.end_time)} · ${seatIdLabel(directory, record.seat_id)}`
 }
 
 /** 投诉对象的可读文案（FR-042 的 4 类对象）。 */

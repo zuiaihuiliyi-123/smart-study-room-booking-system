@@ -23,7 +23,7 @@ import {
   toBookingFailure,
   type SeatRef,
 } from '@/utils/bookingData'
-import { BOOKING_RULES, bracketRangeText, restrictUntilText } from '@/utils/bookingRules'
+import { BOOKING_RULES, timeRangeText, restrictUntilText } from '@/utils/bookingRules'
 import { parseFocusId } from '@/utils/messageLinks'
 
 export function useMyViolations() {
@@ -62,7 +62,7 @@ const restrictUntil = computed(() => restrictUntilText(auth.user?.restrict_until
 function reservationLabel(reservationId: number): string {
   const record = reservations.value.get(reservationId)
   if (!record) return `预约单 #${reservationId}`
-  return `#${record.id} · ${record.reserve_date} ${bracketRangeText(
+  return `#${record.id} · ${record.reserve_date} ${timeRangeText(
   record.start_time,
   record.end_time,
 )} · ${seatDisplayName(directory.value, record.seat_id)}`

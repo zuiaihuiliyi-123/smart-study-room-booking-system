@@ -81,6 +81,7 @@ http.post('/api/v1/blacklist', ({ request }) =>
       start_at: formatDateTime(now),
       expire_at: expireAt,
       released_at: null,
+      release_reason: null,
       operator_id: admin.id,
       released_reason: null,
       released_by: null,

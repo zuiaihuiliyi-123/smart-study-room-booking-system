@@ -116,8 +116,10 @@ function onCommand(command: string) {
   flex: 0 0 auto;
   align-items: center;
   height: var(--ssr-header-h);
-  color: var(--ssr-on-primary);
-  background: var(--ssr-primary);
+  color: var(--ssr-ink);
+  /* Linear：顶栏与侧栏同为一档暗色 chrome，主色只留给操作与选中 */
+  background: var(--ssr-surface);
+  border-bottom: 1px solid var(--ssr-line);
 }
 
 .app-header__brand {
@@ -143,7 +145,7 @@ function onCommand(command: string) {
 }
 
 .app-header__brand-text strong {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -165,9 +167,10 @@ function onCommand(command: string) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  color: var(--ssr-on-primary);
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  color: var(--ssr-ink);
   background: transparent;
   border: 0;
   border-radius: var(--ssr-radius-sm);
@@ -175,7 +178,7 @@ function onCommand(command: string) {
 }
 
 .app-icon-btn:hover {
-  background: rgb(255 255 255 / 16%);
+  background: var(--ssr-primary-light);
 }
 
 .app-header__badge {
@@ -186,9 +189,9 @@ function onCommand(command: string) {
   display: inline-flex;
   gap: 8px;
   align-items: center;
-  height: 34px;
+  height: 38px;
   padding: 0 10px;
-  color: var(--ssr-on-primary);
+  color: var(--ssr-ink);
   background: transparent;
   border: 0;
   border-radius: var(--ssr-radius-sm);
@@ -196,7 +199,7 @@ function onCommand(command: string) {
 }
 
 .app-user:hover {
-  background: rgb(255 255 255 / 16%);
+  background: var(--ssr-primary-light);
 }
 
 .app-user__name {
@@ -207,9 +210,10 @@ function onCommand(command: string) {
 .app-user__role {
   padding: 1px 7px;
   font-size: var(--ssr-font-note);
-  /* 18% 白底 + 白字在 #2B5F9E 上只有 4.32:1，改用深蓝实底（8.74:1） */
-  background: var(--ssr-primary-deep);
-  border-radius: 10px;
+  /* 主色实底 + 白字：4.70:1；提亮紫实底只有 4.22:1，不达 AA */
+  color: var(--ssr-on-primary);
+  background: var(--ssr-primary);
+  border-radius: var(--ssr-radius-sm);
 }
 
 .app-user__caret {

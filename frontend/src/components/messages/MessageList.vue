@@ -160,7 +160,7 @@ const emit = defineEmits<{
 }
 
 .msg__link {
-  color: var(--ssr-primary);
+  color: var(--ssr-primary-ink);
   font-weight: 600;
 }
 </style>

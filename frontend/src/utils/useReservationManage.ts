@@ -21,7 +21,7 @@ import {
   seatIdLabel,
   type AdminDirectory,
 } from '@/utils/adminData'
-import { bracketRangeText, durationText, slotMinutes } from '@/utils/bookingRules'
+import { timeRangeText, durationText, slotMinutes } from '@/utils/bookingRules'
 import { toBookingFailure } from '@/utils/bookingData'
 import { useAdminScope } from '@/utils/useAdminScope'
 
@@ -161,7 +161,7 @@ async function forceCancel(reason: string): Promise<boolean> {
   }
   try {
     await ElMessageBox.confirm(
-      `将强制取消预约 #${target.id}（${seatIdLabel(directory.value, target.seat_id)}，${target.reserve_date} ${bracketRangeText(target.start_time, target.end_time)}）。该操作不产生违约记录、不累加违约次数。本次操作将记入审计日志，确认继续？`,
+      `将强制取消预约 #${target.id}（${seatIdLabel(directory.value, target.seat_id)}，${target.reserve_date} ${timeRangeText(target.start_time, target.end_time)}）。该操作不产生违约记录、不累加违约次数。本次操作将记入审计日志，确认继续？`,
       '确认：强制取消预约',
       { type: 'warning', confirmButtonText: '确认强制取消', cancelButtonText: '返回检查' },
     )
@@ -198,7 +198,7 @@ async function registerViolation(reason: string): Promise<boolean> {
   const countText = count === null ? '' : `（当前 ${count} 次）`
   try {
     await ElMessageBox.confirm(
-      `将为预约 #${target.id}（${seatIdLabel(directory.value, target.seat_id)}，${target.reserve_date} ${bracketRangeText(target.start_time, target.end_time)}）登记手动违约。该操作会累加该用户的违约次数${countText}，累计达到 3 次将限制账户 7 天。本次操作将记入审计日志，确认继续？`,
+      `将为预约 #${target.id}（${seatIdLabel(directory.value, target.seat_id)}，${target.reserve_date} ${timeRangeText(target.start_time, target.end_time)}）登记手动违约。该操作会累加该用户的违约次数${countText}，累计达到 3 次将限制账户 7 天。本次操作将记入审计日志，确认继续？`,
       '确认：手动违约登记',
       { type: 'warning', confirmButtonText: '确认登记违约', cancelButtonText: '返回检查' },
     )
@@ -231,7 +231,7 @@ async function registerViolation(reason: string): Promise<boolean> {
 }
 
 function slotText(item: Reservation): string {
-  return `${item.reserve_date} ${bracketRangeText(item.start_time, item.end_time)}（${durationText(slotMinutes(item.start_time, item.end_time))}）`
+  return `${item.reserve_date} ${timeRangeText(item.start_time, item.end_time)}（${durationText(slotMinutes(item.start_time, item.end_time))}）`
 }
 
 /** 列表里只显示签到 / 签退时刻（同一预约单只涉及一天），完整时间在详情抽屉里 */

@@ -21,7 +21,7 @@ const props = defineProps<{
 }>()
 
 const restrictText = computed(() =>
-    restrictUntilText(props.error?.restrictUntil ?? '') || '服务端未返回解除时间',
+    restrictUntilText(props.error?.restrictUntil ?? '') || '暂无法查询解除时间',
 )
 
 const emit = defineEmits<{
@@ -67,7 +67,7 @@ const emit = defineEmits<{
       <el-alert type="warning" :closable="false" show-icon title="该时段暂不可预约">
         <p>{{ props.blockedHint }}</p>
         <p class="ssr-text-muted">
-          判定项 {{ props.userBlock }} 属用户级条件，与具体座位无关，因此不再展示座位矩阵。
+          这一条与具体座位无关，因此不再列出座位，改选其它时段即可。
         </p>
       </el-alert>
       <EmptyState
@@ -95,7 +95,7 @@ const emit = defineEmits<{
         :description="`已列出 ${props.visibleCount} 个座位的资源状态与该时段占用情况，可改选其它时段。`"
       />
       <p v-else class="ssr-text-muted booking-result__notice">
-        点击座位查看规则校验结果并提交预约；鼠标悬停可看座位号、类型、有无插座与当前时段占用。
+        点击座位查看预约前检查结果并提交；鼠标悬停可看座位号、类型、有无插座与当前时段占用。
       </p>
 
       <SeatMatrix
@@ -128,7 +128,7 @@ const emit = defineEmits<{
 }
 
 .booking-result__hint {
-  color: var(--ssr-primary);
+  color: var(--ssr-primary-ink);
   font-size: var(--ssr-font-note);
   font-weight: 600;
 }

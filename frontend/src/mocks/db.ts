@@ -294,6 +294,7 @@ export function createSession(userId: number): string {
         reason,
         mode: '自动',
         start_at: formatDateTime(now),
+        release_reason: null,
         expire_at: formatDateTime(new Date(now.getTime() + RULES.restrictionDays * 86_400_000)),
         released_at: null,
         operator_id: null,

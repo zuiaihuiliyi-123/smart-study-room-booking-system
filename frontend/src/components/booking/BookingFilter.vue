@@ -121,7 +121,7 @@ function onStartChange() {
       </div>
 
       <p class="booking-filter__note">
-        {{ durationHint }}；区间按左闭右开 <code>[s, e)</code> 判定。
+        {{ durationHint }}；时间段含开始时间、不含结束时间。
       </p>
 
       <el-form-item label="座位类型">
@@ -212,7 +212,7 @@ function onStartChange() {
 
 .booking-filter__hint {
   margin: 10px 0 0;
-  color: var(--ssr-primary);
+  color: var(--ssr-primary-ink);
   font-weight: 600;
 }
 

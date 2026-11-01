@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 
 import type { Reservation } from '@/types'
 import { seatDisplayName, type SeatRef } from '@/utils/bookingData'
-import { bracketRangeText } from '@/utils/bookingRules'
+import { timeRangeText } from '@/utils/bookingRules'
 
 const props = defineProps<{
   /** 非 null 即打开对话框 */
@@ -62,7 +62,7 @@ function onSubmit(): void {
           <dt>时段</dt>
           <dd>
             {{ props.reservation.reserve_date }}
-            {{ bracketRangeText(props.reservation.start_time, props.reservation.end_time) }}
+            {{ timeRangeText(props.reservation.start_time, props.reservation.end_time) }}
           </dd>
         </div>
         <div>

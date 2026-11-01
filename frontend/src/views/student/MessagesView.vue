@@ -71,7 +71,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="站内消息"
-      subtitle="仅站内提示，不接短信 / 邮件 / 微信；用户仅可查看本人的消息"
+      subtitle="查看系统发送给你的站内消息"
     >
       <template #actions>
         <span class="ssr-text-muted">
@@ -109,9 +109,7 @@ onMounted(() => {
     </div>
 
     <p class="ssr-text-muted note">
-      点击消息会标记为已读，并按关联对象跳转到对应列表页（列表内高亮该条记录）。
-      后端只有逐条已读接口 <code>POST /messages/{id}/read</code>，没有「全部标为已读」与未读数统计接口，
-      因此未读数由前端按全量列表统计（已登记问题清单）。
+      点击消息会标记为已读，并跳转到对应的列表页（列表内会高亮该条记录）。
     </p>
   </div>
 </template>

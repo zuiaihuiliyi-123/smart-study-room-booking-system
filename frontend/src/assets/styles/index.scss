@@ -1,5 +1,7 @@
 /* ============================================================
    智慧自习室预约与管理系统 · 设计系统
+   风格：stylekit.top/zh/styles/linear-style（Linear 风：近黑底 + 1px 白 10% 描边 + 靛紫主色）。
+   暗色是根基：禁止白色/浅色底、禁止阴影（含彩色阴影）、禁止装饰性渐变。
    约束（AGENTS.md §3.8）：组件只允许引用 var(--ssr-*)，禁止硬编码色值。
    改色流程：先改第 1 节的 SCSS 真值源，再同步第 2 节的 CSS 变量，缺一不可。
    ============================================================ */
@@ -7,30 +9,34 @@
 @use 'sass:list';
 
 /* ---------- 1. SCSS 真值源（全站唯一色值出处） ---------- */
-$ssr-primary: #2b5f9e; // 求是蓝，与已走查原型 index.html v1.0 一致
-$ssr-primary-light: #eaf2fb;
-$ssr-primary-deep: #224c7e; // 深蓝：登录页品牌区渐变终点、header 内嵌强调
-$ssr-ink: #12304f;
-$ssr-line: #d6e2f0;
-$ssr-bg: #f5f8fc;
-$ssr-surface: #ffffff;
-$ssr-muted: #6b7a8d; // 非文本用途：描边、图标、图表轴
-$ssr-muted-ink: #5a6879; // 12.5px 说明文本：#6b7a8d 在浅底仅 4.38:1，未达 4.5:1，此处加深
-$ssr-success: #1b7a45;
-$ssr-success-bg: #e6f4ea;
-$ssr-warning: #a9720b;
-$ssr-warning-bg: #fff6e5;
-$ssr-warning-ink: #8f5f08; // 12.5px 文字：#a9720b 在 #fff6e5 上仅 3.84:1，加深到 5.14:1
-$ssr-danger: #b3261e;
-$ssr-danger-bg: #fbe0e0;
+$ssr-primary: #5e6ad2; // Linear 靛紫：主按钮、选中态、描边
+$ssr-primary-ink: #a9b2f7; // 同一色相的提亮版：暗底上的主色文字 / 图标（9.2:1，直接用主色只有 4.0:1）
+$ssr-primary-light: rgb(255 255 255 / 6%); // 选中 / 悬停底色：白 6% 叠加，不引入第二种颜色
+$ssr-primary-deep: #8b5cf6; // 提亮紫：按钮渐变终点（from #5e6ad2 to #8b5cf6）、主色小字
+$ssr-ink: #f4f4f5; // zinc-100：主文字
+$ssr-line: rgb(255 255 255 / 10%); // border-white/10
+$ssr-line-strong: rgb(255 255 255 / 24%); // 悬停描边（替代阴影反馈）
+$ssr-bg: #0a0a0b; // 页面底色：Linear 近黑
+$ssr-surface: #121214; // 卡片：白 3% 叠在近黑上
+$ssr-surface-raised: #17171a; // 一级浮层：下拉 / 菜单 / 抽屉
+$ssr-on-primary: #ffffff; // 主色实底上的文字
+$ssr-muted: #71717a; // zinc-500：非文本用途（描边、图标、图表轴）
+$ssr-muted-ink: #a1a1aa; // zinc-400：说明文字（在 #121214 上 7.0:1）
+$ssr-success: #27ae60;
+$ssr-success-bg: rgb(39 174 96 / 14%);
+$ssr-warning: #f2c94c;
+$ssr-warning-bg: rgb(242 201 76 / 14%);
+$ssr-warning-ink: #f0cd6a; // 12.5px 文字：#f2c94c 在 #121214 上 9.4:1
+$ssr-danger: #eb5757;
+$ssr-danger-bg: rgb(235 87 87 / 15%);
 
 /* 状态标签的中性档位（"使用中"是预约派生结论，不是座位资源状态） */
-$ssr-tag-use-bg: #fde7d0;
-$ssr-tag-use-fg: #96500a;
-$ssr-tag-fix-bg: #ededed;
-$ssr-tag-fix-fg: #5b5b5b;
-$ssr-tag-off-bg: #e4e7ec;
-$ssr-tag-off-fg: #4c5563; // 原型 #7a7a7a/#e0e0e0 仅 3.25:1，已加深到 6.09:1
+$ssr-tag-use-bg: rgb(242 201 76 / 16%);
+$ssr-tag-use-fg: #f2c94c;
+$ssr-tag-fix-bg: rgb(255 255 255 / 8%);
+$ssr-tag-fix-fg: #d4d4d8;
+$ssr-tag-off-bg: rgb(255 255 255 / 6%);
+$ssr-tag-off-fg: #a1a1aa;
 
 /* 座位矩阵四态（预约座位页）：资源状态 × 时段占用，两者独立呈现（AGENTS.md §4）。
    每态除色值外还带底纹方向与图标，保证色盲可辨。 */
@@ -50,29 +56,46 @@ $ssr-seat-off-fg: $ssr-tag-off-fg;
 $ssr-seat-off-line: $ssr-tag-off-fg;
 $ssr-seat-off-hatch: rgba($ssr-tag-off-fg, 0.18);
 
-/* Element Plus 主色派生：light-N = N×10% 白 + 余量本色；dark-2 = 20% 黑 + 80% 本色 */
-$el-primary-light-3: #6b8fbb;
-$el-primary-light-5: #95afcf;
-$el-primary-light-7: #bfcee2;
-$el-primary-light-8: #d5dfec;
-$el-primary-light-9: #eaeff5;
-$el-primary-dark-2: #224c7e;
+/* 阴影：Linear 风格全档禁用阴影，层次用 1px 描边 + 底色深浅区分（悬停反馈走 border-color） */
+$ssr-shadow-sm: none;
+$ssr-shadow-md: none;
 
-/* ---------- 2. CSS 变量（组件唯一可见契约） ---------- */
-:root {
-  color-scheme: light;
+/* Element Plus 主色派生：暗色下 light-N 是向背景靠拢的深色（hover / 选中底），dark-2 是提亮后的 hover 色 */
+$el-primary-light-3: #4c56b3;
+$el-primary-light-5: #3d468f;
+$el-primary-light-7: #2b3168;
+$el-primary-light-8: #232750;
+$el-primary-light-9: #191c3b;
+$el-primary-dark-2: #7b85e3;
+
+/* 语义色底（消息条 / 标签底）：暗色下用同色低透明度叠加，不用 EP 默认的深绿深蓝 */
+$el-success-light-9: rgb(39 174 96 / 12%);
+$el-warning-light-9: rgb(242 201 76 / 12%);
+$el-danger-light-9: rgb(235 87 87 / 12%);
+$el-info-light-9: rgb(45 156 219 / 12%);
+
+/* ---------- 2. CSS 变量（组件唯一可见契约） ----------
+   `html.dark` 与 Element Plus 的暗色变量选择器同层（0,1,1），本文件后加载 → 主色与圆角覆盖生效。 */
+:root,
+html.dark {
+  color-scheme: dark;
 
   /* 主色与中性 */
   --ssr-primary: #{$ssr-primary};
+  --ssr-primary-ink: #{$ssr-primary-ink};
   --ssr-primary-light: #{$ssr-primary-light};
   --ssr-primary-deep: #{$ssr-primary-deep};
   --ssr-ink: #{$ssr-ink};
   --ssr-line: #{$ssr-line};
+  --ssr-line-strong: #{$ssr-line-strong};
   --ssr-bg: #{$ssr-bg};
   --ssr-surface: #{$ssr-surface};
+  --ssr-surface-raised: #{$ssr-surface-raised};
   --ssr-muted: #{$ssr-muted};
   --ssr-muted-ink: #{$ssr-muted-ink};
-  --ssr-on-primary: #{$ssr-surface}; // 深蓝底上的文字（对比度 6.49:1）
+  --ssr-on-primary: #{$ssr-on-primary}; // 主色实底上的文字
+  --ssr-shadow-sm: #{$ssr-shadow-sm};
+  --ssr-shadow-md: #{$ssr-shadow-md};
 
   /* 语义色 / 底 */
   --ssr-success: #{$ssr-success};
@@ -106,18 +129,24 @@ $el-primary-dark-2: #224c7e;
   --ssr-seat-off-line: #{$ssr-seat-off-line};
 
   /* 尺寸与密度 */
-  --ssr-header-h: 56px;
-  --ssr-aside-w: 220px;
-  --ssr-aside-w-collapsed: 64px;
-  --ssr-menu-item-h: 40px;
-  --ssr-crumb-h: 40px;
+  --ssr-header-h: 60px;
+  --ssr-aside-w: 232px;
+  --ssr-aside-w-collapsed: 68px;
+  --ssr-menu-item-h: 44px;
+  --ssr-crumb-h: 44px;
   --ssr-main-max: 1440px;
-  --ssr-gutter: 20px;
+  --ssr-gutter: 22px;
+  /* Linear：rounded-lg 为上限（8px），小元素 rounded-md（6px） */
   --ssr-radius: 8px;
   --ssr-radius-sm: 6px;
-  --ssr-font-body: 14px;
-  --ssr-font-table: 13px;
-  --ssr-font-note: 12.5px;
+  --ssr-font-body: 15px;
+  --ssr-font-table: 14px;
+  --ssr-font-note: 13px;
+
+  /* 控件统一高度：按钮 / 输入 / 选择器一起抬到 36px，避免"字大了框没大" */
+  --el-component-size-large: 42px;
+  --el-component-size: 36px;
+  --el-component-size-small: 30px;
 
   /* Element Plus 覆盖 */
   --el-color-primary: var(--ssr-primary);
@@ -131,6 +160,12 @@ $el-primary-dark-2: #224c7e;
   --el-color-warning: var(--ssr-warning);
   --el-color-danger: var(--ssr-danger);
   --el-color-error: var(--ssr-danger);
+  --el-color-info: #2d9cdb;
+  --el-color-success-light-9: #{$el-success-light-9};
+  --el-color-warning-light-9: #{$el-warning-light-9};
+  --el-color-danger-light-9: #{$el-danger-light-9};
+  --el-color-error-light-9: #{$el-danger-light-9};
+  --el-color-info-light-9: #{$el-info-light-9};
   --el-text-color-primary: var(--ssr-ink);
   --el-text-color-regular: var(--ssr-ink);
   --el-text-color-secondary: var(--ssr-muted-ink);
@@ -138,14 +173,28 @@ $el-primary-dark-2: #224c7e;
   --el-border-color: var(--ssr-line);
   --el-border-color-light: var(--ssr-line);
   --el-border-color-lighter: var(--ssr-line);
-  --el-fill-color-blank: var(--ssr-surface);
+  --el-border-color-hover: var(--ssr-line-strong);
+  --el-fill-color-blank: var(--ssr-surface-raised);
+  --el-fill-color: var(--ssr-primary-light);
+  --el-fill-color-light: var(--ssr-primary-light);
+  --el-fill-color-lighter: var(--ssr-primary-light);
+  --el-bg-color: var(--ssr-surface);
+  --el-bg-color-overlay: var(--ssr-surface-raised);
   --el-bg-color-page: var(--ssr-bg);
+  --el-mask-color: rgb(0 0 0 / 72%);
   --el-border-radius-base: var(--ssr-radius-sm);
+  /* 字号阶梯整体上移一档：小号控件（标签 / 小按钮 / 分页）不再缩到 12px */
+  --el-font-size-extra-small: 13px;
+  --el-font-size-small: 14px;
   --el-font-size-base: var(--ssr-font-body);
+  --el-font-size-medium: 17px;
+  --el-font-size-large: 19px;
 
   color: var(--ssr-ink);
   background-color: var(--ssr-bg);
-  font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', 'Segoe UI', sans-serif;
+  /* Linear：只用 Inter 一套无衬线；中文回落到系统黑体 */
+  font-family: 'Inter', 'Inter var', system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei',
+    'PingFang SC', sans-serif;
   font-size: var(--ssr-font-body);
   line-height: 1.6;
 }
@@ -170,9 +219,9 @@ body,
 }
 
 .el-card__header {
-  padding: 12px 18px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--ssr-line);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -187,21 +236,23 @@ body,
 
 /* 紧凑行高（EP 2.9 未暴露 cell padding 变量，只能覆盖规则本身） */
 .el-table .el-table__cell {
-  padding: 7px 0;
+  padding: 10px 0;
 }
 
 .el-table .cell {
-  padding: 0 9px;
-  line-height: 1.5;
+  padding: 0 11px;
+  line-height: 1.55;
 }
 
 .el-table th.el-table__cell {
   font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
 }
 
 .el-menu {
   border-right: none;
-  --el-menu-active-color: var(--ssr-primary);
+  --el-menu-active-color: var(--ssr-primary-ink);
   --el-menu-hover-bg-color: var(--ssr-primary-light);
   --el-menu-item-height: var(--ssr-menu-item-h);
 }
@@ -214,9 +265,9 @@ body,
   color: var(--ssr-ink);
 }
 
-/* 选中态 = 3px 主色竖条 + 浅蓝底 + 主色加粗 */
+/* 选中态 = 3px 主色竖条 + 白 6% 底 + 提亮主色加粗 */
 .el-menu-item.is-active {
-  color: var(--ssr-primary);
+  color: var(--ssr-primary-ink);
   font-weight: 600;
   background-color: var(--ssr-primary-light);
 }
@@ -232,12 +283,13 @@ body,
 }
 
 .el-tag {
-  height: 22px;
-  padding: 0 8px;
+  height: 24px;
+  padding: 0 9px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--ssr-radius-sm);
   font-size: var(--ssr-font-note);
-  line-height: 22px;
+  font-weight: 500;
+  line-height: 24px;
 }
 
 /* 状态标签配色：一处声明，StatusTag.vue 只负责选档位（小字用 *-ink 保证 ≥4.5:1） */
@@ -246,7 +298,7 @@ $tag-variants: (
   warn: ($ssr-warning-bg, $ssr-warning-ink),
   err: ($ssr-danger-bg, $ssr-danger),
   info: ($ssr-primary-light, $ssr-ink),
-  primary: ($ssr-primary-light, $ssr-primary),
+  primary: ($ssr-primary-light, $ssr-primary-ink),
   use: ($ssr-tag-use-bg, $ssr-tag-use-fg),
   fix: ($ssr-tag-fix-bg, $ssr-tag-fix-fg),
   off: ($ssr-tag-off-bg, $ssr-tag-off-fg),
@@ -291,10 +343,10 @@ $tag-variants: (
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
   align-items: flex-end;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 16px 20px;
   margin-bottom: 16px;
   background: var(--ssr-surface);
   border: 1px solid var(--ssr-line);
@@ -319,9 +371,9 @@ $tag-variants: (
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(206px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .ssr-text-muted {
@@ -379,7 +431,7 @@ $tag-variants: (
 /* ---------- 6. 列表 / 表格共用件（学生端其余页面） ---------- */
 /* 卡片容器：与 EmptyState / LoadingBlock 同一套描边，避免各页面重复写 border */
 .ssr-card {
-  padding: 14px 16px;
+  padding: 18px 20px;
   background: var(--ssr-surface);
   border: 1px solid var(--ssr-line);
   border-radius: var(--ssr-radius);
@@ -399,7 +451,7 @@ $tag-variants: (
 .ssr-card__head h3 {
   margin: 0;
   color: var(--ssr-ink);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -444,10 +496,10 @@ $tag-variants: (
 .admin-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .admin-toolbar__buttons {
@@ -513,6 +565,20 @@ $tag-variants: (
 }
 
 /* 抽屉 / 对话框内的日期时间选择器 */
+/* 筛选区是 flex 容器：固定宽度的控件不允许被压缩，否则字号变大后占位符被裁 */
+.w-120,
+.w-130,
+.w-140,
+.w-150,
+.w-160,
+.w-170,
+.w-190,
+.w-200,
+.w-260,
+.w-datetime {
+  flex: 0 0 auto;
+}
+
 .w-datetime {
   width: 190px;
 }
@@ -552,20 +618,21 @@ $tag-variants: (
 /* 座位网格（管理端 FR-003 / FR-031）：格子只承载座位号 + 资源状态 + 该时段占用两个维度 */
 .seat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(106px, 1fr));
+  gap: 10px;
 }
 
 .seat-grid__cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px 6px;
+  gap: 3px;
+  padding: 11px 8px;
   font-size: var(--ssr-font-note);
   text-align: center;
   cursor: pointer;
   border: 1px solid var(--ssr-line);
   border-radius: var(--ssr-radius-sm);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .seat-grid__cell:disabled {
@@ -576,6 +643,13 @@ $tag-variants: (
 .seat-grid__cell.is-selected {
   outline: 2px solid var(--ssr-primary);
   outline-offset: 1px;
+}
+
+/* 悬停反馈走「描边提亮 + 底色提一档」，Linear 不做位移与阴影 */
+.seat-grid__cell:not(:disabled):hover {
+  z-index: 1;
+  background: var(--ssr-primary-light);
+  border-color: var(--ssr-line-strong);
 }
 
 .seat-grid__no {
@@ -647,8 +721,240 @@ $tag-variants: (
     width: 100%;
   }
 
+  /* 固定宽度工具类在窄屏让位给整行宽度，避免控件被卡片右边缘裁掉 */
+  .filter-bar__fields .w-120,
+  .filter-bar__fields .w-130,
+  .filter-bar__fields .w-140,
+  .filter-bar__fields .w-150,
+  .filter-bar__fields .w-160,
+  .filter-bar__fields .w-170,
+  .filter-bar__fields .w-190,
+  .filter-bar__fields .w-200,
+  .filter-bar__fields .w-260,
+  .filter-bar__fields .w-datetime {
+    width: 100%;
+  }
+
   .filter-bar__actions {
     justify-content: flex-end;
     width: 100%;
   }
 }
+
+/* ---------- 9. 可读性收口（字号抬升后的配套细节） ---------- */
+/* 侧边栏图标与文字一起放大，避免"字大了图标还是原来的" */
+.el-menu-item .el-icon {
+  font-size: 18px;
+}
+
+.el-menu-item {
+  border-radius: var(--ssr-radius-sm);
+  transition: background-color 0.15s ease;
+}
+
+/* 按钮 / 标签 / 输入框：与正文同档位，避免"表格里一行 12px 小字" */
+/* EP 把按钮高度写死成 32px，这里显式给高度，和 34px 的输入框对齐 */
+.el-button:not(.is-link):not(.is-text) {
+  height: 34px;
+}
+
+.el-button--small:not(.is-link):not(.is-text) {
+  height: 28px;
+  padding: 4px 10px;
+}
+
+.el-button--small {
+  font-size: 13px;
+}
+
+.el-button--large:not(.is-link):not(.is-text) {
+  height: 42px;
+}
+
+.el-table .el-button {
+  font-size: var(--ssr-font-table);
+}
+
+.el-tag {
+  font-size: 13px;
+}
+
+.el-input__inner,
+.el-select__placeholder {
+  font-size: var(--ssr-font-body);
+}
+
+/* 分页：与正文同字号，页码可点区域更大 */
+.el-pagination {
+  font-size: var(--ssr-font-table);
+}
+
+.el-pagination.is-background .el-pager li {
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+  border-radius: var(--ssr-radius-sm);
+}
+
+.el-pagination button {
+  height: 32px;
+}
+
+/* 滚动条：细、圆角、低对比，滚动时仍可见 */
+.table-wrap::-webkit-scrollbar,
+.app-sider::-webkit-scrollbar,
+.el-drawer__body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb,
+.app-sider::-webkit-scrollbar-thumb,
+.el-drawer__body::-webkit-scrollbar-thumb {
+  background: var(--ssr-line-strong);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 8px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb:hover,
+.app-sider::-webkit-scrollbar-thumb:hover,
+.el-drawer__body::-webkit-scrollbar-thumb:hover {
+  background: var(--ssr-muted);
+}
+
+.table-wrap::-webkit-scrollbar-track,
+.app-sider::-webkit-scrollbar-track,
+.el-drawer__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 链接：提亮主色 + 悬停下划线（暗底上直接用 #5e6ad2 只有 4.0:1） */
+.link {
+  color: var(--ssr-primary-ink);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+/* 提示框：字号变大后 EP 默认内边距与行距偏挤 */
+.el-alert {
+  padding: 12px 16px;
+  border-radius: var(--ssr-radius-sm);
+}
+
+.el-alert__content {
+  line-height: 1.65;
+}
+
+.el-alert__content p {
+  margin: 4px 0 0;
+}
+
+.el-alert__content p:first-child {
+  margin-top: 0;
+}
+
+/* 描述列表：标签列不换行 */
+.el-descriptions__label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 描述列表与表单标签：跟随正文字号，避免详情里的正文反而变小字 */
+.el-descriptions,
+.el-descriptions--small,
+.el-descriptions--large,
+.el-descriptions__cell,
+.el-descriptions__label,
+.el-descriptions__content,
+.el-form-item__label,
+.el-radio__label,
+.el-checkbox__label {
+  font-size: var(--ssr-font-body);
+}
+
+/* 与 EP 的 size 变体同名同层级，靠引入顺序覆盖 */
+.el-descriptions .el-descriptions__body .el-descriptions__table .el-descriptions__cell {
+  font-size: var(--ssr-font-body);
+  line-height: 1.6;
+}
+
+/* 抽屉：标题区与正文留白 */
+.el-drawer__header {
+  padding: 18px 20px 14px;
+  margin-bottom: 0;
+  font-size: 17px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--ssr-line);
+}
+
+.el-drawer__body {
+  padding: 18px 20px;
+}
+
+/* ---------- 10. Linear 暗色收口（浮层 / 主按钮 / 菜单 / 表头） ---------- */
+/* 浮层：1px 描边 + 背景模糊，不用阴影（Linear 的浮层语言） */
+.el-select__popper,
+.el-picker__popper,
+.el-dropdown__popper,
+.el-popover.el-popper {
+  backdrop-filter: blur(12px);
+}
+
+/* 一级浮层与抽屉统一用比卡片再亮一档的底色，和页面近黑拉开层次 */
+.el-drawer,
+.el-dialog,
+.el-message-box {
+  background: var(--ssr-surface-raised);
+}
+
+.el-drawer__header,
+.el-dialog__header {
+  border-bottom: 1px solid var(--ssr-line);
+}
+
+/* 主按钮：Linear 唯一允许的渐变（from #5e6ad2 to #8b5cf6），悬停走透明度不做位移。
+   plain / disabled 保持 EP 原样（描边款与置灰态不能被渐变盖掉）。 */
+.el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled) {
+  border-color: transparent;
+  background-image: linear-gradient(90deg, var(--ssr-primary), var(--ssr-primary-deep));
+}
+
+.el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled):hover,
+.el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled):focus-visible {
+  opacity: 0.9;
+}
+
+/* 表格与菜单的悬停底色统一走白 6%（暗色下不允许浅色块突然跳出来） */
+.el-table__body tr:hover > td.el-table__cell {
+  background-color: var(--ssr-primary-light);
+}
+
+.el-menu-item:hover {
+  background-color: var(--ssr-primary-light);
+}
+
+/* 菜单选中态：保留 3px 主色竖条 + 白 6% 底，文字用提亮紫保证 ≥4.5:1 */
+.el-menu-item.is-active {
+  color: var(--ssr-primary-ink);
+}
+
+/* 时间线节点：EP 默认是纯白圆点，暗色下会像一块补丁，改成主色实心 + 页面底色外圈 */
+.el-timeline-item__node {
+  background-color: var(--ssr-primary);
+  box-shadow: 0 0 0 2px var(--ssr-bg);
+}
+
+/* 空心节点（投诉进度用 is-hollow）EP 写死 var(--el-color-white)，这里换成一档更亮的卡片底色 */
+.el-timeline-item__node.is-hollow {
+  background: var(--ssr-surface-raised);
+  border-color: var(--ssr-line-strong);
+}
+
+.el-timeline-item__tail {
+  border-left-color: var(--ssr-line-strong);
+}
+
