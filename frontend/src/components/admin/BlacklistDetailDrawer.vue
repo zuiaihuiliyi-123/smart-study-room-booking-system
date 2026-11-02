@@ -118,22 +118,16 @@ const title = computed(() =>
         </el-descriptions-item>
       </el-descriptions>
 
-      <el-alert
-        v-if="manualRestriction"
-        class="notice"
-        type="warning"
-        :closable="false"
-        show-icon
-        title="该限制不会自动解除"
-      >
+      <el-alert v-if="manualRestriction" class="notice" type="warning" :closable="false" show-icon title="该限制不会自动解除">
         <p>
           这是<strong>管理员手动</strong>加入的限制
           <template v-if="props.entry.expire_at === null">（未设期限）</template>
-          <template v-else>（即使期限已到）</template>：到期后不会自动解除，需要管理员在这里手动解除，解除时须填写原因。
+          <template v-else>（即使期限已到）</template>：
+          按 BR-010 / ST-042，系统不得自动解除，必须由管理员在此手动解除，解除时须填写原因。
         </p>
       </el-alert>
 
-      <el-form v-if="canRelease" label-width="112px" @submit.prevent>
+      <el-form v-if="canRelease" label-width="96px" @submit.prevent>
         <el-form-item label="解除原因">
           <el-input
             v-model="reason"

@@ -42,14 +42,14 @@ const title = computed(() =>
     props.room === null ? '分区管理' : `分区管理 · ${props.room.name}`,
 )
 
-/** 分区名称缺失时用座位号兜底，和座位页保持同一口径 */
+/** 分区名称缺失时（后端未提供列表接口）用座位号前缀兜底，和座位页保持同一口径 */
 const fallbackAreas = computed<Area[]>(() => {
   if (props.room === null) return []
   const seats = props.directory?.seatsByRoom.get(props.room.id) ?? []
   const ids = [...new Set(seats.map((seat) => seat.area_id).filter((id): id is number => id !== null))]
   return ids
     .filter((id) => !areas.value.some((area) => area.id === id))
-    .map((id) => ({ id, room_id: props.room?.id ?? 0, name: `分区 #${id}` }))
+    .map((id) => ({ id, room_id: props.room?.id ?? 0, name: `分区 #${id}（名称待后端提供接口）` }))
 })
 
 const rows = computed(() => [...areas.value, ...fallbackAreas.value])
@@ -128,10 +128,13 @@ async function onAdd(): Promise<void> {
       type="warning"
       :closable="false"
       show-icon
-      title="暂时无法读取分区列表"
+      title="分区列表接口不可用"
     >
       <p>{{ errorMessage }}</p>
-      <p>下方按座位号前缀推断分区，可能缺少尚未分配座位的分区。</p>
+      <p>
+        后端目前只有「新增分区」，没有 `GET /rooms/{room_id}/areas`；下方按座位号前缀推断的分区
+        已明确标注，未编造名称。接口补齐后自动显示真实名称。
+      </p>
     </el-alert>
 
     <h4 class="drawer-section">已有分区（{{ rows.length }}）</h4>
@@ -152,7 +155,7 @@ async function onAdd(): Promise<void> {
     </div>
 
     <h4 class="drawer-section">新增分区</h4>
-    <el-form label-width="104px" @submit.prevent>
+    <el-form label-width="88px" @submit.prevent>
       <el-form-item label="分区名称">
         <el-input v-model="newName" maxlength="50" show-word-limit placeholder="如：静音区 / 靠窗区 / 电源区" />
       </el-form-item>

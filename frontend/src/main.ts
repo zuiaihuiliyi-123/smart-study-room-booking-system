@@ -11,6 +11,7 @@ import '@/assets/styles/index.scss'
 
 import App from './App.vue'
 import router from './router'
+import { initTheme } from '@/utils/useTheme'
 
 async function bootstrap() {
   // 开发期 mock：仅 DEV + VITE_USE_MOCK=true 时加载。
@@ -19,6 +20,9 @@ async function bootstrap() {
     const { worker } = await import('./mocks/browser')
     await worker.start({ onUnhandledRequest: 'bypass' })
   }
+
+  // 把记住的浅色 / 暗色主题落到 <html>（首屏防闪由 index.html 的内联脚本负责）
+  initTheme()
 
   const app = createApp(App)
 

@@ -98,7 +98,7 @@ const emit = defineEmits<{
   font-size: var(--ssr-font-note);
   font-weight: 600;
   background: var(--ssr-danger-bg);
-  border-radius: var(--ssr-radius-sm);
+  border-radius: 10px;
 }
 
 .digest__panel {
@@ -173,7 +173,7 @@ const emit = defineEmits<{
 }
 
 .digest__item-link {
-  color: var(--ssr-primary-ink);
+  color: var(--ssr-primary);
   font-size: var(--ssr-font-note);
   font-weight: 600;
 }

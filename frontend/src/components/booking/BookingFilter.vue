@@ -121,11 +121,10 @@ function onStartChange() {
       </div>
 
       <p class="booking-filter__note">
-        {{ durationHint }}；时间段含开始时间、不含结束时间。
+        {{ durationHint }}；区间按左闭右开 <code>[s, e)</code> 判定。
       </p>
 
-      <!-- 只有一个座位类型时这个下拉没有可筛的值，直接不显示，不放一个选不了的控件 -->
-      <el-form-item v-if="props.seatTypes.length > 1" label="座位类型">
+      <el-form-item label="座位类型">
         <el-select
           v-model="filters.seatType"
           class="booking-filter__full"
@@ -143,10 +142,7 @@ function onStartChange() {
       </el-form-item>
 
       <el-form-item>
-        <div class="booking-filter__flags">
-          <el-checkbox v-model="filters.powerOnly">仅看有插座</el-checkbox>
-          <el-checkbox v-model="filters.windowOnly">仅看靠窗</el-checkbox>
-        </div>
+        <el-checkbox v-model="filters.powerOnly">仅看有插座</el-checkbox>
       </el-form-item>
 
       <div class="booking-filter__actions">
@@ -206,12 +202,6 @@ function onStartChange() {
   gap: 8px;
 }
 
-.booking-filter__flags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-}
-
 .booking-filter__note,
 .booking-filter__hint {
   margin: 0 0 12px;
@@ -222,7 +212,7 @@ function onStartChange() {
 
 .booking-filter__hint {
   margin: 10px 0 0;
-  color: var(--ssr-primary-ink);
+  color: var(--ssr-primary);
   font-weight: 600;
 }
 

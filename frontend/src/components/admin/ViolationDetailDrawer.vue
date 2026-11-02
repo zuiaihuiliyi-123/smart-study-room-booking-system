@@ -51,7 +51,7 @@ const emit = defineEmits<{ (e: 'update:modelValue', value: boolean): void }>()
         <el-descriptions-item label="关联预约单">
           {{ reservationLabelOf(props.directory, props.violation.reservation_id) }}
         </el-descriptions-item>
-        <el-descriptions-item label="登记人 / 来源">
+        <el-descriptions-item label="登记人 / 判定来源">
           {{ operatorLabelOf(props.directory, props.violation.operator_id) }}
         </el-descriptions-item>
         <el-descriptions-item label="记录时间">
@@ -61,11 +61,12 @@ const emit = defineEmits<{ (e: 'update:modelValue', value: boolean): void }>()
 
       <el-alert class="notice" type="info" :closable="false" show-icon title="处理说明">
         <p>
-          违约记录不能修改：累计违约次数达到 3 次时，系统会自动限制该账户 7 天，
-          限制到期后自动解除（该账户另有管理员手动限制时除外）。
+          违约记录只读：累计违约次数达到 3 次时系统会自动限制账户 7 天，
+          限制到期自动解除（存在管理员手动限制时除外）。
         </p>
         <p>
-          违约记录一经生成不可撤销，也不提供申诉入口；如需核查请联系管理员。
+          本版不提供「撤销违约」与「违约申诉」入口：违约申诉已按本版口径裁定排除；
+          记录导出同样已排除，故本页没有导出按钮。
         </p>
       </el-alert>
     </template>

@@ -4,7 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { TARGET_HINTS, TARGET_TYPES, type TargetType } from '@/components/complaints/complaintMeta'
 import type { Reservation, Room } from '@/types'
 import type { SeatRef } from '@/utils/bookingData'
-import { timeRangeText } from '@/utils/bookingRules'
+import { bracketRangeText } from '@/utils/bookingRules'
 
 const props = defineProps<{
   rooms: Room[]
@@ -48,7 +48,7 @@ const seatMap = computed(() => new Map(props.seats.map((seat) => [seat.seatId, s
 function reservationLabel(item: Reservation): string {
   const seat = seatMap.value.get(item.seat_id)
   const seatText = seat ? `${seat.roomName} · ${seat.seatNo}` : `座位 #${item.seat_id}`
-  return `#${item.id} · ${item.reserve_date} ${timeRangeText(
+  return `#${item.id} · ${item.reserve_date} ${bracketRangeText(
     item.start_time,
     item.end_time,
   )} · ${seatText}`
