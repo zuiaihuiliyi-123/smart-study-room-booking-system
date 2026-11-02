@@ -1,0 +1,1 @@
+import{a5 as a,a8 as e,a9 as s,aa as f}from"./index-KjJ0PlBD.js";const o={free:f,taken:s,fix:e,off:a},r={free:"ssr-seat--free",taken:"ssr-seat--taken",fix:"ssr-seat--fix",off:"ssr-seat--off"},_={free:"「可用」且该时段无其他有效预约",taken:"「可用」但该时段已存在其他有效预约",fix:"资源状态为「维修中」",off:"资源状态为「停用」"};export{r as S,o as a,_ as b};

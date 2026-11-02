@@ -1,0 +1,1 @@
+import{a as e,A as s}from"./AppShell-BPkWZwty.js";import{d as a,c as n,i as o,e as r}from"./index-KjJ0PlBD.js";const c=a({__name:"AdminLayout",setup(m){return(t,l)=>(r(),n(s,{menus:o(e),"role-label":"管理端","show-messages":!1},null,8,["menus"]))}});export{c as default};

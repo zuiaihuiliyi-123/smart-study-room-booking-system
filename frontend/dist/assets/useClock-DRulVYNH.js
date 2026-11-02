@@ -1,0 +1,1 @@
+import{o as t,a6 as l,p as a}from"./index-KjJ0PlBD.js";function u(o=1e3){const n=a(new Date);let e=null;return t(()=>{e=window.setInterval(()=>{n.value=new Date},o)}),l(()=>{e!==null&&window.clearInterval(e),e=null}),n}export{u};
