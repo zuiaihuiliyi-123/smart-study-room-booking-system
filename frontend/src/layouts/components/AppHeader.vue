@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowDown, Bell, Expand, Fold } from '@element-plus/icons-vue'
+import { ArrowDown, Bell, Expand, Fold, Moon, Sunny } from '@element-plus/icons-vue'
 
 import { useAuthStore } from '@/stores/auth'
+import { useTheme } from '@/utils/useTheme'
 
 const props = withDefaults(
   defineProps<{
@@ -28,6 +29,7 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const auth = useAuthStore()
+const { isDark, toggleTheme } = useTheme()
 
 /** 品牌区与侧栏同宽对齐 */
 const brandStyle = computed(() =>
@@ -80,6 +82,20 @@ function onCommand(command: string) {
         @click="emit('toggle')"
       >
         <el-icon><component :is="props.collapsed ? Expand : Fold" /></el-icon>
+      </button>
+
+      <button
+        class="app-icon-btn"
+        type="button"
+        :aria-label="isDark ? '切换到浅色主题' : '切换到暗色主题'"
+        :title="isDark ? '切换到浅色主题' : '切换到暗色主题'"
+        @click="toggleTheme"
+      >
+        <Transition name="ssr-theme-icon" mode="out-in">
+          <el-icon :key="isDark ? 'sunny' : 'moon'">
+            <component :is="isDark ? Sunny : Moon" />
+          </el-icon>
+        </Transition>
       </button>
 
       <el-badge
@@ -184,6 +200,24 @@ function onCommand(command: string) {
   background: var(--ssr-primary-light);
 }
 
+/* 主题开关的图标：Moon ↔ Sunny 做一次淡出淡入（各 0.14s，合计与整页过渡同节奏） */
+.ssr-theme-icon-enter-active,
+.ssr-theme-icon-leave-active {
+  transition: opacity 0.14s ease;
+}
+
+.ssr-theme-icon-enter-from,
+.ssr-theme-icon-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ssr-theme-icon-enter-active,
+  .ssr-theme-icon-leave-active {
+    transition: none;
+  }
+}
+
 .app-header__badge {
   display: inline-flex;
 }
@@ -213,9 +247,9 @@ function onCommand(command: string) {
 .app-user__role {
   padding: 1px 7px;
   font-size: var(--ssr-font-note);
-  /* 主色实底 + 白字：4.70:1；提亮紫实底只有 4.22:1，不达 AA */
-  color: var(--ssr-on-primary);
-  background: var(--ssr-primary);
+  /* 浅底 + 深字：浅色 #3f4899/#eeeffb 约 5.6:1，暗色 #a9b2f7/白 6% 约 8:1，两套主题都过 AA */
+  color: var(--ssr-primary-ink);
+  background: var(--ssr-primary-light);
   border-radius: var(--ssr-radius-sm);
 }
 

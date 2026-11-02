@@ -1,171 +1,184 @@
 /* ============================================================
    智慧自习室预约与管理系统 · 设计系统
-   风格：stylekit.top/zh/styles/linear-style（Linear 风：近黑底 + 1px 白 10% 描边 + 靛紫主色）。
-   暗色是根基：禁止白色/浅色底、禁止阴影（含彩色阴影）、禁止装饰性渐变。
+   两套主题共用同一组令牌名，切换只改 <html> 上的 class：
+   - 浅色 = stylekit.top/zh/styles/notion-style：米色页底 + 白卡片 + 1px 细描边，
+     层次靠边框而不是阴影，交互不做位移/缩放；主色沿用品牌靛紫（同一产品两套主题同一品牌色）。
+   - 暗色 = stylekit.top/zh/styles/linear-style：近黑底 + 1px 白 10% 描边 + 靛紫主色，禁用阴影。
    约束（AGENTS.md §3.8）：组件只允许引用 var(--ssr-*)，禁止硬编码色值。
-   改色流程：先改第 1 节的 SCSS 真值源，再同步第 2 节的 CSS 变量，缺一不可。
+   改色流程：只改第 1 节的令牌表（$tokens-light / $tokens-dark 与两组 EP 派生），
+   `:root` 与 `html.dark` 会用同名变量自动产出，不要再往第 2 节里写具体色值。
    ============================================================ */
 
 @use 'sass:list';
 
-/* ---------- 1. SCSS 真值源（全站唯一色值出处） ---------- */
-$ssr-primary: #5e6ad2; // Linear 靛紫：主按钮、选中态、描边
-$ssr-primary-ink: #a9b2f7; // 同一色相的提亮版：暗底上的主色文字 / 图标（9.2:1，直接用主色只有 4.0:1）
-$ssr-primary-light: rgb(255 255 255 / 6%); // 选中 / 悬停底色：白 6% 叠加，不引入第二种颜色
-$ssr-primary-deep: #8b5cf6; // 提亮紫：按钮渐变终点（from #5e6ad2 to #8b5cf6）、主色小字
-$ssr-ink: #f4f4f5; // zinc-100：主文字
-$ssr-line: rgb(255 255 255 / 10%); // border-white/10
-$ssr-line-strong: rgb(255 255 255 / 24%); // 悬停描边（替代阴影反馈）
-$ssr-bg: #0a0a0b; // 页面底色：Linear 近黑
-$ssr-surface: #121214; // 卡片：白 3% 叠在近黑上
-$ssr-surface-raised: #17171a; // 一级浮层：下拉 / 菜单 / 抽屉
-$ssr-on-primary: #ffffff; // 主色实底上的文字
-$ssr-muted: #71717a; // zinc-500：非文本用途（描边、图标、图表轴）
-$ssr-muted-ink: #a1a1aa; // zinc-400：说明文字（在 #121214 上 7.0:1）
-$ssr-success: #27ae60;
-$ssr-success-bg: rgb(39 174 96 / 14%);
-$ssr-warning: #f2c94c;
-$ssr-warning-bg: rgb(242 201 76 / 14%);
-$ssr-warning-ink: #f0cd6a; // 12.5px 文字：#f2c94c 在 #121214 上 9.4:1
-$ssr-danger: #eb5757;
-$ssr-danger-bg: rgb(235 87 87 / 15%);
-
-/* 状态标签的中性档位（"使用中"是预约派生结论，不是座位资源状态） */
-$ssr-tag-use-bg: rgb(242 201 76 / 16%);
-$ssr-tag-use-fg: #f2c94c;
-$ssr-tag-fix-bg: rgb(255 255 255 / 8%);
-$ssr-tag-fix-fg: #d4d4d8;
-$ssr-tag-off-bg: rgb(255 255 255 / 6%);
-$ssr-tag-off-fg: #a1a1aa;
-
-/* 座位矩阵四态（预约座位页）：资源状态 × 时段占用，两者独立呈现（AGENTS.md §4）。
-   每态除色值外还带底纹方向与图标，保证色盲可辨。 */
-$ssr-seat-free-bg: $ssr-success-bg;
-$ssr-seat-free-fg: $ssr-success;
-$ssr-seat-free-line: $ssr-success;
-$ssr-seat-taken-bg: $ssr-tag-use-bg;
-$ssr-seat-taken-fg: $ssr-tag-use-fg;
-$ssr-seat-taken-line: $ssr-warning;
-$ssr-seat-taken-hatch: rgba($ssr-tag-use-fg, 0.18);
-$ssr-seat-fix-bg: $ssr-tag-fix-bg;
-$ssr-seat-fix-fg: $ssr-tag-fix-fg;
-$ssr-seat-fix-line: $ssr-tag-fix-fg;
-$ssr-seat-fix-hatch: rgba($ssr-tag-fix-fg, 0.16);
-$ssr-seat-off-bg: $ssr-tag-off-bg;
-$ssr-seat-off-fg: $ssr-tag-off-fg;
-$ssr-seat-off-line: $ssr-tag-off-fg;
-$ssr-seat-off-hatch: rgba($ssr-tag-off-fg, 0.18);
-
-/* 阴影：Linear 风格全档禁用阴影，层次用 1px 描边 + 底色深浅区分（悬停反馈走 border-color） */
-$ssr-shadow-sm: none;
-$ssr-shadow-md: none;
-
-/* Element Plus 主色派生：暗色下 light-N 是向背景靠拢的深色（hover / 选中底），dark-2 是提亮后的 hover 色 */
-$el-primary-light-3: #4c56b3;
-$el-primary-light-5: #3d468f;
-$el-primary-light-7: #2b3168;
-$el-primary-light-8: #232750;
-$el-primary-light-9: #191c3b;
-$el-primary-dark-2: #7b85e3;
-
-/* 语义色底（消息条 / 标签底）：暗色下用同色低透明度叠加，不用 EP 默认的深绿深蓝 */
-$el-success-light-9: rgb(39 174 96 / 12%);
-$el-warning-light-9: rgb(242 201 76 / 12%);
-$el-danger-light-9: rgb(235 87 87 / 12%);
-$el-info-light-9: rgb(45 156 219 / 12%);
-
-/* ---------- 2. CSS 变量（组件唯一可见契约） ----------
-   `html.dark` 与 Element Plus 的暗色变量选择器同层（0,1,1），本文件后加载 → 主色与圆角覆盖生效。 */
-:root,
-html.dark {
-  color-scheme: dark;
-
+/* ---------- 1. 令牌表（全站唯一色值出处） ----------
+   两个 map 的键必须完全一致：切换主题时按同名变量整体换值，缺一个键就会掉回浏览器默认样式。 */
+$tokens-light: (
   /* 主色与中性 */
-  --ssr-primary: #{$ssr-primary};
-  --ssr-primary-ink: #{$ssr-primary-ink};
-  --ssr-primary-light: #{$ssr-primary-light};
-  --ssr-primary-deep: #{$ssr-primary-deep};
-  --ssr-ink: #{$ssr-ink};
-  --ssr-line: #{$ssr-line};
-  --ssr-line-strong: #{$ssr-line-strong};
-  --ssr-bg: #{$ssr-bg};
-  --ssr-surface: #{$ssr-surface};
-  --ssr-surface-raised: #{$ssr-surface-raised};
-  --ssr-muted: #{$ssr-muted};
-  --ssr-muted-ink: #{$ssr-muted-ink};
-  --ssr-on-primary: #{$ssr-on-primary}; // 主色实底上的文字
-  --ssr-shadow-sm: #{$ssr-shadow-sm};
-  --ssr-shadow-md: #{$ssr-shadow-md};
-
+  primary: #4c56c4,
+  // 品牌靛紫：白字 6.3:1、白底上的主色文字 5.0:1，两处都过 AA
+  primary-ink: #3f4899,
+  // 浅底上的主色文字 / 图标（≥5:1）
+  primary-light: #eeeffb,
+  // 选中 / 悬停底色：主色 6% 叠加
+  primary-deep: #5e6ad2,
+  // 悬停时更亮的主色（浅色主题按钮是平涂，不用渐变）
+  ink: #37352f,
+  // 主文字（暖黑）
+  line: rgb(55 53 47 / 10%),
+  // 1px 细描边代替阴影
+  line-strong: rgb(55 53 47 / 22%),
+  // 悬停描边
+  bg: #f7f6f3,
+  // 米色页面底
+  surface: #ffffff,
+  // 卡片
+  surface-raised: #ffffff,
+  // 一级浮层：下拉 / 菜单 / 抽屉（靠阴影与页面分层）
+  on-primary: #ffffff,
+  muted: #9b9a97,
+  // 非文本用途（描边、图标、占位符）
+  muted-ink: #6b6a66,
+  // 说明文字（白底 5.6:1）
+  shadow-sm: 0 1px 2px rgb(55 53 47 / 6%),
+  shadow-md: 0 4px 12px rgb(55 53 47 / 10%),
   /* 语义色 / 底 */
-  --ssr-success: #{$ssr-success};
-  --ssr-success-bg: #{$ssr-success-bg};
-  --ssr-warning: #{$ssr-warning};
-  --ssr-warning-bg: #{$ssr-warning-bg};
-  --ssr-warning-ink: #{$ssr-warning-ink};
-  --ssr-danger: #{$ssr-danger};
-  --ssr-danger-bg: #{$ssr-danger-bg};
+  success: #0f7b6c,
+  success-bg: #e7f3f1,
+  warning: #8f6a02,
+  warning-bg: #fdf3dc,
+  warning-ink: #7a5a02,
+  danger: #c0392b,
+  danger-bg: #fbeae8,
+  /* 状态标签（“使用中”是预约派生结论，不是座位资源状态） */
+  tag-use-bg: #fdf3dc,
+  tag-use-fg: #8f6a02,
+  tag-fix-bg: #f0efec,
+  tag-fix-fg: #57544e,
+  tag-off-bg: #eeedea,
+  tag-off-fg: #6b6a66,
+  /* 座位矩阵四态（预约座位页）：资源状态 × 时段占用，两者独立呈现（AGENTS.md §4）。
+     每态除色值外还带底纹方向与图标，保证色盲可辨。 */
+  seat-free-bg: #e7f3f1,
+  seat-free-fg: #0f7b6c,
+  seat-free-line: #0f7b6c,
+  seat-taken-bg: #fdf3dc,
+  seat-taken-fg: #8f6a02,
+  seat-taken-line: #8f6a02,
+  seat-taken-hatch: rgb(143 106 2 / 16%),
+  seat-fix-bg: #f0efec,
+  seat-fix-fg: #57544e,
+  seat-fix-line: #57544e,
+  seat-fix-hatch: rgb(87 84 78 / 14%),
+  seat-off-bg: #eeedea,
+  seat-off-fg: #6b6a66,
+  seat-off-line: #6b6a66,
+  seat-off-hatch: rgb(107 106 102 / 18%),
+);
 
-  /* 状态标签 */
-  --ssr-tag-use-bg: #{$ssr-tag-use-bg};
-  --ssr-tag-use-fg: #{$ssr-tag-use-fg};
-  --ssr-tag-fix-bg: #{$ssr-tag-fix-bg};
-  --ssr-tag-fix-fg: #{$ssr-tag-fix-fg};
-  --ssr-tag-off-bg: #{$ssr-tag-off-bg};
-  --ssr-tag-off-fg: #{$ssr-tag-off-fg};
+$tokens-dark: (
+  primary: #5e6ad2,
+  primary-ink: #a9b2f7,
+  // 提亮版：暗底上的主色文字 / 图标（9.2:1，直接用主色只有 4.0:1）
+  primary-light: rgb(255 255 255 / 6%),
+  primary-deep: #8b5cf6,
+  ink: #f4f4f5,
+  line: rgb(255 255 255 / 10%),
+  line-strong: rgb(255 255 255 / 24%),
+  bg: #0a0a0b,
+  surface: #121214,
+  surface-raised: #17171a,
+  on-primary: #ffffff,
+  muted: #71717a,
+  muted-ink: #a1a1aa,
+  // 说明文字（在 #121214 上 7.0:1）
+  shadow-sm: none,
+  // 暗色禁用阴影，层次用 1px 描边 + 底色深浅区分
+  shadow-md: none,
+  success: #27ae60,
+  success-bg: rgb(39 174 96 / 14%),
+  warning: #f2c94c,
+  warning-bg: rgb(242 201 76 / 14%),
+  warning-ink: #f0cd6a,
+  danger: #eb5757,
+  danger-bg: rgb(235 87 87 / 15%),
+  tag-use-bg: rgb(242 201 76 / 16%),
+  tag-use-fg: #f2c94c,
+  tag-fix-bg: rgb(255 255 255 / 8%),
+  tag-fix-fg: #d4d4d8,
+  tag-off-bg: rgb(255 255 255 / 6%),
+  tag-off-fg: #a1a1aa,
+  seat-free-bg: rgb(39 174 96 / 14%),
+  seat-free-fg: #27ae60,
+  seat-free-line: #27ae60,
+  seat-taken-bg: rgb(242 201 76 / 16%),
+  seat-taken-fg: #f2c94c,
+  seat-taken-line: #f2c94c,
+  seat-taken-hatch: rgb(242 201 76 / 18%),
+  seat-fix-bg: rgb(255 255 255 / 8%),
+  seat-fix-fg: #d4d4d8,
+  seat-fix-line: #d4d4d8,
+  seat-fix-hatch: rgb(212 212 216 / 16%),
+  seat-off-bg: rgb(255 255 255 / 6%),
+  seat-off-fg: #a1a1aa,
+  seat-off-line: #a1a1aa,
+  seat-off-hatch: rgb(161 161 170 / 18%),
+);
 
-  /* 座位矩阵四态 */
-  --ssr-seat-free-bg: #{$ssr-seat-free-bg};
-  --ssr-seat-free-fg: #{$ssr-seat-free-fg};
-  --ssr-seat-free-line: #{$ssr-seat-free-line};
-  --ssr-seat-taken-bg: #{$ssr-seat-taken-bg};
-  --ssr-seat-taken-fg: #{$ssr-seat-taken-fg};
-  --ssr-seat-taken-line: #{$ssr-seat-taken-line};
-  --ssr-seat-fix-bg: #{$ssr-seat-fix-bg};
-  --ssr-seat-fix-fg: #{$ssr-seat-fix-fg};
-  --ssr-seat-fix-line: #{$ssr-seat-fix-line};
-  --ssr-seat-off-bg: #{$ssr-seat-off-bg};
-  --ssr-seat-off-fg: #{$ssr-seat-off-fg};
-  --ssr-seat-off-line: #{$ssr-seat-off-line};
+/* Element Plus 派生：浅色下 light-N 是掺白（hover / 选中底），暗色下是掺黑 + 提亮的 dark-2 */
+$el-tokens-light: (
+  color-primary-light-3: #7078d3,
+  color-primary-light-5: #959bdd,
+  color-primary-light-7: #b9bde8,
+  color-primary-light-8: #cbceee,
+  color-primary-light-9: #eeeffb,
+  color-primary-dark-2: #3f4899,
+  color-info: #2d7dd2,
+  color-success-light-9: #e7f3f1,
+  color-warning-light-9: #fdf3dc,
+  color-danger-light-9: #fbeae8,
+  color-error-light-9: #fbeae8,
+  color-info-light-9: #e8f1fb,
+  mask-color: rgb(0 0 0 / 45%),
+);
 
-  /* 尺寸与密度 */
-  --ssr-header-h: 60px;
-  --ssr-aside-w: 232px;
-  --ssr-aside-w-collapsed: 68px;
-  --ssr-menu-item-h: 44px;
-  --ssr-crumb-h: 44px;
-  --ssr-main-max: 1440px;
-  --ssr-gutter: 22px;
-  /* Linear：rounded-lg 为上限（8px），小元素 rounded-md（6px） */
-  --ssr-radius: 8px;
-  --ssr-radius-sm: 6px;
-  --ssr-font-body: 15px;
-  --ssr-font-table: 14px;
-  --ssr-font-note: 13px;
+$el-tokens-dark: (
+  color-primary-light-3: #4c56b3,
+  color-primary-light-5: #3d468f,
+  color-primary-light-7: #2b3168,
+  color-primary-light-8: #232750,
+  color-primary-light-9: #191c3b,
+  color-primary-dark-2: #7b85e3,
+  color-info: #2d9cdb,
+  color-success-light-9: rgb(39 174 96 / 12%),
+  color-warning-light-9: rgb(242 201 76 / 12%),
+  color-danger-light-9: rgb(235 87 87 / 12%),
+  color-error-light-9: rgb(235 87 87 / 12%),
+  color-info-light-9: rgb(45 156 219 / 12%),
+  mask-color: rgb(0 0 0 / 72%),
+);
 
-  /* 控件统一高度：按钮 / 输入 / 选择器一起抬到 36px，避免"字大了框没大" */
-  --el-component-size-large: 42px;
-  --el-component-size: 36px;
-  --el-component-size-small: 30px;
+@mixin ssr-tokens($tokens) {
+  @each $name, $value in $tokens {
+    --ssr-#{$name}: #{$value};
+  }
+}
 
-  /* Element Plus 覆盖 */
+@mixin ssr-el-tokens($tokens) {
+  @each $name, $value in $tokens {
+    --el-#{$name}: #{$value};
+  }
+}
+
+/* EP 变量里凡是跟随主题变化的都用 var(--ssr-*) 间接一层，两套主题因此只需声明令牌。
+   注意：EP 的暗色变量挂在 html.dark（0,1,1），优先级高于 :root（0,1,0），
+   所以这一组必须在 :root 与 html.dark 各写一遍，否则暗色下会掉回 EP 自己的深色默认值。 */
+@mixin ssr-el-base {
   --el-color-primary: var(--ssr-primary);
-  --el-color-primary-light-3: #{$el-primary-light-3};
-  --el-color-primary-light-5: #{$el-primary-light-5};
-  --el-color-primary-light-7: #{$el-primary-light-7};
-  --el-color-primary-light-8: #{$el-primary-light-8};
-  --el-color-primary-light-9: #{$el-primary-light-9};
-  --el-color-primary-dark-2: #{$el-primary-dark-2};
   --el-color-success: var(--ssr-success);
   --el-color-warning: var(--ssr-warning);
   --el-color-danger: var(--ssr-danger);
   --el-color-error: var(--ssr-danger);
-  --el-color-info: #2d9cdb;
-  --el-color-success-light-9: #{$el-success-light-9};
-  --el-color-warning-light-9: #{$el-warning-light-9};
-  --el-color-danger-light-9: #{$el-danger-light-9};
-  --el-color-error-light-9: #{$el-danger-light-9};
-  --el-color-info-light-9: #{$el-info-light-9};
   --el-text-color-primary: var(--ssr-ink);
   --el-text-color-regular: var(--ssr-ink);
   --el-text-color-secondary: var(--ssr-muted-ink);
@@ -181,7 +194,6 @@ html.dark {
   --el-bg-color: var(--ssr-surface);
   --el-bg-color-overlay: var(--ssr-surface-raised);
   --el-bg-color-page: var(--ssr-bg);
-  --el-mask-color: rgb(0 0 0 / 72%);
   --el-border-radius-base: var(--ssr-radius-sm);
   /* 字号阶梯整体上移一档：小号控件（标签 / 小按钮 / 分页）不再缩到 12px */
   --el-font-size-extra-small: 13px;
@@ -189,14 +201,54 @@ html.dark {
   --el-font-size-base: var(--ssr-font-body);
   --el-font-size-medium: 17px;
   --el-font-size-large: 19px;
+}
+
+/* 尺寸与密度：两套主题共用（EP 的暗色变量表不含这些键，只写 :root 即可） */
+@mixin ssr-metrics {
+  --ssr-header-h: 60px;
+  --ssr-aside-w: 232px;
+  --ssr-aside-w-collapsed: 68px;
+  --ssr-menu-item-h: 44px;
+  --ssr-crumb-h: 44px;
+  --ssr-main-max: 1440px;
+  --ssr-gutter: 22px;
+  /* 圆角上限 rounded-lg（8px），小元素 rounded-md（6px） */
+  --ssr-radius: 8px;
+  --ssr-radius-sm: 6px;
+  --ssr-font-body: 15px;
+  --ssr-font-table: 14px;
+  --ssr-font-note: 13px;
+  /* 控件统一高度：按钮 / 输入 / 选择器一起抬到 36px，避免“字大了框没大” */
+  --el-component-size-large: 42px;
+  --el-component-size: 36px;
+  --el-component-size-small: 30px;
+}
+
+/* ---------- 2. CSS 变量（组件唯一可见契约） ---------- */
+:root {
+  color-scheme: light;
+
+  @include ssr-tokens($tokens-light);
+  @include ssr-metrics;
+  @include ssr-el-base;
+  @include ssr-el-tokens($el-tokens-light);
 
   color: var(--ssr-ink);
   background-color: var(--ssr-bg);
-  /* Linear：只用 Inter 一套无衬线；中文回落到系统黑体 */
+  /* 只用 Inter 一套无衬线；中文回落到系统黑体 */
   font-family: 'Inter', 'Inter var', system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei',
     'PingFang SC', sans-serif;
   font-size: var(--ssr-font-body);
   line-height: 1.6;
+}
+
+/* 暗色主题：只覆盖同名令牌，尺寸与第 3~10 节的规则完全共用 */
+html.dark {
+  color-scheme: dark;
+
+  @include ssr-tokens($tokens-dark);
+  @include ssr-el-base;
+  @include ssr-el-tokens($el-tokens-dark);
 }
 
 * {
@@ -292,22 +344,23 @@ body,
   line-height: 24px;
 }
 
-/* 状态标签配色：一处声明，StatusTag.vue 只负责选档位（小字用 *-ink 保证 ≥4.5:1） */
+/* 状态标签配色：一处声明，StatusTag.vue 只负责选档位（小字用 *-ink 保证 ≥4.5:1）。
+   取值全部走 CSS 变量，切换主题时标签底色与文字色一起换。 */
 $tag-variants: (
-  ok: ($ssr-success-bg, $ssr-success),
-  warn: ($ssr-warning-bg, $ssr-warning-ink),
-  err: ($ssr-danger-bg, $ssr-danger),
-  info: ($ssr-primary-light, $ssr-ink),
-  primary: ($ssr-primary-light, $ssr-primary-ink),
-  use: ($ssr-tag-use-bg, $ssr-tag-use-fg),
-  fix: ($ssr-tag-fix-bg, $ssr-tag-fix-fg),
-  off: ($ssr-tag-off-bg, $ssr-tag-off-fg),
+  ok: (success-bg, success),
+  warn: (warning-bg, warning-ink),
+  err: (danger-bg, danger),
+  info: (primary-light, ink),
+  primary: (primary-light, primary-ink),
+  use: (tag-use-bg, tag-use-fg),
+  fix: (tag-fix-bg, tag-fix-fg),
+  off: (tag-off-bg, tag-off-fg),
 );
 
 @each $name, $pair in $tag-variants {
   .el-tag.ssr-tag--#{$name} {
-    --el-tag-bg-color: #{list.nth($pair, 1)};
-    --el-tag-text-color: #{list.nth($pair, 2)};
+    --el-tag-bg-color: var(--ssr-#{list.nth($pair, 1)});
+    --el-tag-text-color: var(--ssr-#{list.nth($pair, 2)});
   }
 }
 
@@ -398,7 +451,7 @@ $tag-variants: (
   background-image: repeating-linear-gradient(
     45deg,
     transparent 0 3px,
-    #{$ssr-seat-taken-hatch} 3px 6px
+    var(--ssr-seat-taken-hatch) 3px 6px
   );
   border-color: var(--ssr-seat-taken-line);
   border-style: dashed;
@@ -410,7 +463,7 @@ $tag-variants: (
   background-image: repeating-linear-gradient(
     -45deg,
     transparent 0 2px,
-    #{$ssr-seat-fix-hatch} 2px 5px
+    var(--ssr-seat-fix-hatch) 2px 5px
   );
   border-color: var(--ssr-seat-fix-line);
   border-style: solid;
@@ -422,7 +475,7 @@ $tag-variants: (
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 3px,
-    #{$ssr-seat-off-hatch} 3px 5px
+    var(--ssr-seat-off-hatch) 3px 5px
   );
   border-color: var(--ssr-seat-off-line);
   border-style: dotted;
@@ -895,20 +948,28 @@ $tag-variants: (
   padding: 18px 20px;
 }
 
-/* ---------- 10. Linear 暗色收口（浮层 / 主按钮 / 菜单 / 表头） ---------- */
-/* 浮层：1px 描边 + 背景模糊，不用阴影（Linear 的浮层语言） */
+/* ---------- 10. 两套主题的收口（浮层 / 主按钮 / 菜单 / 表头） ---------- */
+/* 浮层：1px 描边 + 低阴影；暗色禁用阴影，改用背景模糊拉开层次（Linear 的浮层语言） */
 .el-select__popper,
 .el-picker__popper,
 .el-dropdown__popper,
 .el-popover.el-popper {
+  box-shadow: var(--ssr-shadow-md);
+}
+
+html.dark .el-select__popper,
+html.dark .el-picker__popper,
+html.dark .el-dropdown__popper,
+html.dark .el-popover.el-popper {
   backdrop-filter: blur(12px);
 }
 
-/* 一级浮层与抽屉统一用比卡片再亮一档的底色，和页面近黑拉开层次 */
+/* 一级浮层与抽屉统一用浮层底色：浅色靠阴影与页面分层，暗色靠更亮一档的底色 */
 .el-drawer,
 .el-dialog,
 .el-message-box {
   background: var(--ssr-surface-raised);
+  box-shadow: var(--ssr-shadow-md);
 }
 
 .el-drawer__header,
@@ -916,15 +977,25 @@ $tag-variants: (
   border-bottom: 1px solid var(--ssr-line);
 }
 
-/* 主按钮：Linear 唯一允许的渐变（from #5e6ad2 to #8b5cf6），悬停走透明度不做位移。
-   plain / disabled 保持 EP 原样（描边款与置灰态不能被渐变盖掉）。 */
+/* 主按钮：浅色主题平涂主色（Notion 风格不允许渐变），悬停换成更亮的主色；
+   暗色主题保留 Linear 唯一允许的渐变（from #5e6ad2 to #8b5cf6），悬停走透明度。
+   两者都不做位移 / 缩放；plain 与 disabled 保持 EP 原样（描边款与置灰态不能被底色盖掉）。 */
 .el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled) {
   border-color: transparent;
-  background-image: linear-gradient(90deg, var(--ssr-primary), var(--ssr-primary-deep));
 }
 
 .el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled):hover,
 .el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled):focus-visible {
+  background-color: var(--ssr-primary-deep);
+}
+
+html.dark .el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled) {
+  background-image: linear-gradient(90deg, var(--ssr-primary), var(--ssr-primary-deep));
+}
+
+html.dark .el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled):hover,
+html.dark .el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled):focus-visible {
+  background-color: transparent;
   opacity: 0.9;
 }
 
@@ -956,5 +1027,32 @@ $tag-variants: (
 
 .el-timeline-item__tail {
   border-left-color: var(--ssr-line-strong);
+}
+
+/* ---------- 11. 主题切换过渡 ---------- */
+/* 支持 View Transitions 的浏览器由 useTheme 调 startViewTransition 做整页交叉淡入（图表画布也在快照里）；
+   不支持的浏览器由 useTheme 临时挂上 .ssr-theme-transition，用一段短促的颜色过渡兜底。
+   只列颜色相关属性——位置、尺寸、变换类属性不参与，避免切换主题时页面元素「移动」。
+   这段过渡是临时的：切换结束后类会被移除，不影响日常 hover 的手感。 */
+@media (prefers-reduced-motion: no-preference) {
+  html.ssr-theme-transition,
+  html.ssr-theme-transition *,
+  html.ssr-theme-transition *::before,
+  html.ssr-theme-transition *::after {
+    transition:
+      background-color 0.28s ease,
+      border-color 0.28s ease,
+      color 0.28s ease,
+      fill 0.28s ease,
+      stroke 0.28s ease,
+      box-shadow 0.28s ease !important;
+  }
+
+  /* 整页交叉淡入：默认 250ms 线性偏硬，这里放慢一点并改用 ease */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.28s;
+    animation-timing-function: ease;
+  }
 }
 
