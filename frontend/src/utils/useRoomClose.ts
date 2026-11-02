@@ -142,7 +142,9 @@ async function execute(): Promise<boolean> {
       expected_reservation_ids: reservations.value.map((item) => item.id),
     })
   ElMessage.success(
-    `临时关闭已执行：${result.closed_seats} 个座位置为「停用」，取消预约 ${result.cancelled} 条，保留 ${result.kept} 条`,
+    `临时关闭已执行：${result.closed_seats} 个座位置为「停用」，取消预约 ${result.cancelled} 条，保留 ${result.kept} 条${
+      result.notified_outside_window ? `，已提示窗口外受影响预约 ${result.notified_outside_window} 条` : ''
+    }`,
   )
   invalidateAdminDirectory()
   return true

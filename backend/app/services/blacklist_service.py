@@ -251,11 +251,15 @@ def release_entry(
 
 
 def restrict_if_threshold(
-    db: Session, user_id: int, now: datetime | None = None
+    db: Session, user_id: int, now: datetime | None = None, *, commit: bool = True
 ) -> BlacklistEntry | None:
     """BR-009 / BR-010 / ST-040：有效违约次数达到阈值时自动限制。
 
     由自动违约任务调用；幂等——已有有效限制时不重复创建，返回 None。
+
+    ``commit=False`` 时只 flush 不提交，供 ``violation_service._apply`` 在同一
+    事务内调用——保证「违约记录 + 黑名单 + 黑名单审计 + 违约审计」原子落盘，
+    避免黑名单先提交而违约审计日志后提交导致的不一致（调用方负责统一 commit）。
     """
     now = now or datetime.now()
     user = db.get(User, user_id)
@@ -276,8 +280,13 @@ def restrict_if_threshold(
     user.violation_count = count
 
     if count < settings.violation_threshold:
+        if not commit:
+            # 计数回写仍需在调用方事务中可见
+            db.flush()
         return None
     if _active_entries(db, user.id, now):
+        if not commit:
+            db.flush()
         return None
 
     entry = BlacklistEntry(
@@ -301,8 +310,12 @@ def restrict_if_threshold(
         before_value=AccountStatus.NORMAL.value,
         after_value=AccountStatus.RESTRICTED.value,
     )
-    db.commit()
-    db.refresh(entry)
+    if commit:
+        db.commit()
+        db.refresh(entry)
+    else:
+        # 只 flush 让调用方事务统一提交；不 refresh（未提交），entry 仍可被调用方使用
+        db.flush()
 
     expire_text = (
         f"，预计 {entry.expire_at:%Y-%m-%d %H:%M} 解除"

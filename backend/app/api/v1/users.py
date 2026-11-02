@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_admin
 from app.models.user import User
 from app.schemas.common import PageResult
-from app.schemas.user import UserRead, UserUpdate
+from app.schemas.user import AccountStatusUpdate, UserRead, UserUpdate
 from app.services import user_service
 
 router = APIRouter(prefix="/users", tags=["用户管理"])
@@ -49,3 +49,19 @@ def list_users(
         account_status=account_status,
         violation_min=violation_min,
     )
+
+
+@router.patch(
+    "/{user_id}/account-status",
+    response_model=UserRead,
+    summary="调整账户状态：停用 / 恢复（管理员）",
+)
+def update_account_status(
+    user_id: int,
+    payload: AccountStatusUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> UserRead:
+    """FR-044 / ST-044 / ST-045 / ST-046：管理员停用或恢复账户，须填写原因。"""
+    user = user_service.set_account_status(db, user_id, payload, admin.id)
+    return user_service.to_user_read(db, user, mask_contact=True)

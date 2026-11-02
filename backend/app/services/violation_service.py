@@ -137,7 +137,9 @@ def _apply(
     db.flush()
 
     # 回写累计有效违约次数；达到阈值时创建自动黑名单记录（BR-009 / ST-040）
-    blacklist_service.restrict_if_threshold(db, reservation.user_id, now=now)
+    # commit=False：黑名单与黑名单审计只 flush，由调用方的 db.commit() 统一提交，
+    # 保证「违约记录 + 黑名单 + 黑名单审计 + 违约审计」同事务原子落盘。
+    blacklist_service.restrict_if_threshold(db, reservation.user_id, now=now, commit=False)
     return record
 
 

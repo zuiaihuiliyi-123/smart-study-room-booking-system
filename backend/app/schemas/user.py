@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.models.enums import AccountStatus
 from app.schemas.common import ORMModel
 
 
@@ -9,6 +10,13 @@ class UserUpdate(BaseModel):
     """学生仅可修改联系方式，身份字段不可改（FR-040）。"""
 
     contact: str | None = Field(default=None, max_length=100)
+
+
+class AccountStatusUpdate(BaseModel):
+    """管理员调整账户状态（ST-044 / ST-045 / ST-046），须填写原因（NFR-009）。"""
+
+    account_status: AccountStatus
+    reason: str = Field(min_length=1, max_length=255)
 
 
 class UserRead(ORMModel):

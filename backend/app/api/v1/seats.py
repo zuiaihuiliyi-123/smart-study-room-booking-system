@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import require_admin
+from app.core.dependencies import get_current_user, require_admin
 from app.models.reservation import Reservation
 from app.models.seat import Seat
 from app.models.user import User
@@ -27,7 +27,11 @@ router = APIRouter(tags=["M1 座位资源"])
     response_model=list[SeatRead],
     summary="按自习室查询座位",
 )
-def list_seats(room_id: int, db: Session = Depends(get_db)) -> list[Seat]:
+def list_seats(
+    room_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> list[Seat]:
     return seat_service.list_seats(db, room_id)
 
 

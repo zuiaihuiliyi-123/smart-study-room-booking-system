@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import require_admin
+from app.core.dependencies import get_current_user, require_admin
 from app.models.room import Area, Room
 from app.models.user import User
 from app.schemas.room import (
@@ -23,7 +23,10 @@ router = APIRouter(prefix="/rooms", tags=["M1 座位资源"])
 
 
 @router.get("", response_model=list[RoomRead], summary="自习室列表")
-def list_rooms(db: Session = Depends(get_db)) -> list[Room]:
+def list_rooms(
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> list[Room]:
     return room_service.list_rooms(db)
 
 
@@ -60,7 +63,11 @@ def update_room(
     response_model=list[AreaRead],
     summary="分区列表",
 )
-def list_areas(room_id: int, db: Session = Depends(get_db)) -> list[Area]:
+def list_areas(
+    room_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> list[Area]:
     return room_service.list_areas(db, room_id)
 
 

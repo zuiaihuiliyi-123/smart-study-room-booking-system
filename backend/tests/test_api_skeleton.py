@@ -18,12 +18,12 @@ def test_openapi_contains_all_modules(client) -> None:
     assert "/api/v1/messages/me" in paths
 
 
-def test_implemented_room_endpoint_returns_list(api_client) -> None:
-    # M1 已实现：空库应返回 [] 而不是 501
+def test_implemented_room_endpoint_requires_login(api_client) -> None:
+    # M1 已实现且资源只读接口须登录（需求 §3.3「已登录用户可读」）：
+    # 未登录访问应返回 401，而非开放枚举。
     response = api_client.get("/api/v1/rooms")
 
-    assert response.status_code == 200
-    assert response.json() == []
+    assert response.status_code == 401
 
 
 def test_dashboard_overview_returns_zero_on_empty_db(db) -> None:

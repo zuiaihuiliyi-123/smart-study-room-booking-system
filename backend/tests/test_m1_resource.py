@@ -151,6 +151,11 @@ def test_create_seat_area_must_belong_to_room(db, make_room, make_area) -> None:
 def test_seat_status_change_blocked_by_future_reservation(
     db, make_room, make_seat, make_user, make_reservation
 ) -> None:
+    """单座位接口遇冲突时作为安全阀拒绝（引导走批量+预览流程）。
+
+    注：BR-019「资源状态照常变更」口径由批量接口 update_status_batch 承接
+    （前端座位管理页也只用批量接口）；本单座位接口的 409 拒绝是有意的引导设计。
+    """
     room = make_room()
     seat = make_seat(room.id)
     admin = make_user(role=Role.ADMIN.value, student_no="ADM1")
@@ -172,7 +177,7 @@ def test_seat_status_change_blocked_by_future_reservation(
         admin.id,
     )
 
-    # BR-019：只识别并列出冲突预约，不自动取消
+    # 单座位接口安全阀：有冲突时拒绝变更，引导走批量+预览流程
     assert error.code == "SEAT_STATUS_CONFLICT"
     assert error.status_code == 409
     db.refresh(seat)

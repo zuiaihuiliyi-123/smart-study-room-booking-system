@@ -83,4 +83,7 @@ class RoomCloseResult(BaseModel):
     closed_seats: int
     cancelled: int
     kept: int
+    #: 关闭窗口外、座位被停用后无法使用但未列入冲突清单的未来有效预约数——
+    #: 已对其发送站内提示（不自动取消，符合 BR-019 默认保留），提醒用户联系管理员。
+    notified_outside_window: int = 0
 

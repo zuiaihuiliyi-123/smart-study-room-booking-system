@@ -278,6 +278,7 @@ def close_room(
     for seat in seats:
         seat.status = SeatStatus.DISABLED.value
 
+    affected_ids = {record.id for record in affected}
     cancelled = 0
     messages: list[dict] = []
     for record in affected:
@@ -316,6 +317,41 @@ def close_room(
                 )
             )
 
+    # 窗口外孤儿预约：被停用座位上、状态待使用、但不在关闭窗口内（不与窗口冲突），
+    # 座位已被全局停用导致无法签到/使用。按 BR-019 默认保留（不自动取消），
+    # 但须发站内提示告知用户联系管理员，避免预约静默失效（§5.7 消息异常不回滚核心业务）。
+    seat_ids_set = {seat.id for seat in seats}
+    outside_stmt = (
+        select(Reservation)
+        .where(
+            Reservation.seat_id.in_(seat_ids_set),
+            Reservation.status.in_(
+                (ReservationStatus.PENDING.value, ReservationStatus.IN_USE.value)
+            ),
+        )
+        .order_by(Reservation.reserve_date, Reservation.start_time)
+    )
+    if affected_ids:
+        outside_stmt = outside_stmt.where(Reservation.id.not_in(affected_ids))
+    outside_records = list(db.scalars(outside_stmt).all())
+    for record in outside_records:
+        messages.append(
+            dict(
+                user_id=record.user_id,
+                message_type=MessageType.SYSTEM,
+                title="你的预约所在座位已被停用",
+                content=(
+                    f"你 {record.reserve_date} 的预约所在座位"
+                    f"（{room.name}）因场地临时关闭（原因：{reason}）已被停用，"
+                    "该预约不在关闭窗口内故暂未取消。如需使用请联系管理员处理，"
+                    "或等待座位恢复后再签到。"
+                ),
+                related_type="预约单",
+                related_id=record.id,
+            )
+        )
+    notified_outside_window = len(outside_records)
+
     audit_service.record(
         db,
         operator_id=operator_id,
@@ -329,6 +365,7 @@ def close_room(
                 "closed_seats": len(seats),
                 "cancelled": cancelled,
                 "kept": len(affected) - cancelled,
+                "notified_outside_window": notified_outside_window,
                 "window": [payload.start_at.isoformat(), payload.end_at.isoformat()],
             }
         ),
@@ -342,4 +379,5 @@ def close_room(
         closed_seats=len(seats),
         cancelled=cancelled,
         kept=len(affected) - cancelled,
+        notified_outside_window=notified_outside_window,
     )

@@ -291,6 +291,7 @@ function slotEnd(record: ReservationRecord): number {
       closed_seats: affected.seats.length,
       cancelled,
       kept: affected.reservations.length - cancelled,
+      notified_outside_window: 0,
     }
     return json(body)
   }),
