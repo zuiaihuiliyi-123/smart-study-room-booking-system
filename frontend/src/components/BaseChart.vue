@@ -14,8 +14,6 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
 import type { EChartsOption } from 'echarts'
 
-import { supportsViewTransition, themeMotionAllowed, useTheme } from '@/utils/useTheme'
-
 const props = withDefaults(
   defineProps<{
     option: EChartsOption
@@ -34,23 +32,6 @@ const container = ref<HTMLDivElement>()
 let chart: echarts.ECharts | undefined
 let observer: ResizeObserver | undefined
 let frame = 0
-
-/**
- * 切换主题时画布是整块重绘的，颜色变化会「跳」一下。
- * 支持 View Transitions 的浏览器已在整页交叉淡入里处理过，这里只给降级路径补一次透明度呼吸。
- */
-const { mode } = useTheme()
-const fading = ref(false)
-let fadeTimer = 0
-
-watch(mode, () => {
-  if (supportsViewTransition() || !themeMotionAllowed()) return
-  fading.value = true
-  window.clearTimeout(fadeTimer)
-  fadeTimer = window.setTimeout(() => {
-    fading.value = false
-  }, 160)
-})
 
 function applyOption(): void {
   if (!chart || !props.option) return
@@ -86,7 +67,6 @@ watch(
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', resize)
-  window.clearTimeout(fadeTimer)
   if (frame !== 0) window.cancelAnimationFrame(frame)
   observer?.disconnect()
   observer = undefined
@@ -98,7 +78,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     ref="container"
-    :class="['base-chart', { 'base-chart--fading': fading }]"
+    class="base-chart"
     role="img"
     :aria-label="label"
     :style="{ height }"
@@ -108,16 +88,5 @@ onBeforeUnmount(() => {
 <style scoped>
 .base-chart {
   width: 100%;
-  transition: opacity 0.24s ease;
-}
-
-.base-chart--fading {
-  opacity: 0.45;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .base-chart {
-    transition: none;
-  }
 }
 </style>

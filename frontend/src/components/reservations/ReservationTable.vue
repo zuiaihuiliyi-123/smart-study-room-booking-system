@@ -5,7 +5,7 @@ import LoadingBlock from '@/components/LoadingBlock.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import type { Reservation } from '@/types'
 import { seatDisplayName, type SeatRef } from '@/utils/bookingData'
-import { timeRangeText } from '@/utils/bookingRules'
+import { bracketRangeText } from '@/utils/bookingRules'
 import { formatMonthDayTime } from '@/utils/format'
 import type { ReservationGating } from '@/utils/useMyReservations'
 
@@ -66,8 +66,8 @@ function rowClass(data: { row: Reservation }): string {
         </template>
       </el-table-column>
 
-      <el-table-column label="时段" width="132">
-        <template #default="{ row }">{{ timeRangeText(row.start_time, row.end_time) }}</template>
+      <el-table-column label="时段（左闭右开）" width="140">
+        <template #default="{ row }">{{ bracketRangeText(row.start_time, row.end_time) }}</template>
       </el-table-column>
 
       <el-table-column label="自习室 · 座位号" min-width="160">
@@ -87,7 +87,7 @@ function rowClass(data: { row: Reservation }): string {
         </template>
       </el-table-column>
 
-      <el-table-column label="签到 / 签退" width="164">
+      <el-table-column label="签到 / 签退时间" width="132">
         <template #default="{ row }">
           <div>签到 {{ stamp(row.check_in_time) }}</div>
           <div>签退 {{ stamp(row.check_out_time) }}</div>

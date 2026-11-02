@@ -108,7 +108,7 @@ const seatsOfRoom = computed(() => props.allSeats.map((item) => item.seat))
       <el-table-column label="该时段占用" min-width="190">
         <template #default="{ row }">
           <el-tag v-if="row.seat.status !== '可用'" class="ssr-tag ssr-tag--off" disable-transitions>
-            暂无法判断
+            未判定
           </el-tag>
           <el-tag
             v-else
@@ -122,7 +122,7 @@ const seatsOfRoom = computed(() => props.allSeats.map((item) => item.seat))
             预约人：{{ userLabelOf(props.directory, row.reservation.user_id) }}（#{{ row.reservation.id }}）
           </div>
           <div v-else-if="row.seat.status !== '可用'" class="ssr-text-muted">
-            该座位不可预约，无占用信息
+            资源状态不可用，接口不返回占用
           </div>
         </template>
       </el-table-column>

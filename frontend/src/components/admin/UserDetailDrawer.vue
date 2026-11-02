@@ -62,9 +62,9 @@ const emit = defineEmits<{
         </el-descriptions-item>
       </el-descriptions>
 
-      <el-alert class="notice" type="info" :closable="false" show-icon title="这些信息能不能改">
+      <el-alert class="notice" type="info" :closable="false" show-icon title="只读说明">
         <p>
-          管理员<strong>仅可查询</strong>用户信息，<strong>不可编辑</strong>姓名、学号、院系等身份信息与密码，
+          本版裁定：管理员<strong>仅可查询</strong>用户信息，<strong>不可编辑</strong>姓名、学号、院系等身份信息与口令，
           也不可代改联系方式。
         </p>
         <p>

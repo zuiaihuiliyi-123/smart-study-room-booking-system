@@ -50,7 +50,7 @@ const consequence = computed(() => {
       />
       <p class="summary__consequence">{{ consequence }}</p>
       <p class="ssr-text-muted">
-        违约次数由有效违约记录累加得出；记录不可撤销，次数不会回退。
+        违约次数由有效违约记录累加得出；本版不提供违约申诉与记录撤销路径，次数不会回退。
       </p>
     </div>
 
@@ -60,35 +60,35 @@ const consequence = computed(() => {
       type="error"
       :closable="false"
       show-icon
-    >
-      <template #title>
-        <strong>{{ props.disabled ? '账户已停用' : '账户当前处于受限状态' }}</strong>
-      </template>
-      <div class="summary__banner-body">
-        <p>
-          {{
-            props.disabled
-              ? '停用账户无法登录与创建预约，须由管理员恢复账户。'
-              : '受限期间不能创建新预约，但可正常登录并签到使用既有预约；名下已有的未来预约保持原状、不被自动取消。'
-          }}
-        </p>
-        <p v-if="props.restricted">
-          <span class="summary__label">预计解除时间：</span>
-          <b v-if="props.restrictUntil">{{ props.restrictUntil }}</b>
-          <span v-else>管理员手动限制，没有自动解除时间，须由管理员解除</span>
-        </p>
-        <p class="summary__label">
-          限制规则：累计有效违约满 {{ props.threshold }} 次自动限制 7 天，期满自动解除。
-        </p>
-      </div>
-    </el-alert>
-
-    <div v-else class="summary__banner summary__banner--ok">
-      <el-icon class="summary__ok-icon"><Warning /></el-icon>
-      <span>
-        账户状态：<b>{{ props.accountStatus }}</b>，当前不受限；如对违约记录有疑问，可通过「我的投诉」提交问题反馈。
-      </span>
+      > <template #title>
+      <strong>{{ props.disabled ? '账户已停用' : '账户当前处于受限状态' }}</strong>
+    </template>
+    <div class="summary__banner-body">
+      <p>
+        {{
+        props.disabled
+        ? '停用账户无法登录与创建预约，须由管理员恢复账户。'
+        : '受限期间不能创建新预约，但可正常登录并签到使用既有预约；名下已有的未来预约保持原状、不被自动取消。'
+        }}
+      </p>
+      <p v-if="props.restricted">
+        <span class="summary__label">预计解除时间：</span>
+        <b v-if="props.restrictUntil">{{ props.restrictUntil }}</b>
+        <span v-else>管理员手动限制，没有自动解除时间，须由管理员解除</span>
+      </p>
+      <p class="summary__label">
+        限制口径：累计有效违约满 {{ props.threshold }} 次自动限制 7 天，期满自动解除。
+      </p>
     </div>
+  </el-alert>
+
+  <div v-else class="summary__banner summary__banner--ok">
+    <el-icon class="summary__ok-icon"><Warning /></el-icon>
+    <span>
+      账户状态：<b>{{ props.accountStatus }}</b>，当前不受限；如对违约记录有疑问，可通过「我的投诉」提交问题反馈
+      （违约申诉已裁定排除，不提供入口）。
+    </span>
+  </div>
 </section>
 </template>
 
@@ -118,7 +118,7 @@ const consequence = computed(() => {
 }
 
 .summary__title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 

@@ -215,7 +215,7 @@ const rows = computed<Row[]>(() =>
   gap: 8px;
   align-items: center;
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -247,7 +247,7 @@ const rows = computed<Row[]>(() =>
 }
 
 .today-item__count--inuse {
-  color: var(--ssr-primary-ink);
+  color: var(--ssr-primary);
 }
 
 .today-item__action {

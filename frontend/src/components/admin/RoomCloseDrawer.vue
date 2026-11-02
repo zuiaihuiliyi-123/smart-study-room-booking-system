@@ -75,10 +75,10 @@ async function onExecute(): Promise<void> {
     <AuditNotice
       :scope="props.scopeLabel"
       type="warning"
-      :extra="'批量操作前会先列出影响清单；确认前不会自动取消任何用户预约。'"
+      :extra="'批量操作须先列出影响清单并二次确认；确认前不得自动取消任何用户预约。'"
     />
 
-    <el-form label-width="112px" @submit.prevent>
+    <el-form label-width="96px" @submit.prevent>
       <el-form-item label="关闭范围">
         <el-radio-group v-model="areaId" @change="invalidatePreview">
           <el-radio :value="0">整个自习室</el-radio>
@@ -118,7 +118,7 @@ async function onExecute(): Promise<void> {
           end="23:30"
           aria-label="关闭窗口（结束）"
         />
-        <p class="ssr-text-muted hint">时间区间含开始、不含结束；该窗口只用于圈定受影响的预约。</p>
+        <p class="ssr-text-muted hint">区间口径左闭右开 [s, e)；该窗口只用于圈定受影响的预约。</p>
       </el-form-item>
 
       <el-form-item v-if="windowError" label=" ">
@@ -141,7 +141,7 @@ async function onExecute(): Promise<void> {
       <el-button :loading="previewLoading" :disabled="windowError !== ''" @click="preview()">
         查询受影响预约
       </el-button>
-      <span class="ssr-text-muted">查询不会改动任何数据。</span>
+      <span class="ssr-text-muted">查询是只读操作，不会产生任何状态变化。</span>
     </div>
 
     <ConflictPanel
@@ -166,7 +166,8 @@ async function onExecute(): Promise<void> {
       title="下一步：查询受影响预约"
     >
       <p>
-        关闭后范围内座位会被置为「停用」，且不会自动恢复，需要之后手动改回「可用」。
+        座位资源状态是不带时间窗的标记，本版没有「场地关闭记录」实体：关闭后座位保持「停用」，
+        不会自动恢复，需要之后手动改回「可用」。
       </p>
     </el-alert>
 

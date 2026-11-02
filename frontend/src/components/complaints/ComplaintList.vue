@@ -150,7 +150,7 @@ function isHighlighted(item: Complaint): boolean {
 }
 
 .complaint__title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 

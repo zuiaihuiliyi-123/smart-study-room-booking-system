@@ -52,14 +52,14 @@ function onCancelChange(value: boolean | string | number): void {
       type="warning"
       :closable="false"
       show-icon
-      title="确认前不会自动取消用户预约"
+      title="确认前不得自动取消用户预约"
     >
       <p class="conflict__line">
         受影响清单已列出。默认处理：<strong>仅变更座位资源状态</strong>，冲突预约保持「待使用 / 使用中」
         原状并在该座位、该时段上持续提示冲突，不生成违约记录。
       </p>
       <p class="conflict__line">
-        只有你在下方<strong>明确勾选</strong>并确认后，系统才会批量取消：取消后
+        只有你在下方<strong>明确勾选</strong>并二次确认后，系统才会批量取消：取消后
         <strong>不计违约、不累加违约次数、不生成补偿、不支持改约</strong>。
           </p>
         </el-alert>

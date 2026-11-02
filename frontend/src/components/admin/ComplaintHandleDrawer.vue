@@ -122,17 +122,17 @@ const title = computed(() =>
         </el-descriptions-item>
       </el-descriptions>
 
-      <el-alert class="notice" type="info" :closable="false" show-icon title="可以怎么处理">
+      <el-alert class="notice" type="info" :closable="false" show-icon title="状态流转口径（～）">
         <p>待处理 →（受理）处理中 →（录入处理结果）已处理；待处理 →（驳回）已驳回。</p>
         <p>
-          已处理 → 已关闭 由<strong>投诉人确认</strong>或<strong>超过关闭时限</strong>自动触发，
-          管理端不提供直接置为「已关闭」的入口。
+          已处理 → 已关闭 由<strong>投诉人确认</strong>或<strong>系统超过关闭时限</strong>触发，
+          管理端不提供直接置为「已关闭」的入口；关闭时限属实现层、本版不规定。
         </p>
       </el-alert>
 
       <template v-if="props.actions.length > 0">
-        <el-form label-width="120px" @submit.prevent>
-          <el-form-item label="处理为">
+        <el-form label-width="104px" @submit.prevent>
+          <el-form-item label="流转为">
             <el-radio-group v-model="target">
               <el-radio v-for="action in props.actions" :key="action" :value="action">
                 {{ ACTION_LABEL[action] ?? action }}
@@ -171,14 +171,14 @@ const title = computed(() =>
         type="warning"
         :closable="false"
         show-icon
-        title="当前状态不能再处理"
+        title="当前状态没有管理端可执行的流转"
       >
         <p>
           「{{ props.complaint.status }}」是管理员流程的终态：
           {{
           props.complaint.status === '已处理'
           ? '等待投诉人确认后由系统关闭'
-          : '该记录已结束，不能再退回处理'
+          : '如需重新处理，属于需求未定义的操作，本版不提供（见问题清单）'
           }}。
         </p>
       </el-alert>

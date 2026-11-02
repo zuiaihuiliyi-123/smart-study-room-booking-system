@@ -12,7 +12,7 @@ export const TARGET_TYPES = ['座位', '自习室', '预约单', '用户'] as co
 export type TargetType = (typeof TARGET_TYPES)[number]
 
 export const TARGET_HINTS: Record<TargetType, string> = {
-  座位: '按座位选择；候选项来自自习室与分区下的座位列表',
+  座位: '按座位选择；候选项来自 GET /rooms 与 GET /rooms/{room_id}/seats',
   自习室: '按自习室选择',
   预约单: '从本人名下的预约单中选择',
   用户: '填写对方的用户编号；系统不采集也不展示他人姓名与学号',
@@ -60,7 +60,7 @@ return steps
 steps.push({
   title: '处理中',
   time: '',
-  note: '管理员已受理',
+  note: '管理员已受理（受理时刻后端未单独记录）',
   type: 'info',
 })
 steps.push({
