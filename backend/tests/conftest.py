@@ -15,6 +15,9 @@ from app.core.database import Base
 
 # 测试环境不启动 APScheduler，避免后台任务连接真实 MySQL
 settings.scheduler_enabled = False
+# 测试环境提供一个长度合规的固定密钥，满足启动期 JWT 安全校验（config.validate_security），
+# 同时消除 PyJWT 的 InsecureKeyLengthWarning。该密钥仅用于测试，不进入任何环境配置。
+settings.jwt_secret_key = "test-secret-key-for-unit-tests-only-32bytes"
 
 from app.main import app
 from app.models.enums import AccountStatus, ReservationStatus, Role, SeatStatus

@@ -7,11 +7,14 @@ from datetime import datetime
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import BusinessError
 from app.models.blacklist import BlacklistEntry
-from app.models.enums import BlacklistMode
+from app.models.enums import AccountStatus, BlacklistMode
 from app.models.user import User
 from app.schemas.common import PageResult
-from app.schemas.user import UserRead, UserUpdate
+from app.schemas.user import AccountStatusUpdate, UserRead, UserUpdate
+from app.services import audit_service
+from app.utils import masking
 from app.utils.pagination import to_offset
 
 
@@ -35,11 +38,18 @@ def _restrict_until(
     return min(expiries) if expiries else None
 
 
-def to_user_read(db: Session, user: User) -> UserRead:
-    """把 ORM 用户转换为响应模型，并补齐黑名单相关的派生字段。"""
-    return UserRead.model_validate(user).model_copy(
+def to_user_read(db: Session, user: User, *, mask_contact: bool = False) -> UserRead:
+    """把 ORM 用户转换为响应模型，并补齐黑名单相关的派生字段。
+
+    ``mask_contact=True`` 时对联系方式做服务端脱敏（§5.6 / NFR-006）——
+    管理员读取他人资料的路径必须置 True，本人读取本人资料置 False。
+    """
+    read = UserRead.model_validate(user).model_copy(
         update={"restrict_until": _restrict_until(db, user.id)}
     )
+    if mask_contact:
+        read.contact = masking.mask_contact(user.contact)
+    return read
 
 
 def update_my_profile(db: Session, user: User, payload: UserUpdate) -> User:
@@ -90,8 +100,69 @@ def list_users(
         .limit(page_size)
     )
     return PageResult[UserRead](
-        items=[to_user_read(db, row) for row in rows],
+        items=[to_user_read(db, row, mask_contact=True) for row in rows],
         total=total,
         page=page,
         page_size=page_size,
     )
+
+
+def set_account_status(
+    db: Session, user_id: int, payload: AccountStatusUpdate, operator_id: int
+) -> User:
+    """FR-040 / FR-044 / ST-044 / ST-045 / ST-046：管理员停用或恢复账户。
+
+    - 停用（→停用）：账户无法登录、无法创建预约；名下待使用预约按 ST-049 保持原状，
+      本版只提示与记录，不自动取消（须由管理员按 FR-011 显式强制取消）。
+    - 恢复（→正常）：从「停用」恢复为「正常」；若该用户仍有未解除的「受限」黑名单
+      记录，恢复「正常」会与之冲突，此时应先解除黑名单（ST-043）而非直接恢复。
+    操作必须记录操作者与原因（NFR-009）。
+    """
+    user = db.get(User, user_id)
+    if user is None:
+        raise BusinessError("用户不存在", code="USER_NOT_FOUND", status_code=404)
+
+    new_status = payload.account_status.value
+    old_status = user.account_status
+    if new_status == old_status:
+        raise BusinessError(
+            f"账户当前已是「{old_status}」，无需重复操作",
+            code="ACCOUNT_STATUS_NO_CHANGE",
+            status_code=409,
+        )
+
+    # 恢复为「正常」时，若仍有未解除的「受限」黑名单，不可直接恢复（须先解除黑名单）
+    if new_status == AccountStatus.NORMAL.value:
+        active_restriction = db.scalar(
+            select(BlacklistEntry)
+            .where(
+                BlacklistEntry.user_id == user_id,
+                BlacklistEntry.released_at.is_(None),
+            )
+            .order_by(BlacklistEntry.id.desc())
+        )
+        if active_restriction is not None:
+            raise BusinessError(
+                "该账户仍有未解除的限制记录，请先在黑名单管理中解除后再恢复账户",
+                code="ACCOUNT_STILL_RESTRICTED",
+                status_code=409,
+                details={
+                    "blacklist_entry_id": active_restriction.id,
+                    "mode": active_restriction.mode,
+                },
+            )
+
+    user.account_status = new_status
+    audit_service.record(
+        db,
+        operator_id=operator_id,
+        action_type="ACCOUNT_STATUS_UPDATE",
+        target_type="USER",
+        target_id=user.id,
+        reason=payload.reason,
+        before_value=old_status,
+        after_value=new_status,
+    )
+    db.commit()
+    db.refresh(user)
+    return user

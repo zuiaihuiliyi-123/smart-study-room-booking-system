@@ -42,7 +42,9 @@ export const studentMenus: MenuItem[] = [
   { path: '/student/profile', title: '个人资料', icon: User, group: '账户' },
 ]
 
-/** 管理端菜单（自习室管理员 / 系统管理员共用） */
+/** 管理端菜单：仅自习室管理员（R-02）可见。
+ * 系统管理员（R-04）本版无业务操作权限（BR-018 §4.1.1 定稿矩阵），
+ * AdminLayout 对其传空菜单并由 /admin/notice 承接。 */
 export const adminMenus: MenuItem[] = [
   { path: '/admin/dashboard', title: '数据看板', icon: DataLine, group: '数据概览' },
   { path: '/admin/rooms', title: '自习室管理', icon: OfficeBuilding, group: '资源管理' },

@@ -22,9 +22,11 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<CurrentUser | null>(readCachedUser())
 
   const isLoggedIn = computed(() => Boolean(token.value))
-  const isAdmin = computed(
-    () => user.value?.role === '自习室管理员' || user.value?.role === '系统管理员',
-  )
+  // 业务管理员（R-02）：拥有看板、资源、预约、违约、投诉、用户、黑名单等业务管理权限。
+  // 系统管理员（R-04）本版无业务操作权限（课程结构版 §4.1.1 定稿矩阵），
+  // 仅未来"全局参数配置"接口归其所有（本期未实现），故不并入 isAdmin。
+  const isAdmin = computed(() => user.value?.role === '自习室管理员')
+  const isSystemAdmin = computed(() => user.value?.role === '系统管理员')
 
   async function login(payload: LoginRequest) {
     const data = await loginApi(payload)
@@ -45,5 +47,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(USER_KEY)
   }
 
-  return { token, user, isLoggedIn, isAdmin, login, fetchMe, logout }
+  return { token, user, isLoggedIn, isAdmin, isSystemAdmin, login, fetchMe, logout }
 })

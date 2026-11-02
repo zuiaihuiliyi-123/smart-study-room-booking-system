@@ -57,12 +57,31 @@ def require_admin(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> User:
-    """仅自习室管理员 / 系统管理员可访问。"""
-    if current_user.role not in (Role.ADMIN.value, Role.SYSTEM_ADMIN.value):
-        _record_unauthorized(db, current_user, "管理员专属操作")
+    """仅自习室管理员 R-02 可访问（业务管理权限）。
+
+    系统管理员 R-04 本版**未被授予任何业务操作权限**——课程结构版 §4.1.1
+    定稿矩阵明确 R-04 仅拥有"全局参数配置"（该接口本期未实现）。故 R-04 调用
+    全部业务管理接口一律拒绝（AGENTS.md §12.4 第 3 项 BR-018 拆分）。
+    """
+    if current_user.role != Role.ADMIN.value:
+        _record_unauthorized(db, current_user, "业务管理员专属操作")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="无权限执行该操作",
+        )
+    return current_user
+
+
+def require_system_admin(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    """仅系统管理员 R-04 可访问（全局参数配置等，本期接口未实现）。"""
+    if current_user.role != Role.SYSTEM_ADMIN.value:
+        _record_unauthorized(db, current_user, "系统管理员专属操作")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="该操作仅限系统管理员",
         )
     return current_user
 
@@ -85,11 +104,14 @@ def require_booking_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> User:
-    """预约与签到签退仅限学生 / 教师（R-01 / R-03），管理员不得以个人身份预约。"""
-    if current_user.role not in (Role.STUDENT.value, Role.TEACHER.value):
-        _record_unauthorized(db, current_user, "学生/教师预约操作")
+    """预约与签到签退仅限学生 R-01（权限矩阵 §4.1.1 定稿：R-03 教师本版无操作级权限）。
+
+    管理员 R-02/R-04 不得以个人身份预约（UCD-02"创建预约"仅出现在学生端）。
+    """
+    if current_user.role != Role.STUDENT.value:
+        _record_unauthorized(db, current_user, "学生预约操作")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="该操作仅限学生或教师用户",
+            detail="该操作仅限学生用户",
         )
     return current_user

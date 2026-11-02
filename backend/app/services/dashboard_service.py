@@ -231,16 +231,27 @@ def get_trend(
     end_date: date,
     room_id: int | None = None,
 ) -> list[TrendPoint]:
-    """M6 / FR-051：按日统计有效预约数与违约数（折线图）。"""
+    """M6 / FR-051：按日统计有效预约数与违约数（折线图）。
+
+    FR-051 定稿口径（课程结构版 §FR-051）：「每日有效预约数」= 该自然日内
+    状态的流转记录中，由「待使用」进入「使用中」或「已完成」的**预约单张数**
+    （按预约单去重）。即以 ``check_in_time``（进入使用中）或 ``check_out_time``
+    （进入已完成，含 ST-025 自动结束）落在当日 ``[00:00,24:00)`` 为准，
+    **不是**按 ``created_at`` 创建时间统计（后者属于 FR-052③「今日预约数」）。
+    「每日违约数」= 当日产生的违约记录条数（含自动与手动）。
+    """
     total_days = (end_date - start_date).days
     if total_days < 0 or total_days > MAX_TREND_DAYS:
         return []
 
+    period_start = datetime.combine(start_date, datetime.min.time())
+    period_end = datetime.combine(end_date + timedelta(days=1), datetime.min.time())
+
+    # 有效预约数：取签到或签退时间落在区间内的预约单，按流转发生日去重计数。
+    # 一个预约单当日既签到又签退仍计 1 张（FR-051 计的是「预约单张数」）。
     reservation_stmt = select(Reservation).where(
-        Reservation.created_at >= datetime.combine(start_date, datetime.min.time()),
-        Reservation.created_at < datetime.combine(
-            end_date + timedelta(days=1), datetime.min.time()
-        ),
+        Reservation.check_in_time.is_not(None)
+        | Reservation.check_out_time.is_not(None),
     )
     if room_id is not None:
         reservation_stmt = reservation_stmt.where(
@@ -249,10 +260,8 @@ def get_trend(
     reservations = list(db.scalars(reservation_stmt).all())
 
     violation_stmt = select(ViolationRecord).where(
-        ViolationRecord.created_at
-        >= datetime.combine(start_date, datetime.min.time()),
-        ViolationRecord.created_at
-        < datetime.combine(end_date + timedelta(days=1), datetime.min.time()),
+        ViolationRecord.created_at >= period_start,
+        ViolationRecord.created_at < period_end,
     )
     if room_id is not None:
         violation_stmt = violation_stmt.where(
@@ -269,15 +278,19 @@ def get_trend(
     points: list[TrendPoint] = []
     for offset in range(total_days + 1):
         day = start_date + timedelta(days=offset)
+        day_start = datetime.combine(day, datetime.min.time())
+        day_end = day_start + timedelta(days=1)
+        # 当日发生过流转的预约单 id 集合（签到或签退落在 [day_start, day_end)）
+        transitioned_ids: set[int] = set()
+        for item in reservations:
+            if item.check_in_time is not None and day_start <= item.check_in_time < day_end:
+                transitioned_ids.add(item.id)
+            if item.check_out_time is not None and day_start <= item.check_out_time < day_end:
+                transitioned_ids.add(item.id)
         points.append(
             TrendPoint(
                 date=day,
-                reservations=sum(
-                    1
-                    for item in reservations
-                    if item.created_at.date() == day
-                    and item.status != ReservationStatus.CANCELLED.value
-                ),
+                reservations=len(transitioned_ids),
                 violations=sum(
                     1 for item in violations if item.created_at.date() == day
                 ),

@@ -11,6 +11,8 @@ from app.tasks.scheduler import shutdown_scheduler, start_scheduler
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # 启动期安全校验：JWT 密钥不得为公开占位符（§2.1 不得绕过身份认证）
+    settings.validate_security()
     start_scheduler()
     yield
     shutdown_scheduler()

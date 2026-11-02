@@ -45,6 +45,30 @@ class Settings(BaseSettings):
     # 测试环境通过环境变量关闭定时任务，避免后台任务连接真实数据库
     scheduler_enabled: bool = True
 
+    #: JWT 密钥的安全占位符：出现在配置中即视为未替换，启动校验会拒绝。
+    JWT_SECRET_PLACEHOLDER: str = "change-me-in-env"
+    #: HMAC-SHA256 推荐密钥长度（RFC 7518 §3.2）。
+    JWT_SECRET_MIN_BYTES: int = 32
+
+    def validate_security(self) -> None:
+        """启动期安全校验：JWT 密钥不得为公开占位符且长度需达标（§2.1 不得绕过认证）。
+
+        缺失 ``.env`` 或密钥仍为默认占位符时，应用直接拒绝启动，
+        避免任何人用该公开常量伪造任意用户（含管理员）的令牌。
+        """
+        key = self.jwt_secret_key or ""
+        if not key or key == self.JWT_SECRET_PLACEHOLDER:
+            raise RuntimeError(
+                "JWT_SECRET_KEY 未配置或仍为默认占位符，拒绝启动。"
+                "请在 backend/.env 中设置一个足够长的随机字符串"
+                "（建议 openssl rand -hex 32）。"
+            )
+        if len(key.encode("utf-8")) < self.JWT_SECRET_MIN_BYTES:
+            raise RuntimeError(
+                f"JWT_SECRET_KEY 长度不足 {self.JWT_SECRET_MIN_BYTES} 字节，"
+                "不满足 HMAC-SHA256 的安全要求（RFC 7518 §3.2）。"
+            )
+
 
 @lru_cache
 def get_settings() -> Settings:
