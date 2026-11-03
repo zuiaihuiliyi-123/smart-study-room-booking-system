@@ -1,8 +1,8 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { getMe, login as loginApi } from '@/api/auth'
-import type { CurrentUser, LoginRequest } from '@/types'
+import { getMe, login as loginApi, register as registerApi } from '@/api/auth'
+import type { CurrentUser, LoginRequest, RegisterRequest } from '@/types'
 
 const TOKEN_KEY = 'ssr_token'
 const USER_KEY = 'ssr_user'
@@ -35,6 +35,14 @@ export const useAuthStore = defineStore('auth', () => {
     await fetchMe()
   }
 
+  /** 学生自助注册：后端创建「学生用户」并直接签发令牌，注册即登录 */
+  async function register(payload: RegisterRequest) {
+    const data = await registerApi(payload)
+    token.value = data.access_token
+    localStorage.setItem(TOKEN_KEY, data.access_token)
+    await fetchMe()
+  }
+
   async function fetchMe() {
     user.value = await getMe()
     localStorage.setItem(USER_KEY, JSON.stringify(user.value))
@@ -47,5 +55,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(USER_KEY)
   }
 
-  return { token, user, isLoggedIn, isAdmin, isSystemAdmin, login, fetchMe, logout }
+  return { token, user, isLoggedIn, isAdmin, isSystemAdmin, login, register, fetchMe, logout }
 })
