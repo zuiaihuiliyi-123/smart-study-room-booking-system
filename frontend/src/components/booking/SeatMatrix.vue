@@ -19,9 +19,7 @@ function freeCount(cells: readonly MatrixCell[]): number {
 <template>
   <section class="seat-matrix" aria-label="座位矩阵">
     <div class="seat-legend">
-      <p class="seat-legend__head">
-        四态图例（图标 + 底纹 + 边框线型均不同，不只靠颜色区分）
-      </p>
+      <p class="seat-legend__head">图例</p>
       <ul class="seat-legend__list">
         <li v-for="state in SEAT_STATE_ORDER" :key="state" class="seat-legend__item">
           <span class="seat-legend__chip" :class="SEAT_STATE_CLASS[state]">
@@ -35,7 +33,7 @@ function freeCount(cells: readonly MatrixCell[]): number {
       </ul>
       <p class="seat-legend__twodim">
         说明：<strong>资源状态</strong>（可用 / 维修中 / 停用）与<strong>时段占用</strong>
-        （是否已被有效预约）是两个独立维度，鼠标悬停座位可同时看到两者。
+        （是否已被有效预约）是两件互不影响的事，鼠标悬停座位可同时看到两者。
       </p>
     </div>
 
@@ -109,7 +107,7 @@ function freeCount(cells: readonly MatrixCell[]): number {
   justify-content: center;
   width: 26px;
   height: 26px;
-  font-size: 13px;
+  font-size: 14px;
   border-width: 1px;
   border-radius: var(--ssr-radius-sm);
 }
@@ -139,13 +137,13 @@ function freeCount(cells: readonly MatrixCell[]): number {
 
 .seat-group__head h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .seat-group__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
   gap: 8px;
   padding: 0;
   margin: 0;

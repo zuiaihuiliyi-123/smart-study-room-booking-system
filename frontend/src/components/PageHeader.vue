@@ -24,7 +24,9 @@ defineProps<{
   gap: 12px;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 14px;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--ssr-line);
 }
 
 .page-header__text {
@@ -34,15 +36,17 @@ defineProps<{
 h2 {
   margin: 0;
   color: var(--ssr-ink);
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.35;
+  letter-spacing: 0.2px;
 }
 
 p {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   color: var(--ssr-muted-ink);
   font-size: var(--ssr-font-note);
+  line-height: 1.6;
 }
 
 .page-header__actions {

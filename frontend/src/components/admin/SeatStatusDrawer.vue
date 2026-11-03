@@ -72,7 +72,7 @@ const summary = computed(() =>
       <p class="drawer-note">{{ summary }}</p>
     </section>
 
-    <el-form label-width="96px" @submit.prevent>
+    <el-form label-width="112px" @submit.prevent>
       <el-form-item label="目标状态">
         <el-radio-group
           :model-value="props.targetStatus"
@@ -134,7 +134,7 @@ const summary = computed(() =>
         查询冲突预约
       </el-button>
       <span class="ssr-text-muted">
-        查询是只读操作；调整前必须先查看冲突清单再决定，系统不会自动取消任何预约。
+        查询不会改动任何数据；调整前先看冲突清单，系统不会自动取消任何预约。
       </span>
     </div>
 

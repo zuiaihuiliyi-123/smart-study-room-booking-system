@@ -1,132 +1,180 @@
 /* ============================================================
    智慧自习室预约与管理系统 · 设计系统
+   两套主题共用同一组令牌名，切换只改 <html> 上的 class：
+   - 浅色 = stylekit.top/zh/styles/notion-style：米色页底 + 白卡片 + 1px 细描边，
+     层次靠边框而不是阴影，交互不做位移/缩放；主色沿用品牌靛紫（同一产品两套主题同一品牌色）。
+   - 暗色 = stylekit.top/zh/styles/linear-style：近黑底 + 1px 白 10% 描边 + 靛紫主色，禁用阴影。
    约束（AGENTS.md §3.8）：组件只允许引用 var(--ssr-*)，禁止硬编码色值。
-   改色流程：先改第 1 节的 SCSS 真值源，再同步第 2 节的 CSS 变量，缺一不可。
+   改色流程：只改第 1 节的令牌表（$tokens-light / $tokens-dark 与两组 EP 派生），
+   `:root` 与 `html.dark` 会用同名变量自动产出，不要再往第 2 节里写具体色值。
    ============================================================ */
 
 @use 'sass:list';
 
-/* ---------- 1. SCSS 真值源（全站唯一色值出处） ---------- */
-$ssr-primary: #2b5f9e; // 求是蓝，与已走查原型 index.html v1.0 一致
-$ssr-primary-light: #eaf2fb;
-$ssr-primary-deep: #224c7e; // 深蓝：登录页品牌区渐变终点、header 内嵌强调
-$ssr-ink: #12304f;
-$ssr-line: #d6e2f0;
-$ssr-bg: #f5f8fc;
-$ssr-surface: #ffffff;
-$ssr-muted: #6b7a8d; // 非文本用途：描边、图标、图表轴
-$ssr-muted-ink: #5a6879; // 12.5px 说明文本：#6b7a8d 在浅底仅 4.38:1，未达 4.5:1，此处加深
-$ssr-success: #1b7a45;
-$ssr-success-bg: #e6f4ea;
-$ssr-warning: #a9720b;
-$ssr-warning-bg: #fff6e5;
-$ssr-warning-ink: #8f5f08; // 12.5px 文字：#a9720b 在 #fff6e5 上仅 3.84:1，加深到 5.14:1
-$ssr-danger: #b3261e;
-$ssr-danger-bg: #fbe0e0;
-
-/* 状态标签的中性档位（"使用中"是预约派生结论，不是座位资源状态） */
-$ssr-tag-use-bg: #fde7d0;
-$ssr-tag-use-fg: #96500a;
-$ssr-tag-fix-bg: #ededed;
-$ssr-tag-fix-fg: #5b5b5b;
-$ssr-tag-off-bg: #e4e7ec;
-$ssr-tag-off-fg: #4c5563; // 原型 #7a7a7a/#e0e0e0 仅 3.25:1，已加深到 6.09:1
-
-/* 座位矩阵四态（预约座位页）：资源状态 × 时段占用，两者独立呈现（AGENTS.md §4）。
-   每态除色值外还带底纹方向与图标，保证色盲可辨。 */
-$ssr-seat-free-bg: $ssr-success-bg;
-$ssr-seat-free-fg: $ssr-success;
-$ssr-seat-free-line: $ssr-success;
-$ssr-seat-taken-bg: $ssr-tag-use-bg;
-$ssr-seat-taken-fg: $ssr-tag-use-fg;
-$ssr-seat-taken-line: $ssr-warning;
-$ssr-seat-taken-hatch: rgba($ssr-tag-use-fg, 0.18);
-$ssr-seat-fix-bg: $ssr-tag-fix-bg;
-$ssr-seat-fix-fg: $ssr-tag-fix-fg;
-$ssr-seat-fix-line: $ssr-tag-fix-fg;
-$ssr-seat-fix-hatch: rgba($ssr-tag-fix-fg, 0.16);
-$ssr-seat-off-bg: $ssr-tag-off-bg;
-$ssr-seat-off-fg: $ssr-tag-off-fg;
-$ssr-seat-off-line: $ssr-tag-off-fg;
-$ssr-seat-off-hatch: rgba($ssr-tag-off-fg, 0.18);
-
-/* Element Plus 主色派生：light-N = N×10% 白 + 余量本色；dark-2 = 20% 黑 + 80% 本色 */
-$el-primary-light-3: #6b8fbb;
-$el-primary-light-5: #95afcf;
-$el-primary-light-7: #bfcee2;
-$el-primary-light-8: #d5dfec;
-$el-primary-light-9: #eaeff5;
-$el-primary-dark-2: #224c7e;
-
-/* ---------- 2. CSS 变量（组件唯一可见契约） ---------- */
-:root {
-  color-scheme: light;
-
+/* ---------- 1. 令牌表（全站唯一色值出处） ----------
+   两个 map 的键必须完全一致：切换主题时按同名变量整体换值，缺一个键就会掉回浏览器默认样式。 */
+$tokens-light: (
   /* 主色与中性 */
-  --ssr-primary: #{$ssr-primary};
-  --ssr-primary-light: #{$ssr-primary-light};
-  --ssr-primary-deep: #{$ssr-primary-deep};
-  --ssr-ink: #{$ssr-ink};
-  --ssr-line: #{$ssr-line};
-  --ssr-bg: #{$ssr-bg};
-  --ssr-surface: #{$ssr-surface};
-  --ssr-muted: #{$ssr-muted};
-  --ssr-muted-ink: #{$ssr-muted-ink};
-  --ssr-on-primary: #{$ssr-surface}; // 深蓝底上的文字（对比度 6.49:1）
-
+  primary: #4c56c4,
+  // 品牌靛紫：白字 6.3:1、白底上的主色文字 5.0:1，两处都过 AA
+  primary-ink: #3f4899,
+  // 浅底上的主色文字 / 图标（≥5:1）
+  primary-light: #eeeffb,
+  // 选中 / 悬停底色：主色 6% 叠加
+  primary-deep: #5e6ad2,
+  // 悬停时更亮的主色（浅色主题按钮是平涂，不用渐变）
+  ink: #37352f,
+  // 主文字（暖黑）
+  line: rgb(55 53 47 / 10%),
+  // 1px 细描边代替阴影
+  line-strong: rgb(55 53 47 / 22%),
+  // 悬停描边
+  bg: #f7f6f3,
+  // 米色页面底
+  surface: #ffffff,
+  // 卡片
+  surface-raised: #ffffff,
+  // 一级浮层：下拉 / 菜单 / 抽屉（靠阴影与页面分层）
+  on-primary: #ffffff,
+  muted: #9b9a97,
+  // 非文本用途（描边、图标、占位符）
+  muted-ink: #6b6a66,
+  // 说明文字（白底 5.6:1）
+  shadow-sm: 0 1px 2px rgb(55 53 47 / 6%),
+  shadow-md: 0 4px 12px rgb(55 53 47 / 10%),
   /* 语义色 / 底 */
-  --ssr-success: #{$ssr-success};
-  --ssr-success-bg: #{$ssr-success-bg};
-  --ssr-warning: #{$ssr-warning};
-  --ssr-warning-bg: #{$ssr-warning-bg};
-  --ssr-warning-ink: #{$ssr-warning-ink};
-  --ssr-danger: #{$ssr-danger};
-  --ssr-danger-bg: #{$ssr-danger-bg};
+  success: #0f7b6c,
+  success-bg: #e7f3f1,
+  warning: #8f6a02,
+  warning-bg: #fdf3dc,
+  warning-ink: #7a5a02,
+  danger: #c0392b,
+  danger-bg: #fbeae8,
+  /* 状态标签（“使用中”是预约派生结论，不是座位资源状态） */
+  tag-use-bg: #fdf3dc,
+  tag-use-fg: #8f6a02,
+  tag-fix-bg: #f0efec,
+  tag-fix-fg: #57544e,
+  tag-off-bg: #eeedea,
+  tag-off-fg: #6b6a66,
+  /* 座位矩阵四态（预约座位页）：资源状态 × 时段占用，两者独立呈现（AGENTS.md §4）。
+     每态除色值外还带底纹方向与图标，保证色盲可辨。 */
+  seat-free-bg: #e7f3f1,
+  seat-free-fg: #0f7b6c,
+  seat-free-line: #0f7b6c,
+  seat-taken-bg: #fdf3dc,
+  seat-taken-fg: #8f6a02,
+  seat-taken-line: #8f6a02,
+  seat-taken-hatch: rgb(143 106 2 / 16%),
+  seat-fix-bg: #f0efec,
+  seat-fix-fg: #57544e,
+  seat-fix-line: #57544e,
+  seat-fix-hatch: rgb(87 84 78 / 14%),
+  seat-off-bg: #eeedea,
+  seat-off-fg: #6b6a66,
+  seat-off-line: #6b6a66,
+  seat-off-hatch: rgb(107 106 102 / 18%),
+);
 
-  /* 状态标签 */
-  --ssr-tag-use-bg: #{$ssr-tag-use-bg};
-  --ssr-tag-use-fg: #{$ssr-tag-use-fg};
-  --ssr-tag-fix-bg: #{$ssr-tag-fix-bg};
-  --ssr-tag-fix-fg: #{$ssr-tag-fix-fg};
-  --ssr-tag-off-bg: #{$ssr-tag-off-bg};
-  --ssr-tag-off-fg: #{$ssr-tag-off-fg};
+$tokens-dark: (
+  primary: #5e6ad2,
+  primary-ink: #a9b2f7,
+  // 提亮版：暗底上的主色文字 / 图标（9.2:1，直接用主色只有 4.0:1）
+  primary-light: rgb(255 255 255 / 6%),
+  primary-deep: #8b5cf6,
+  ink: #f4f4f5,
+  line: rgb(255 255 255 / 10%),
+  line-strong: rgb(255 255 255 / 24%),
+  bg: #0a0a0b,
+  surface: #121214,
+  surface-raised: #17171a,
+  on-primary: #ffffff,
+  muted: #71717a,
+  muted-ink: #a1a1aa,
+  // 说明文字（在 #121214 上 7.0:1）
+  shadow-sm: none,
+  // 暗色禁用阴影，层次用 1px 描边 + 底色深浅区分
+  shadow-md: none,
+  success: #27ae60,
+  success-bg: rgb(39 174 96 / 14%),
+  warning: #f2c94c,
+  warning-bg: rgb(242 201 76 / 14%),
+  warning-ink: #f0cd6a,
+  danger: #eb5757,
+  danger-bg: rgb(235 87 87 / 15%),
+  tag-use-bg: rgb(242 201 76 / 16%),
+  tag-use-fg: #f2c94c,
+  tag-fix-bg: rgb(255 255 255 / 8%),
+  tag-fix-fg: #d4d4d8,
+  tag-off-bg: rgb(255 255 255 / 6%),
+  tag-off-fg: #a1a1aa,
+  seat-free-bg: rgb(39 174 96 / 14%),
+  seat-free-fg: #27ae60,
+  seat-free-line: #27ae60,
+  seat-taken-bg: rgb(242 201 76 / 16%),
+  seat-taken-fg: #f2c94c,
+  seat-taken-line: #f2c94c,
+  seat-taken-hatch: rgb(242 201 76 / 18%),
+  seat-fix-bg: rgb(255 255 255 / 8%),
+  seat-fix-fg: #d4d4d8,
+  seat-fix-line: #d4d4d8,
+  seat-fix-hatch: rgb(212 212 216 / 16%),
+  seat-off-bg: rgb(255 255 255 / 6%),
+  seat-off-fg: #a1a1aa,
+  seat-off-line: #a1a1aa,
+  seat-off-hatch: rgb(161 161 170 / 18%),
+);
 
-  /* 座位矩阵四态 */
-  --ssr-seat-free-bg: #{$ssr-seat-free-bg};
-  --ssr-seat-free-fg: #{$ssr-seat-free-fg};
-  --ssr-seat-free-line: #{$ssr-seat-free-line};
-  --ssr-seat-taken-bg: #{$ssr-seat-taken-bg};
-  --ssr-seat-taken-fg: #{$ssr-seat-taken-fg};
-  --ssr-seat-taken-line: #{$ssr-seat-taken-line};
-  --ssr-seat-fix-bg: #{$ssr-seat-fix-bg};
-  --ssr-seat-fix-fg: #{$ssr-seat-fix-fg};
-  --ssr-seat-fix-line: #{$ssr-seat-fix-line};
-  --ssr-seat-off-bg: #{$ssr-seat-off-bg};
-  --ssr-seat-off-fg: #{$ssr-seat-off-fg};
-  --ssr-seat-off-line: #{$ssr-seat-off-line};
+/* Element Plus 派生：浅色下 light-N 是掺白（hover / 选中底），暗色下是掺黑 + 提亮的 dark-2 */
+$el-tokens-light: (
+  color-primary-light-3: #7078d3,
+  color-primary-light-5: #959bdd,
+  color-primary-light-7: #b9bde8,
+  color-primary-light-8: #cbceee,
+  color-primary-light-9: #eeeffb,
+  color-primary-dark-2: #3f4899,
+  color-info: #2d7dd2,
+  color-success-light-9: #e7f3f1,
+  color-warning-light-9: #fdf3dc,
+  color-danger-light-9: #fbeae8,
+  color-error-light-9: #fbeae8,
+  color-info-light-9: #e8f1fb,
+  mask-color: rgb(0 0 0 / 45%),
+);
 
-  /* 尺寸与密度 */
-  --ssr-header-h: 56px;
-  --ssr-aside-w: 220px;
-  --ssr-aside-w-collapsed: 64px;
-  --ssr-menu-item-h: 40px;
-  --ssr-crumb-h: 40px;
-  --ssr-main-max: 1440px;
-  --ssr-gutter: 20px;
-  --ssr-radius: 8px;
-  --ssr-radius-sm: 6px;
-  --ssr-font-body: 14px;
-  --ssr-font-table: 13px;
-  --ssr-font-note: 12.5px;
+$el-tokens-dark: (
+  color-primary-light-3: #4c56b3,
+  color-primary-light-5: #3d468f,
+  color-primary-light-7: #2b3168,
+  color-primary-light-8: #232750,
+  color-primary-light-9: #191c3b,
+  color-primary-dark-2: #7b85e3,
+  color-info: #2d9cdb,
+  color-success-light-9: rgb(39 174 96 / 12%),
+  color-warning-light-9: rgb(242 201 76 / 12%),
+  color-danger-light-9: rgb(235 87 87 / 12%),
+  color-error-light-9: rgb(235 87 87 / 12%),
+  color-info-light-9: rgb(45 156 219 / 12%),
+  mask-color: rgb(0 0 0 / 72%),
+);
 
-  /* Element Plus 覆盖 */
+@mixin ssr-tokens($tokens) {
+  @each $name, $value in $tokens {
+    --ssr-#{$name}: #{$value};
+  }
+}
+
+@mixin ssr-el-tokens($tokens) {
+  @each $name, $value in $tokens {
+    --el-#{$name}: #{$value};
+  }
+}
+
+/* EP 变量里凡是跟随主题变化的都用 var(--ssr-*) 间接一层，两套主题因此只需声明令牌。
+   注意：EP 的暗色变量挂在 html.dark（0,1,1），优先级高于 :root（0,1,0），
+   所以这一组必须在 :root 与 html.dark 各写一遍，否则暗色下会掉回 EP 自己的深色默认值。 */
+@mixin ssr-el-base {
   --el-color-primary: var(--ssr-primary);
-  --el-color-primary-light-3: #{$el-primary-light-3};
-  --el-color-primary-light-5: #{$el-primary-light-5};
-  --el-color-primary-light-7: #{$el-primary-light-7};
-  --el-color-primary-light-8: #{$el-primary-light-8};
-  --el-color-primary-light-9: #{$el-primary-light-9};
-  --el-color-primary-dark-2: #{$el-primary-dark-2};
   --el-color-success: var(--ssr-success);
   --el-color-warning: var(--ssr-warning);
   --el-color-danger: var(--ssr-danger);
@@ -138,16 +186,69 @@ $el-primary-dark-2: #224c7e;
   --el-border-color: var(--ssr-line);
   --el-border-color-light: var(--ssr-line);
   --el-border-color-lighter: var(--ssr-line);
-  --el-fill-color-blank: var(--ssr-surface);
+  --el-border-color-hover: var(--ssr-line-strong);
+  --el-fill-color-blank: var(--ssr-surface-raised);
+  --el-fill-color: var(--ssr-primary-light);
+  --el-fill-color-light: var(--ssr-primary-light);
+  --el-fill-color-lighter: var(--ssr-primary-light);
+  --el-bg-color: var(--ssr-surface);
+  --el-bg-color-overlay: var(--ssr-surface-raised);
   --el-bg-color-page: var(--ssr-bg);
   --el-border-radius-base: var(--ssr-radius-sm);
+  /* 字号阶梯整体上移一档：小号控件（标签 / 小按钮 / 分页）不再缩到 12px */
+  --el-font-size-extra-small: 13px;
+  --el-font-size-small: 14px;
   --el-font-size-base: var(--ssr-font-body);
+  --el-font-size-medium: 17px;
+  --el-font-size-large: 19px;
+}
+
+/* 尺寸与密度：两套主题共用（EP 的暗色变量表不含这些键，只写 :root 即可） */
+@mixin ssr-metrics {
+  --ssr-header-h: 60px;
+  --ssr-aside-w: 232px;
+  --ssr-aside-w-collapsed: 68px;
+  --ssr-menu-item-h: 44px;
+  --ssr-crumb-h: 44px;
+  --ssr-main-max: 1440px;
+  --ssr-gutter: 22px;
+  /* 圆角上限 rounded-lg（8px），小元素 rounded-md（6px） */
+  --ssr-radius: 8px;
+  --ssr-radius-sm: 6px;
+  --ssr-font-body: 15px;
+  --ssr-font-table: 14px;
+  --ssr-font-note: 13px;
+  /* 控件统一高度：按钮 / 输入 / 选择器一起抬到 36px，避免“字大了框没大” */
+  --el-component-size-large: 42px;
+  --el-component-size: 36px;
+  --el-component-size-small: 30px;
+}
+
+/* ---------- 2. CSS 变量（组件唯一可见契约） ---------- */
+:root {
+  color-scheme: light;
+
+  @include ssr-tokens($tokens-light);
+  @include ssr-metrics;
+  @include ssr-el-base;
+  @include ssr-el-tokens($el-tokens-light);
 
   color: var(--ssr-ink);
   background-color: var(--ssr-bg);
-  font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', 'Segoe UI', sans-serif;
+  /* 只用 Inter 一套无衬线；中文回落到系统黑体 */
+  font-family: 'Inter', 'Inter var', system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei',
+    'PingFang SC', sans-serif;
   font-size: var(--ssr-font-body);
   line-height: 1.6;
+}
+
+/* 暗色主题：只覆盖同名令牌，尺寸与第 3~10 节的规则完全共用 */
+html.dark {
+  color-scheme: dark;
+
+  @include ssr-tokens($tokens-dark);
+  @include ssr-el-base;
+  @include ssr-el-tokens($el-tokens-dark);
 }
 
 * {
@@ -170,9 +271,9 @@ body,
 }
 
 .el-card__header {
-  padding: 12px 18px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--ssr-line);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -187,21 +288,23 @@ body,
 
 /* 紧凑行高（EP 2.9 未暴露 cell padding 变量，只能覆盖规则本身） */
 .el-table .el-table__cell {
-  padding: 7px 0;
+  padding: 10px 0;
 }
 
 .el-table .cell {
-  padding: 0 9px;
-  line-height: 1.5;
+  padding: 0 11px;
+  line-height: 1.55;
 }
 
 .el-table th.el-table__cell {
   font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
 }
 
 .el-menu {
   border-right: none;
-  --el-menu-active-color: var(--ssr-primary);
+  --el-menu-active-color: var(--ssr-primary-ink);
   --el-menu-hover-bg-color: var(--ssr-primary-light);
   --el-menu-item-height: var(--ssr-menu-item-h);
 }
@@ -214,9 +317,9 @@ body,
   color: var(--ssr-ink);
 }
 
-/* 选中态 = 3px 主色竖条 + 浅蓝底 + 主色加粗 */
+/* 选中态 = 3px 主色竖条 + 白 6% 底 + 提亮主色加粗 */
 .el-menu-item.is-active {
-  color: var(--ssr-primary);
+  color: var(--ssr-primary-ink);
   font-weight: 600;
   background-color: var(--ssr-primary-light);
 }
@@ -232,30 +335,32 @@ body,
 }
 
 .el-tag {
-  height: 22px;
-  padding: 0 8px;
+  height: 24px;
+  padding: 0 9px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--ssr-radius-sm);
   font-size: var(--ssr-font-note);
-  line-height: 22px;
+  font-weight: 500;
+  line-height: 24px;
 }
 
-/* 状态标签配色：一处声明，StatusTag.vue 只负责选档位（小字用 *-ink 保证 ≥4.5:1） */
+/* 状态标签配色：一处声明，StatusTag.vue 只负责选档位（小字用 *-ink 保证 ≥4.5:1）。
+   取值全部走 CSS 变量，切换主题时标签底色与文字色一起换。 */
 $tag-variants: (
-  ok: ($ssr-success-bg, $ssr-success),
-  warn: ($ssr-warning-bg, $ssr-warning-ink),
-  err: ($ssr-danger-bg, $ssr-danger),
-  info: ($ssr-primary-light, $ssr-ink),
-  primary: ($ssr-primary-light, $ssr-primary),
-  use: ($ssr-tag-use-bg, $ssr-tag-use-fg),
-  fix: ($ssr-tag-fix-bg, $ssr-tag-fix-fg),
-  off: ($ssr-tag-off-bg, $ssr-tag-off-fg),
+  ok: (success-bg, success),
+  warn: (warning-bg, warning-ink),
+  err: (danger-bg, danger),
+  info: (primary-light, ink),
+  primary: (primary-light, primary-ink),
+  use: (tag-use-bg, tag-use-fg),
+  fix: (tag-fix-bg, tag-fix-fg),
+  off: (tag-off-bg, tag-off-fg),
 );
 
 @each $name, $pair in $tag-variants {
   .el-tag.ssr-tag--#{$name} {
-    --el-tag-bg-color: #{list.nth($pair, 1)};
-    --el-tag-text-color: #{list.nth($pair, 2)};
+    --el-tag-bg-color: var(--ssr-#{list.nth($pair, 1)});
+    --el-tag-text-color: var(--ssr-#{list.nth($pair, 2)});
   }
 }
 
@@ -291,10 +396,10 @@ $tag-variants: (
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
   align-items: flex-end;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 16px 20px;
   margin-bottom: 16px;
   background: var(--ssr-surface);
   border: 1px solid var(--ssr-line);
@@ -319,9 +424,9 @@ $tag-variants: (
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(206px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .ssr-text-muted {
@@ -346,7 +451,7 @@ $tag-variants: (
   background-image: repeating-linear-gradient(
     45deg,
     transparent 0 3px,
-    #{$ssr-seat-taken-hatch} 3px 6px
+    var(--ssr-seat-taken-hatch) 3px 6px
   );
   border-color: var(--ssr-seat-taken-line);
   border-style: dashed;
@@ -358,7 +463,7 @@ $tag-variants: (
   background-image: repeating-linear-gradient(
     -45deg,
     transparent 0 2px,
-    #{$ssr-seat-fix-hatch} 2px 5px
+    var(--ssr-seat-fix-hatch) 2px 5px
   );
   border-color: var(--ssr-seat-fix-line);
   border-style: solid;
@@ -370,7 +475,7 @@ $tag-variants: (
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 3px,
-    #{$ssr-seat-off-hatch} 3px 5px
+    var(--ssr-seat-off-hatch) 3px 5px
   );
   border-color: var(--ssr-seat-off-line);
   border-style: dotted;
@@ -379,7 +484,7 @@ $tag-variants: (
 /* ---------- 6. 列表 / 表格共用件（学生端其余页面） ---------- */
 /* 卡片容器：与 EmptyState / LoadingBlock 同一套描边，避免各页面重复写 border */
 .ssr-card {
-  padding: 14px 16px;
+  padding: 18px 20px;
   background: var(--ssr-surface);
   border: 1px solid var(--ssr-line);
   border-radius: var(--ssr-radius);
@@ -399,7 +504,7 @@ $tag-variants: (
 .ssr-card__head h3 {
   margin: 0;
   color: var(--ssr-ink);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -444,10 +549,10 @@ $tag-variants: (
 .admin-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .admin-toolbar__buttons {
@@ -513,6 +618,20 @@ $tag-variants: (
 }
 
 /* 抽屉 / 对话框内的日期时间选择器 */
+/* 筛选区是 flex 容器：固定宽度的控件不允许被压缩，否则字号变大后占位符被裁 */
+.w-120,
+.w-130,
+.w-140,
+.w-150,
+.w-160,
+.w-170,
+.w-190,
+.w-200,
+.w-260,
+.w-datetime {
+  flex: 0 0 auto;
+}
+
 .w-datetime {
   width: 190px;
 }
@@ -552,20 +671,21 @@ $tag-variants: (
 /* 座位网格（管理端 FR-003 / FR-031）：格子只承载座位号 + 资源状态 + 该时段占用两个维度 */
 .seat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(106px, 1fr));
+  gap: 10px;
 }
 
 .seat-grid__cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px 6px;
+  gap: 3px;
+  padding: 11px 8px;
   font-size: var(--ssr-font-note);
   text-align: center;
   cursor: pointer;
   border: 1px solid var(--ssr-line);
   border-radius: var(--ssr-radius-sm);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .seat-grid__cell:disabled {
@@ -576,6 +696,13 @@ $tag-variants: (
 .seat-grid__cell.is-selected {
   outline: 2px solid var(--ssr-primary);
   outline-offset: 1px;
+}
+
+/* 悬停反馈走「描边提亮 + 底色提一档」，Linear 不做位移与阴影 */
+.seat-grid__cell:not(:disabled):hover {
+  z-index: 1;
+  background: var(--ssr-primary-light);
+  border-color: var(--ssr-line-strong);
 }
 
 .seat-grid__no {
@@ -647,8 +774,285 @@ $tag-variants: (
     width: 100%;
   }
 
+  /* 固定宽度工具类在窄屏让位给整行宽度，避免控件被卡片右边缘裁掉 */
+  .filter-bar__fields .w-120,
+  .filter-bar__fields .w-130,
+  .filter-bar__fields .w-140,
+  .filter-bar__fields .w-150,
+  .filter-bar__fields .w-160,
+  .filter-bar__fields .w-170,
+  .filter-bar__fields .w-190,
+  .filter-bar__fields .w-200,
+  .filter-bar__fields .w-260,
+  .filter-bar__fields .w-datetime {
+    width: 100%;
+  }
+
   .filter-bar__actions {
     justify-content: flex-end;
     width: 100%;
   }
 }
+
+/* ---------- 9. 可读性收口（字号抬升后的配套细节） ---------- */
+/* 侧边栏图标与文字一起放大，避免"字大了图标还是原来的" */
+.el-menu-item .el-icon {
+  font-size: 18px;
+}
+
+.el-menu-item {
+  border-radius: var(--ssr-radius-sm);
+  transition: background-color 0.15s ease;
+}
+
+/* 按钮 / 标签 / 输入框：与正文同档位，避免"表格里一行 12px 小字" */
+/* EP 把按钮高度写死成 32px，这里显式给高度，和 34px 的输入框对齐 */
+.el-button:not(.is-link):not(.is-text) {
+  height: 34px;
+}
+
+.el-button--small:not(.is-link):not(.is-text) {
+  height: 28px;
+  padding: 4px 10px;
+}
+
+.el-button--small {
+  font-size: 13px;
+}
+
+.el-button--large:not(.is-link):not(.is-text) {
+  height: 42px;
+}
+
+.el-table .el-button {
+  font-size: var(--ssr-font-table);
+}
+
+.el-tag {
+  font-size: 13px;
+}
+
+.el-input__inner,
+.el-select__placeholder {
+  font-size: var(--ssr-font-body);
+}
+
+/* 分页：与正文同字号，页码可点区域更大 */
+.el-pagination {
+  font-size: var(--ssr-font-table);
+}
+
+.el-pagination.is-background .el-pager li {
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+  border-radius: var(--ssr-radius-sm);
+}
+
+.el-pagination button {
+  height: 32px;
+}
+
+/* 滚动条：细、圆角、低对比，滚动时仍可见 */
+.table-wrap::-webkit-scrollbar,
+.app-sider::-webkit-scrollbar,
+.el-drawer__body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb,
+.app-sider::-webkit-scrollbar-thumb,
+.el-drawer__body::-webkit-scrollbar-thumb {
+  background: var(--ssr-line-strong);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 8px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb:hover,
+.app-sider::-webkit-scrollbar-thumb:hover,
+.el-drawer__body::-webkit-scrollbar-thumb:hover {
+  background: var(--ssr-muted);
+}
+
+.table-wrap::-webkit-scrollbar-track,
+.app-sider::-webkit-scrollbar-track,
+.el-drawer__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 链接：提亮主色 + 悬停下划线（暗底上直接用 #5e6ad2 只有 4.0:1） */
+.link {
+  color: var(--ssr-primary-ink);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+/* 提示框：字号变大后 EP 默认内边距与行距偏挤 */
+.el-alert {
+  padding: 12px 16px;
+  border-radius: var(--ssr-radius-sm);
+}
+
+.el-alert__content {
+  line-height: 1.65;
+}
+
+.el-alert__content p {
+  margin: 4px 0 0;
+}
+
+.el-alert__content p:first-child {
+  margin-top: 0;
+}
+
+/* 描述列表：标签列不换行 */
+.el-descriptions__label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 描述列表与表单标签：跟随正文字号，避免详情里的正文反而变小字 */
+.el-descriptions,
+.el-descriptions--small,
+.el-descriptions--large,
+.el-descriptions__cell,
+.el-descriptions__label,
+.el-descriptions__content,
+.el-form-item__label,
+.el-radio__label,
+.el-checkbox__label {
+  font-size: var(--ssr-font-body);
+}
+
+/* 与 EP 的 size 变体同名同层级，靠引入顺序覆盖 */
+.el-descriptions .el-descriptions__body .el-descriptions__table .el-descriptions__cell {
+  font-size: var(--ssr-font-body);
+  line-height: 1.6;
+}
+
+/* 抽屉：标题区与正文留白 */
+.el-drawer__header {
+  padding: 18px 20px 14px;
+  margin-bottom: 0;
+  font-size: 17px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--ssr-line);
+}
+
+.el-drawer__body {
+  padding: 18px 20px;
+}
+
+/* ---------- 10. 两套主题的收口（浮层 / 主按钮 / 菜单 / 表头） ---------- */
+/* 浮层：1px 描边 + 低阴影；暗色禁用阴影，改用背景模糊拉开层次（Linear 的浮层语言） */
+.el-select__popper,
+.el-picker__popper,
+.el-dropdown__popper,
+.el-popover.el-popper {
+  box-shadow: var(--ssr-shadow-md);
+}
+
+html.dark .el-select__popper,
+html.dark .el-picker__popper,
+html.dark .el-dropdown__popper,
+html.dark .el-popover.el-popper {
+  backdrop-filter: blur(12px);
+}
+
+/* 一级浮层与抽屉统一用浮层底色：浅色靠阴影与页面分层，暗色靠更亮一档的底色 */
+.el-drawer,
+.el-dialog,
+.el-message-box {
+  background: var(--ssr-surface-raised);
+  box-shadow: var(--ssr-shadow-md);
+}
+
+.el-drawer__header,
+.el-dialog__header {
+  border-bottom: 1px solid var(--ssr-line);
+}
+
+/* 主按钮：浅色主题平涂主色（Notion 风格不允许渐变），悬停换成更亮的主色；
+   暗色主题保留 Linear 唯一允许的渐变（from #5e6ad2 to #8b5cf6），悬停走透明度。
+   两者都不做位移 / 缩放；plain 与 disabled 保持 EP 原样（描边款与置灰态不能被底色盖掉）。 */
+.el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled) {
+  border-color: transparent;
+}
+
+.el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled):hover,
+.el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled):focus-visible {
+  background-color: var(--ssr-primary-deep);
+}
+
+html.dark .el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled) {
+  background-image: linear-gradient(90deg, var(--ssr-primary), var(--ssr-primary-deep));
+}
+
+html.dark .el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled):hover,
+html.dark .el-button--primary:not(.is-link):not(.is-text):not(.is-plain):not(.is-disabled):focus-visible {
+  background-color: transparent;
+  opacity: 0.9;
+}
+
+/* 表格与菜单的悬停底色统一走白 6%（暗色下不允许浅色块突然跳出来） */
+.el-table__body tr:hover > td.el-table__cell {
+  background-color: var(--ssr-primary-light);
+}
+
+.el-menu-item:hover {
+  background-color: var(--ssr-primary-light);
+}
+
+/* 菜单选中态：保留 3px 主色竖条 + 白 6% 底，文字用提亮紫保证 ≥4.5:1 */
+.el-menu-item.is-active {
+  color: var(--ssr-primary-ink);
+}
+
+/* 时间线节点：EP 默认是纯白圆点，暗色下会像一块补丁，改成主色实心 + 页面底色外圈 */
+.el-timeline-item__node {
+  background-color: var(--ssr-primary);
+  box-shadow: 0 0 0 2px var(--ssr-bg);
+}
+
+/* 空心节点（投诉进度用 is-hollow）EP 写死 var(--el-color-white)，这里换成一档更亮的卡片底色 */
+.el-timeline-item__node.is-hollow {
+  background: var(--ssr-surface-raised);
+  border-color: var(--ssr-line-strong);
+}
+
+.el-timeline-item__tail {
+  border-left-color: var(--ssr-line-strong);
+}
+
+/* ---------- 11. 主题切换过渡 ---------- */
+/* 支持 View Transitions 的浏览器由 useTheme 调 startViewTransition 做整页交叉淡入（图表画布也在快照里）；
+   不支持的浏览器由 useTheme 临时挂上 .ssr-theme-transition，用一段短促的颜色过渡兜底。
+   只列颜色相关属性——位置、尺寸、变换类属性不参与，避免切换主题时页面元素「移动」。
+   这段过渡是临时的：切换结束后类会被移除，不影响日常 hover 的手感。 */
+@media (prefers-reduced-motion: no-preference) {
+  html.ssr-theme-transition,
+  html.ssr-theme-transition *,
+  html.ssr-theme-transition *::before,
+  html.ssr-theme-transition *::after {
+    transition:
+      background-color 0.28s ease,
+      border-color 0.28s ease,
+      color 0.28s ease,
+      fill 0.28s ease,
+      stroke 0.28s ease,
+      box-shadow 0.28s ease !important;
+  }
+
+  /* 整页交叉淡入：默认 250ms 线性偏硬，这里放慢一点并改用 ease */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.28s;
+    animation-timing-function: ease;
+  }
+}
+

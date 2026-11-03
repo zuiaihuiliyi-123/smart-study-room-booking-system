@@ -48,7 +48,7 @@ defineProps<{
         <dt>时段占用</dt>
         <dd>
           {{ occupancyLabel }}
-          <span class="ssr-text-muted">（资源状态与时段占用为两个独立维度）</span>
+          <span class="ssr-text-muted">（两者互不影响）</span>
         </dd>
       </div>
       <div>

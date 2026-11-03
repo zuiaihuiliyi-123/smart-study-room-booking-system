@@ -58,9 +58,10 @@ const emit = defineEmits<{ (e: 'select', cell: MatrixCell): void }>()
   gap: 1px;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-width: 0;
-  min-height: 46px;
-  padding: 3px 2px;
+  min-height: 56px;
+  padding: 5px 2px;
   font-family: inherit;
   font-size: var(--ssr-font-note);
   border-width: 1px;
@@ -68,12 +69,13 @@ const emit = defineEmits<{ (e: 'select', cell: MatrixCell): void }>()
   cursor: pointer;
 }
 
+/* 暗色下「提亮」才是悬停：brightness>1 让底色与文字一起亮一档 */
 .seat-cell:hover {
-  filter: brightness(0.97);
+  filter: brightness(1.12);
 }
 
 .seat-cell__icon {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .seat-cell__no {
@@ -85,7 +87,7 @@ const emit = defineEmits<{ (e: 'select', cell: MatrixCell): void }>()
   position: absolute;
   top: 2px;
   right: 3px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .seat-cell--selected {

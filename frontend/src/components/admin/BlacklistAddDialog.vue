@@ -91,7 +91,7 @@ async function onSubmit(): Promise<void> {
       :extra="'黑名单记录保留 1 年；加入时必须填写限制原因，加入后账户转为「受限」，该用户无法创建新预约。'"
     />
 
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="96px">
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="112px">
       <el-form-item label="用户" prop="user_id">
         <el-select
           v-model="form.user_id"

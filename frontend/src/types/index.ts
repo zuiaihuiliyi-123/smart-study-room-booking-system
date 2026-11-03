@@ -20,6 +20,14 @@ export interface LoginRequest {
   password: string
 }
 
+/** 学生自助注册（后端只开放「学生用户」角色，不接受 role 字段）。 */
+export interface RegisterRequest {
+  name: string
+  student_no: string
+  password: string
+  contact?: string | null
+}
+
 export interface TokenResponse {
   access_token: string
   token_type: string
