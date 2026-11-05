@@ -19,19 +19,15 @@ withDefaults(
     /** 是否显示提示标题 */
     title?: string
   }>(),
-  { scope: '', reasonRequired: true, extra: '', type: 'info', title: '审计与留痕提示' },
+  { scope: '', reasonRequired: true, extra: '', type: 'info', title: '记入审计日志' },
 )
 </script>
 
 <template>
   <el-alert class="audit" :type="type" :closable="false" show-icon :title="title">
-    <p class="audit__line">
-      本次操作将记入审计日志：记录操作者、操作时间与原因，保留 1 年，且不提供导出。
-    </p>
+    <p class="audit__line">本次操作将记入审计日志（操作者、时间与原因）。</p>
     <p v-if="scope" class="audit__line">操作范围：{{ scope }}</p>
-    <p v-if="reasonRequired" class="audit__line">
-      原因必填：原因将随审计记录一并留存，请写明依据以便事后追溯。
-    </p>
+    <p v-if="reasonRequired" class="audit__line">请填写操作原因，该原因会一并留存。</p>
     <p v-if="extra" class="audit__line">{{ extra }}</p>
   </el-alert>
 </template>

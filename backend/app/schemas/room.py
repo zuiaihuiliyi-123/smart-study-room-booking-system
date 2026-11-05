@@ -83,7 +83,23 @@ class RoomCloseResult(BaseModel):
     closed_seats: int
     cancelled: int
     kept: int
-    #: 关闭窗口外、座位被停用后无法使用但未列入冲突清单的未来有效预约数——
-    #: 已对其发送站内提示（不自动取消，符合 BR-019 默认保留），提醒用户联系管理员。
+    #: 兼容旧字段：关闭不再停用座位，窗口外预约不受影响，恒为 0。
     notified_outside_window: int = 0
+
+
+class RoomClosureRead(ORMModel):
+    """一条场地临时关闭记录（只在 [start_at, end_at) 内生效）。"""
+
+    id: int
+    room_id: int
+    area_id: int | None = None
+    start_at: datetime
+    end_at: datetime
+    reason: str
+    operator_id: int
+    created_at: datetime
+
+
+class RoomClosureRelease(BaseModel):
+    reason: str = Field(min_length=1, max_length=255)
 

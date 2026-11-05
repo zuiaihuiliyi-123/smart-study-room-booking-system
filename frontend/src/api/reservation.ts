@@ -42,6 +42,8 @@ export const listAvailableSeats = (params: {
   reserve_date: string
   start_time: string
   end_time: string
+  /** 本人该时段已有预约时也返回座位明细（只用于展示占用，不放开预约） */
+  include_conflict?: boolean
 }) => http.get<Seat[]>('/reservations/available-seats', params)
 
 export const cancelReservation = (reservationId: number, reason?: string) =>

@@ -94,6 +94,35 @@ async function markRead(messageId: number): Promise<void> {
   }
 }
 
+/**
+ * 全部标为已读。
+ *
+ * 后端只有逐条接口 `POST /messages/{id}/read`，所以这里按小批并发（每批 4 条）逐条调用；
+ * 先本地置为已读让角标立刻归零，失败的再回滚，避免「看起来全读了、实际没读」。
+ * 返回成功标记的条数，供页面给出提示。
+ */
+async function markAllRead(): Promise<number> {
+  const targets = items.value.filter((item) => !item.is_read)
+  if (targets.length === 0) return 0
+
+  for (const item of targets) item.is_read = true
+
+  const BATCH_SIZE = 4
+  const failed: StationMessage[] = []
+  for (let index = 0; index < targets.length; index += BATCH_SIZE) {
+    const slice = targets.slice(index, index + BATCH_SIZE)
+    const results = await Promise.allSettled(slice.map((item) => markMessageRead(item.id)))
+    results.forEach((result, offset) => {
+      const item = slice[offset]
+      if (result.status === 'rejected' && item) failed.push(item)
+    })
+  }
+
+  for (const item of failed) item.is_read = false
+  if (failed.length > 0) throw new Error(`还有 ${failed.length} 条没有标记成功，请刷新后重试`)
+  return targets.length
+}
+
 return {
   items,
   loading,
@@ -104,6 +133,7 @@ return {
   types,
   load,
   markRead,
+  markAllRead,
   reset,
 }
 })

@@ -78,7 +78,7 @@ const seatUsageLabel = computed(
 )
 const trendLabel = computed(
   () =>
-    `双折线图：近 ${trend.value.length} 个自然日的每日有效预约数与每日违约数趋势，数据截至 ${updatedText.value}。`,
+    `双折线图：近 ${trend.value.length} 个自然日的每日预约数与每日违约数趋势，数据截至 ${updatedText.value}。`,
 )
 const topViolatorsLabel = computed(
   () =>
@@ -188,9 +188,8 @@ const topViolatorsLabel = computed(
           :label="seatUsageLabel"
         />
         <p class="dash-caption">
-          统计方式：占用率 = 被「待使用 / 使用中 / 已完成」预约覆盖的 30 分钟座位块数 ÷
-          （座位数 × 时段块数 × 统计天数）；已取消与已违约的预约不占用时段。
-          纵轴按所选范围的实际最大值自适应（不锁 100%），绝对值见 tooltip。
+          占用率 = 已被预约覆盖的 30 分钟时段数 ÷（座位数 × 时段数 × 统计天数）；
+          已取消与已违约的预约不计入。纵轴按实际最大值自动缩放，具体数值见柱子的悬停提示。
         </p>
       </section>
 
@@ -208,8 +207,7 @@ const topViolatorsLabel = computed(
           :label="trendLabel"
         />
         <p class="dash-caption">
-          每日有效预约数按当日创建且未被取消的预约单统计；每日违约数按当日产生的违约记录统计（含系统判定与管理员登记）。
-          无记录的日期取 0 而非断点。
+          每日预约数按当日创建且未取消的预约单统计；每日违约数按当日产生的违约记录统计。
         </p>
       </section>
 
@@ -229,14 +227,12 @@ const topViolatorsLabel = computed(
         <p class="dash-caption">{{ topSourceText }}</p>
       </section>
 
-      <el-alert class="dash-alert" type="info" :closable="false" show-icon title="关于「10 秒」自动刷新">
+      <el-alert class="dash-alert" type="info" :closable="false" show-icon title="自动刷新">
         <p>
-          <strong>{{ refreshCycleText }}</strong> 是<strong>数据读取周期</strong>，
-          只决定本页多久读取一次统计值；违约是否成立由系统判定，与这里的刷新频率无关。
+          数据每 {{ refreshCycleText }}读取一次，以「数据截至时间」那一刻的统计值为准。
         </p>
         <p>
-          因此任何数字都以「数据截至时间」为准：失败时保留上一次成功读取的数据并提示该时刻，<strong>不会用 0 值冒充故障</strong>。
-          页面切到后台会暂停倒计时，切回时立即读取一次并恢复 {{ refreshCycleText }}周期。
+          页面切到后台会暂停刷新，切回时立即读取一次；读取失败时保留上一次成功的数据并标出该时刻。
         </p>
       </el-alert>
     </template>

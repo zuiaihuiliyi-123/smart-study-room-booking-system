@@ -88,7 +88,7 @@ export function useSeatManage() {
 
   const timeError = computed(() => {
     if (startTime.value === '' || endTime.value === '') return '请选择查询时段'
-    return endTime.value > startTime.value ? '' : '结束时刻必须晚于开始时刻（时段含开始、不含结束）'
+    return endTime.value > startTime.value ? '' : '结束时刻必须晚于开始时刻'
   })
 
 const windowStart = computed(() => `${reserveDate.value}T${startTime.value}`)
@@ -331,10 +331,10 @@ async function executeStatusChange(): Promise<void> {
   const count = selectedIds.value.length
   const impact =
     conflictsQueried.value && conflicts.value.length > 0
-    ? `已列出 ${conflicts.value.length} 条冲突的有效预约：系统只作提示，不会自动取消。`
+    ? `已列出 ${conflicts.value.length} 条受影响的预约：系统只作提示，不会自动取消。`
     : conflictsQueried.value
-    ? '该窗口内没有冲突的有效预约。'
-    : '请先查询冲突清单，再决定如何处理。'
+    ? '该时段内没有受影响的预约。'
+    : '请先查询受影响的预约，再决定如何处理。'
 
   try {
     await ElMessageBox.confirm(

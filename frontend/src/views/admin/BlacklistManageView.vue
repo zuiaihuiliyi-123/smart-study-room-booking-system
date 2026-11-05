@@ -222,14 +222,12 @@ onMounted(() => {
       </template>
     </section>
 
-    <el-alert class="notice" type="info" :closable="false" show-icon title="脱敏与留痕">
+    <el-alert class="notice" type="info" :closable="false" show-icon title="隐私与操作记录">
       <p>
-        本页只展示用户姓名与学号用于辨识（管理员可查询用户信息）；手机号与邮箱不在此页出现，
-        如需查看请在「用户管理」中查看部分数字。
+        本页只显示用户姓名与学号；手机号与邮箱不在此页出现，如需查看请到「用户管理」。
       </p>
       <p>
-        加入与解除限制都会记入审计日志：记录操作者、时间与原因；黑名单记录保留 1 年，
-        本页不提供导出。
+        加入与解除限制都会记入审计日志，记录操作者、时间与原因。
       </p>
     </el-alert>
 

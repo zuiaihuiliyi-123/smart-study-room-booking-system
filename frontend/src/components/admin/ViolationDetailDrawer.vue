@@ -42,7 +42,7 @@ const emit = defineEmits<{ (e: 'update:modelValue', value: boolean): void }>()
           <span class="ssr-text-muted">
             {{
             props.violation.type === '自动违约'
-            ? '（系统在签到截止后自动判定）'
+            ? '（系统在签到截止后自动记录）'
             : '（管理员手动登记）'
             }}
           </span>
@@ -65,7 +65,7 @@ const emit = defineEmits<{ (e: 'update:modelValue', value: boolean): void }>()
           限制到期后自动解除（该账户另有管理员手动限制时除外）。
         </p>
         <p>
-          违约记录一经生成不可撤销，也不提供申诉入口；如需核查请联系管理员。
+          违约记录生成后不会自动撤销。如需核对，可在预约管理中查看这条记录对应的预约单。
         </p>
       </el-alert>
     </template>

@@ -62,10 +62,10 @@ $tokens-light: (
   seat-free-bg: #e7f3f1,
   seat-free-fg: #0f7b6c,
   seat-free-line: #0f7b6c,
-  seat-taken-bg: #fdf3dc,
-  seat-taken-fg: #8f6a02,
-  seat-taken-line: #8f6a02,
-  seat-taken-hatch: rgb(143 106 2 / 16%),
+  seat-taken-bg: #fbeae8,
+  seat-taken-fg: #c0392b,
+  seat-taken-line: #c0392b,
+  seat-taken-hatch: rgb(192 57 43 / 14%),
   seat-fix-bg: #f0efec,
   seat-fix-fg: #57544e,
   seat-fix-line: #57544e,
@@ -74,6 +74,10 @@ $tokens-light: (
   seat-off-fg: #6b6a66,
   seat-off-line: #6b6a66,
   seat-off-hatch: rgb(107 106 102 / 18%),
+  desk-top: #e8cfa4,
+  desk-mid: #d9b87f,
+  desk-bottom: #c9a468,
+  desk-line: #b08a4e,
 );
 
 $tokens-dark: (
@@ -111,10 +115,10 @@ $tokens-dark: (
   seat-free-bg: rgb(39 174 96 / 14%),
   seat-free-fg: #27ae60,
   seat-free-line: #27ae60,
-  seat-taken-bg: rgb(242 201 76 / 16%),
-  seat-taken-fg: #f2c94c,
-  seat-taken-line: #f2c94c,
-  seat-taken-hatch: rgb(242 201 76 / 18%),
+  seat-taken-bg: rgb(235 87 87 / 16%),
+  seat-taken-fg: #eb5757,
+  seat-taken-line: #eb5757,
+  seat-taken-hatch: rgb(235 87 87 / 18%),
   seat-fix-bg: rgb(255 255 255 / 8%),
   seat-fix-fg: #d4d4d8,
   seat-fix-line: #d4d4d8,
@@ -123,6 +127,10 @@ $tokens-dark: (
   seat-off-fg: #a1a1aa,
   seat-off-line: #a1a1aa,
   seat-off-hatch: rgb(161 161 170 / 18%),
+  desk-top: #6f5a3a,
+  desk-mid: #5a4729,
+  desk-bottom: #473820,
+  desk-line: #8a7247,
 );
 
 /* Element Plus 派生：浅色下 light-N 是掺白（hover / 选中底），暗色下是掺黑 + 提亮的 dark-2 */
@@ -434,15 +442,29 @@ $tag-variants: (
   font-size: var(--ssr-font-note);
 }
 
-/* ---------- 5. 座位矩阵四态（资源状态 × 时段占用） ----------
-   四态不只靠颜色区分：底纹方向 + 边框线型 + 图标三者各不相同，色盲与灰度打印下仍可辨。
-   free = 时段可约；taken = 该时段已被预约；fix = 资源状态维修中；off = 资源状态停用。 */
+/* ---------- 5. 座位矩阵各态（资源状态 × 时段占用） ----------
+   各态不只靠颜色区分：底纹方向 + 边框线型 + 图标三者各不相同，色盲与灰度打印下仍可辨。
+   free = 时段可约；taken = 该时段已被预约；unknown = 占用暂不可知（本人该时段已有预约）；
+   fix = 资源状态维修中；off = 资源状态停用。 */
 .ssr-seat--free {
   color: var(--ssr-seat-free-fg);
   background-color: var(--ssr-seat-free-bg);
-  background-image: none;
+  background-image: radial-gradient(circle at 32% 26%, var(--ssr-surface) 0 38%, transparent 72%);
   border-color: var(--ssr-seat-free-line);
   border-style: solid;
+}
+
+/* 占用不可知：只保留资源状态，用中性色 + 斜细纹 + 双线边框，避免被误读成「已约」 */
+.ssr-seat--unknown {
+  color: var(--ssr-muted-ink);
+  background-color: var(--ssr-bg);
+  background-image: repeating-linear-gradient(
+    -60deg,
+    transparent 0 4px,
+    var(--ssr-line) 4px 5px
+  );
+  border-color: var(--ssr-line);
+  border-style: double;
 }
 
 .ssr-seat--taken {
@@ -479,6 +501,20 @@ $tag-variants: (
   );
   border-color: var(--ssr-seat-off-line);
   border-style: dotted;
+}
+
+/* 时段临时关闭：座位本身可用，但该时段场地不开放。用警示色 + 交叉纹 + 双点线边框，
+   与「停用」（灰、横纹、点线）和「维修中」（橙、细斜纹、实线）都能区分开。 */
+.ssr-seat--closed {
+  color: var(--ssr-warning-ink);
+  background-color: var(--ssr-warning-bg);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 6px,
+    var(--ssr-warning) 6px 7px
+  );
+  border-color: var(--ssr-warning);
+  border-style: dashed double;
 }
 
 /* ---------- 6. 列表 / 表格共用件（学生端其余页面） ---------- */

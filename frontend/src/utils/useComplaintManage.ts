@@ -142,7 +142,7 @@ async function submitHandle(status: Complaint['status'], note: string): Promise<
   const target = detail.value
   if (target === null) return false
   if (!nextActions(target).includes(status)) {
-    ElMessage.warning(`「${target.status}」不能流转到「${status}」（～）`)
+    ElMessage.warning(`「${target.status}」不能改为「${status}」`)
     return false
   }
   if (note.trim() === '') {
@@ -158,7 +158,7 @@ async function submitHandle(status: Complaint['status'], note: string): Promise<
   try {
     await ElMessageBox.confirm(
       `将投诉 #${target.id}（${complaintTargetLabel(directory.value, target.target_type, target.target_id)}）${actionText}。处理说明会同步给投诉人，本次操作将记入审计日志。确认提交？`,
-      '确认：投诉处理（～）',
+      '确认：投诉处理',
       { type: 'warning', confirmButtonText: '确认提交', cancelButtonText: '返回修改' },
     )
   } catch {
@@ -167,7 +167,7 @@ async function submitHandle(status: Complaint['status'], note: string): Promise<
   submitting.value = true
   try {
     const updated = await handleComplaint(target.id, { status, handle_note: note.trim() })
-    ElMessage.success(`投诉 #${updated.id} 已流转为「${updated.status}」`)
+    ElMessage.success(`投诉 #${updated.id} 已更新为「${updated.status}」`)
     invalidateAdminDirectory()
     await refresh()
     // 流转后该投诉通常会离开当前筛选队列（默认只看「待处理」），仍保留这条最新快照，

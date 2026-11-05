@@ -2,20 +2,18 @@
  * 「自习室管理」页状态机（FR-001 / FR-002 / FR-016）。
  *
  * 口径来源：
- * - FR-001：新增 / 修改 / 停用自习室及其分区，维护名称、位置、开放时间与容量；
- *   本版不提供物理删除（Q-032：以「停用」代替删除，保留历史关联）。
+ * - FR-001：新增 / 修改 / 停用 / 删除自习室及其分区，维护名称、位置、开放时间与容量；
+ *   有预约历史的自习室只能停用（物理删除会丢失审计与统计依据）。
  * - FR-002 + BR-022：批量停用须先列影响清单、二次确认（见 `RoomCloseDrawer.vue`）。
  * - NFR-009：所有写操作都要求填写原因并提示「本次操作将记入审计日志」。
  *
- * 已知口径缺口（不在本文件自行裁定，已登记到问题清单）：
- * `Room.enabled` 未被第 4.4.2 节的 C1 判定引用——即「停用自习室」目前不会让它的座位
- * 变成不可预约。因此界面把两种语义分开呈现：`启用状态`只改自习室自身标记；
- * 要立即阻止其座位被预约，须走「临时关闭」（会把范围内座位置为「停用」）。
+ * 「启用状态」只改自习室自身标记，后端在取数与下单时会校验它（停用即不可约）；
+ * 若只想关掉某个时段或某个分区，仍要用「临时关闭」（把范围内座位置为「停用」）。
  */
 import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-import { createRoom, listRooms, updateRoom } from '@/api/room'
+import { createRoom, deleteRoom, listRooms, updateRoom } from '@/api/room'
 import type { Room } from '@/types'
 import { invalidateSeatDirectory, toBookingFailure } from '@/utils/bookingData'
 import {
@@ -216,6 +214,78 @@ return true
 }
 }
 
+/** 快捷停用 / 启用：只改启用标记，原因写入审计（NFR-009）。 */
+async function toggleEnabled(room: Room): Promise<boolean> {
+  if (!scope.guardRoom(room.id)) return false
+  const next = !room.enabled
+  let reason = ''
+  try {
+    const result = await ElMessageBox.prompt(
+      `将把「${room.name}」改为${next ? '启用' : '停用'}。${next ? '' : '停用后该自习室不再出现在可预约范围，历史预约与统计保留。'}请填写变更原因（会记入审计日志）。`,
+      next ? '确认：启用自习室' : '确认：停用自习室',
+      {
+        type: 'warning',
+        confirmButtonText: next ? '确认启用' : '确认停用',
+        cancelButtonText: '取消',
+        inputPlaceholder: '例如：馆内装修暂停使用',
+        inputValidator: (value: string) => (value.trim().length > 0 ? true : '请填写变更原因'),
+      },
+    )
+    reason = result.value.trim()
+  } catch {
+    return false
+  }
+  submitting.value = true
+  try {
+    await updateRoom(room.id, { enabled: next, reason })
+    ElMessage.success(`已${next ? '启用' : '停用'}「${room.name}」`)
+    await refresh()
+    return true
+  } catch (caught) {
+    ElMessage.error(toBookingFailure(caught).message)
+    return false
+  } finally {
+    submitting.value = false
+  }
+}
+
+/**
+ * 删除自习室：仅当该馆没有任何预约记录时后端才放行（否则 409 提示改为停用）。
+ * 二次确认里列出分区数与座位数，避免误删整套资源。
+ */
+async function remove(room: Room): Promise<boolean> {
+  if (!scope.guardRoom(room.id)) return false
+  let reason = ''
+  try {
+    const result = await ElMessageBox.prompt(
+      `将删除「${room.name}」及其 ${areaCount(room.id)} 个分区、${seatCount(room.id)} 个座位，删除后不可恢复。若该自习室有预约记录，系统会拒绝删除并建议改为停用。请填写删除原因（会记入审计日志）。`,
+      '确认：删除自习室',
+      {
+        type: 'warning',
+        confirmButtonText: '确认删除',
+        cancelButtonText: '取消',
+        inputPlaceholder: '例如：录入错误，重新建馆',
+        inputValidator: (value: string) => (value.trim().length > 0 ? true : '请填写删除原因'),
+      },
+    )
+    reason = result.value.trim()
+  } catch {
+    return false
+  }
+  submitting.value = true
+  try {
+    await deleteRoom(room.id, reason)
+    ElMessage.success(`已删除自习室「${room.name}」`)
+    await refresh()
+    return true
+  } catch (caught) {
+    ElMessage.error(toBookingFailure(caught).message)
+    return false
+  } finally {
+    submitting.value = false
+  }
+}
+
 function seatCount(roomId: number): number {
   return seatCountOfRoom(directory.value, roomId)
 }
@@ -258,6 +328,8 @@ return {
   openAreas,
   openClose,
   submitForm,
+  toggleEnabled,
+  remove,
   seatCount,
   areaCount,
 }

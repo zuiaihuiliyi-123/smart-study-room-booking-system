@@ -132,7 +132,7 @@ http.patch('/api/v1/complaints/:complaintId', ({ request, params }) =>
     const allowed = ADMIN_TRANSITIONS[complaint.status]
     if (!allowed.includes(status)) {
       const next =
-        allowed.length > 0 ? `只能流转到「${allowed.join(' / ')}」` : '该状态已是终态或只能由投诉人 / 系统推进'
+        allowed.length > 0 ? `只能改为「${allowed.join(' / ')}」` : '该状态已结束，无法再修改'
       return abort(409, 'STATE_NOT_ALLOWED', `投诉当前为「${complaint.status}」，${next}`)
     }
 

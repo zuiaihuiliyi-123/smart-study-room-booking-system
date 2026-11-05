@@ -55,8 +55,8 @@ function onCancelChange(value: boolean | string | number): void {
       title="确认前不会自动取消用户预约"
     >
       <p class="conflict__line">
-        受影响清单已列出。默认处理：<strong>仅变更座位资源状态</strong>，冲突预约保持「待使用 / 使用中」
-        原状并在该座位、该时段上持续提示冲突，不生成违约记录。
+        受影响的预约已列出。默认处理：<strong>只变更座位状态</strong>，这些预约保持「待使用 / 使用中」
+        原状，不生成违约记录。
       </p>
       <p class="conflict__line">
         只有你在下方<strong>明确勾选</strong>并确认后，系统才会批量取消：取消后
@@ -65,7 +65,7 @@ function onCancelChange(value: boolean | string | number): void {
         </el-alert>
 
         <p v-if="!props.queried" class="conflict__hint">
-          尚未查询受影响预约。请先点「查询受影响预约」，系统会在列清清单后再允许执行。
+          尚未查询受影响的预约。请先点「查询受影响的预约」，系统会先列清清单再允许执行。
         </p>
 
         <template v-else>

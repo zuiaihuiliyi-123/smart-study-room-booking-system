@@ -69,7 +69,7 @@ const title = computed(() =>
     <AuditNotice
       :scope="props.scopeLabel"
       :reason-required="canRelease"
-      :extra="'黑名单记录保留 1 年，不提供导出；解除必须填写原因并记录操作者。'"
+      :extra="'解除限制必须填写原因，系统会记录操作者与操作时间。'"
     />
 
     <template v-if="props.entry">

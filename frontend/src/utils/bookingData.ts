@@ -10,7 +10,7 @@
 import { isAxiosError } from 'axios'
 
 import { listAvailableSeats, listMyReservations } from '@/api/reservation'
-import { listRooms } from '@/api/room'
+import { listRoomClosures, listRooms } from '@/api/room'
 import { listSeats } from '@/api/seat'
 import type { Reservation, Room, Seat } from '@/types'
 import {
@@ -102,8 +102,15 @@ export interface SlotAvailability {
   seats: Seat[]
   /** 该时段的可预约座位 id 集合——时段占用一列（C1 + C3 过滤后的结果） */
   availableIds: Set<number>
+  /** 该时段被「场地临时关闭」覆盖的座位 id（窗口结束后自动恢复，不影响资源状态） */
+  closedIds: Set<number>
   /** 本人全部预约，用于 C4 / C6 与首页「今日预约」 */
   myReservations: Reservation[]
+}
+
+/** 把 `YYYY-MM-DD` + `HH:MM[:SS]` 拼成可与关闭记录比较的时刻串。 */
+function momentKey(reserveDate: string, time: string): string {
+  return `${reserveDate}T${time.slice(0, 5)}:00`
 }
 
 export async function loadSlotAvailability(
@@ -112,21 +119,39 @@ export async function loadSlotAvailability(
   startTime: string,
   endTime: string,
 ): Promise<SlotAvailability> {
-  const [seats, available, myReservations] = await Promise.all([
+  const [seats, available, myReservations, closures] = await Promise.all([
     listSeats(roomId),
     listAvailableSeats({
       room_id: roomId,
       reserve_date: reserveDate,
       start_time: startTime,
       end_time: endTime,
+      // 本人该时段已有预约时也要拿到座位占用明细，否则整张图无法判断哪些座位被别人占了
+      include_conflict: true,
     }),
-  fetchAllMyReservations(),
-])
-return {
-  seats,
-  availableIds: new Set(available.map((seat) => seat.id)),
-  myReservations,
-}
+    fetchAllMyReservations(),
+    listRoomClosures(roomId).catch(() => []),
+  ])
+  const slotStart = momentKey(reserveDate, startTime)
+  const slotEnd = momentKey(reserveDate, endTime)
+  const hitClosures = closures.filter(
+    (item) => item.start_at < slotEnd && item.end_at > slotStart,
+  )
+  const closedIds = new Set(
+    seats
+      .filter((seat) =>
+        hitClosures.some(
+          (item) => item.area_id === null || item.area_id === undefined || item.area_id === seat.area_id,
+        ),
+      )
+      .map((seat) => seat.id),
+  )
+  return {
+    seats,
+    availableIds: new Set(available.map((seat) => seat.id)),
+    closedIds,
+    myReservations,
+  }
 }
 
 /* ------------------------------------------------------------------ 分区分组 */
@@ -186,7 +211,8 @@ export function defaultBookingSlot(
   const open = parseTimeToMinutes(room?.open_time) ?? 8 * 60
   const close = parseTimeToMinutes(room?.close_time) ?? 22 * 60
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  const aligned = ceilToStep(Math.max(open, nowMinutes))
+  /* +1 分钟：正好落在半点/整点时，那个时刻其实已经过去了，需要取下一个刻度 */
+  const aligned = ceilToStep(Math.max(open, nowMinutes + 1))
   const start = Math.min(Math.max(aligned, open), Math.max(open, close - 60))
   const end = Math.min(start + 120, close)
   return { startTime: minutesToTimeText(start), endTime: minutesToTimeText(end) }

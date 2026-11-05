@@ -9,7 +9,6 @@ import { seatDisplayName } from '@/utils/bookingData'
 import {
   checkinWindow,
   countdownText,
-  shortTime,
   timeRangeText,
   type CheckinWindow,
 } from '@/utils/bookingRules'
@@ -60,7 +59,7 @@ function countdownOf(phase: Phase, reservation: Reservation, window: CheckinWind
       ? `已签到 ${formatDateTime(reservation.check_in_time)}`
       : '使用中（签退后该时段自动重新可预约）'
   }
-  return `签到窗口已于 ${window.closesText} 结束，未签到将判定为违约`
+  return `签到窗口已于 ${window.closesText} 结束，未签到将记为违约`
 }
 
 const rows = computed<Row[]>(() =>
@@ -80,7 +79,7 @@ const rows = computed<Row[]>(() =>
       actionDisabled: action === 'none',
       actionTip:
       phase === 'before'
-        ? `签到窗口 ${window.rangeText}，开始前 ${shortTime(reservation.start_time)} 的 15 分钟才可签到`
+        ? `签到窗口 ${window.rangeText}，请在这段时间内签到`
         : phase === 'expired'
         ? '签到窗口已结束，无法再签到'
         : phase === 'inuse'
@@ -95,7 +94,7 @@ const rows = computed<Row[]>(() =>
   <section class="today-card">
     <header class="today-card__head">
       <h3>今日预约</h3>
-      <span class="ssr-text-muted">仅显示"待使用 / 使用中"的有效预约</span>
+      <span class="ssr-text-muted">仅显示待使用或使用中的预约</span>
     </header>
 
     <LoadingBlock v-if="props.loading" :rows="3" text="正在读取今日预约…" />

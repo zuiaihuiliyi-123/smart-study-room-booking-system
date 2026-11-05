@@ -216,12 +216,10 @@ onMounted(() => {
 
     <el-alert class="notice" type="info" :closable="false" show-icon title="处理时限">
       <p>
-        投诉自提交起 <strong>{{ slaWorkdays }} 个工作日</strong>内应给出处理结果；
-        按「跳过周六 / 周日」计算（法定节假日不计入），表中同时给出精确截止时刻。
+        投诉应在提交后 <strong>{{ slaWorkdays }} 个工作日</strong>内给出处理结果（周六、周日不计入）。
       </p>
       <p>
-        超时只通过<strong>站内提示</strong>提醒处理人，不会自动升级或关闭投诉；
-        本页只做标红与超时天数提示。
+        超过这个时间的投诉会在列表中<strong>标红</strong>并显示已超时天数；系统不会自动升级或关闭投诉。
       </p>
     </el-alert>
 

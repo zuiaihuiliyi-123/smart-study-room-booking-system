@@ -230,17 +230,16 @@ onMounted(() => {
       </template>
     </section>
 
-    <el-alert class="notice" type="info" :closable="false" show-icon title="「强制取消」与「手动违约登记」的区别">
+    <el-alert class="notice" type="info" :closable="false" show-icon title="强制取消与手动违约登记">
       <p>
-        <strong>强制取消</strong>只对「待使用」有效，用于事前终止；
-        不产生违约记录、不累加违约次数，取消后该时段立即对其他同学开放。
+        <strong>强制取消</strong>用于「待使用」的预约：不产生违约记录，也不累加违约次数，
+        取消后该时段立即重新开放。
       </p>
       <p>
-        <strong>手动违约登记</strong>只对「使用中」有效，用于事后追责；
-        必填原因并写入审计日志，会累加用户违约次数，累计 3 次触发 7 天限制。
+        <strong>手动违约登记</strong>用于「使用中」的预约：会累加用户的违约次数，
+        累计满 3 次账户被限制 7 天。
       </p>
-      <p>同一预约单只会出现其中一个可用按钮。</p>
-      <p>时段含开始时间、不含结束时间；「签到 / 签退」只显示时刻，完整时间见详情抽屉。</p>
+      <p>同一预约单只会出现其中一个按钮。「签到 / 签退」时刻见详情。</p>
     </el-alert>
 
             <ReservationDetailDrawer

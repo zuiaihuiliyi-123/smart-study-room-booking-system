@@ -198,19 +198,28 @@ export function countdownText(ms: number): string {
     : `${pad(minutes)}:${pad(seconds)}`
 }
 
-/* ------------------------------------------------------------------ 座位四态 */
+/* ------------------------------------------------------------------ 座位各态 */
 
-/** 矩阵单元格的复合视觉态：free / taken 来自时段占用，fix / off 来自资源状态。 */
-export type SeatCellState = 'free' | 'taken' | 'fix' | 'off'
+/** 矩阵单元格的复合视觉态：free / taken / closed 来自时段，fix / off 来自资源状态。 */
+export type SeatCellState = 'free' | 'taken' | 'unknown' | 'closed' | 'fix' | 'off'
 
 export const SEAT_STATE_TEXT: Record<SeatCellState, string> = {
   free: '可约',
   taken: '该时段已被预约',
+  unknown: '占用暂不显示',
+  closed: '临时关闭',
   fix: '维修中',
   off: '停用',
 }
 
-export const SEAT_STATE_ORDER: readonly SeatCellState[] = ['free', 'taken', 'fix', 'off']
+export const SEAT_STATE_ORDER: readonly SeatCellState[] = [
+  'free',
+  'taken',
+  'unknown',
+  'closed',
+  'fix',
+  'off',
+]
 
 /** 有效预约 = 待使用 | 使用中；已取消 / 已完成 / 已违约不占用时段（TM-18）。 */
 export function isEffectiveReservation(item: Reservation): boolean {
@@ -219,23 +228,40 @@ export function isEffectiveReservation(item: Reservation): boolean {
 
 /**
  * 单元格视觉态。
- * 资源状态非「可用」时 C1 先行不通过，按时段判定无意义，故直接呈现资源状态。
+ * 资源状态非「可用」时 C1 先行不通过，按时段判定无意义，故直接呈现资源状态；
+ * 场地临时关闭优先于占用判断（该时段任何人都不可能约到）。
  */
-export function seatCellState(seat: Seat, availableIds: ReadonlySet<number>): SeatCellState {
+export function seatCellState(
+  seat: Seat,
+  availableIds: ReadonlySet<number>,
+  occupancyKnown = true,
+  closedIds?: ReadonlySet<number>,
+): SeatCellState {
   if (seat.status === '维修中') return 'fix'
   if (seat.status === '停用') return 'off'
+  if (closedIds !== undefined && closedIds.has(seat.id)) return 'closed'
+  // 本人该时段已有预约时服务端返回空集合，不能用它判断「被别人占了」
+  if (!occupancyKnown) return 'unknown'
   return availableIds.has(seat.id) ? 'free' : 'taken'
 }
 
 /** tooltip 的「时段占用」一行：与资源状态分开呈现，不合并成一个状态（AGENTS.md §4）。 */
-export function occupancyText(seat: Seat, availableIds: ReadonlySet<number> | null): string {
+export function occupancyText(
+  seat: Seat,
+  availableIds: ReadonlySet<number> | null,
+  occupancyKnown = true,
+  closedIds?: ReadonlySet<number>,
+): string {
   if (seat.status !== '可用') {
     return '暂无法判断（该座位当前不可预约，无占用信息）'
   }
-  if (availableIds === null) return '暂无法判断'
+  if (closedIds !== undefined && closedIds.has(seat.id)) {
+    return '该时段临时关闭'
+  }
+  if (availableIds === null || !occupancyKnown) return '暂无法判断'
   return availableIds.has(seat.id)
-    ? '可约（该时段不存在其他有效预约）'
-    : '已被预约（该时段存在其他有效预约）'
+    ? '可约（该时段无人占用）'
+    : '已被预约（该时段已被占用）'
 }
 
 export function seatAriaLabel(seat: Seat, state: SeatCellState): string {
@@ -372,9 +398,9 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
         c3State === 'pass'
           ? `座位 ${seat.seat_no} 在 ${range} 没有其他预约`
           : c3State === 'fail'
-          ? `座位 ${seat.seat_no} 在 ${range} 已被别人预约`
+          ? `座位 ${seat.seat_no} 在 ${range} 已被预约`
           : '这个座位当前不能预约，无法确认时段占用',
-      bullets: ['时段含开始、不含结束：18:30–20:30 与 20:30–21:30 首尾相接，不算冲突'],
+      bullets: [],
     },
     {
       id: 'C4',
@@ -407,12 +433,12 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
       condition: '时段、天数、时长与每日次数都在允许范围内',
       rules: [],
       state: c6Pass ? 'pass' : 'fail',
-      detail: c6Pass ? '上面四项都在允许范围内' : '有项目超出允许范围，见下方逐条说明',
+      detail: c6Pass ? '下面四条约定的条件都满足' : '有项目超出允许范围，见下方逐条说明',
       bullets: [
-        `开始与结束时间要落在整 ${BOOKING_RULES.granularity} 分钟 —— ${aligned ? '已对齐' : `需要调整（当前 ${range}）`}`,
-        `最多提前 ${BOOKING_RULES.advanceDays} 天 —— 所选日期是第 ${ctx.dayOffset} 天（${advanceOk ? '符合' : '超出范围'}）`,
-        `单次最长 ${BOOKING_RULES.maxHours} 小时 —— 本次 ${durationText(minutes)}（${durationOk ? '符合' : '超出上限'}）`,
-        `每人每天最多 ${BOOKING_RULES.dailyLimit} 条有效预约 —— 当天已有 ${usage.dailyCount} 条（${dailyOk ? '符合' : '已达上限'}）`,
+        `开始与结束时间按整 ${BOOKING_RULES.granularity} 分钟选择 —— ${aligned ? '已对齐' : `需要调整（当前 ${range}）`}`,
+        `最多可提前 ${BOOKING_RULES.advanceDays} 天预约 —— ${advanceOk ? '在可选范围内' : '超出可选范围'}`,
+        `单次最长 ${BOOKING_RULES.maxHours} 小时 —— 本次 ${durationText(minutes)}`,
+        `每人每天最多 ${BOOKING_RULES.dailyLimit} 条预约 —— 当天已有 ${usage.dailyCount} 条`,
       ],
     },
   ]
@@ -474,11 +500,13 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
 
   /**
    * 服务端错误文案里可能带内部需求编号（例如「…请先处理冲突预约；系统不会自动取消（BR-019）」）。
-   * 这些编号只属于研发语境，界面一律去掉，避免用户看到告示里的编号。
+   * 这些编号只属于研发语境，界面一律去掉，避免用户看到告示里的编号；
+   * 「有效预约」是内部术语（= 待使用 / 使用中），界面统一说「预约」。
    */
   function sanitizeServerMessage(text: string): string {
     if (text === '') return text
     return text
+      .replace(/有效预约/g, '预约')
       .replace(/[（(]\s*(?:BR|ST|FR|NFR|CF|IR)[-_]?\s*\d{2,4}\s*[）)]/gi, '')
       .replace(/\s*(?:BR|ST|FR|NFR|CF|IR)[-_]\s*\d{2,4}\s*/gi, ' ')
       .replace(/[（(]\s*[）)]/g, '')

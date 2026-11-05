@@ -65,6 +65,8 @@ export function useSeatBooking() {
   const seats = ref<Seat[]>([])
   const myReservations = ref<Reservation[]>([])
   const availableIds = ref<ReadonlySet<number> | null>(null)
+  /** 该时段被场地临时关闭覆盖的座位（窗口结束后自动恢复） */
+  const closedIds = ref<ReadonlySet<number>>(new Set<number>())
   const loading = ref(true)
   const loadError = ref<BookingFailure | null>(null)
 
@@ -77,6 +79,23 @@ export function useSeatBooking() {
     powerOnly: false,
     windowOnly: false,
   })
+
+/** 我在当前时段已占的座位：座位图上标「我的」，也用于解释 C4 冲突从哪来 */
+const mySeatIds = computed<readonly number[]>(() => {
+  const start = parseTimeToMinutes(filters.startTime) ?? -1
+  const end = parseTimeToMinutes(filters.endTime) ?? -1
+  if (start < 0 || end <= start) return []
+  const ids = new Set<number>()
+  for (const item of myReservations.value) {
+    if (item.status !== '待使用' && item.status !== '使用中') continue
+    if (item.reserve_date !== filters.reserveDate) continue
+    const itemStart = parseTimeToMinutes(item.start_time) ?? -1
+    const itemEnd = parseTimeToMinutes(item.end_time) ?? -1
+    if (itemStart < 0 || itemEnd <= itemStart) continue
+    if (itemStart < end && start < itemEnd) ids.add(item.seat_id)
+  }
+  return [...ids]
+})
 
 const selectedSeatId = ref<number | null>(null)
 const drawerVisible = ref(false)
@@ -114,8 +133,23 @@ const usage = computed(() =>
 )
 const userBlock = computed(() => userBlockReason(usage.value))
 
+/**
+ * 占用情况是否可信。
+ *
+ * 服务端 `available-seats` 在「本人该时段已有预约」（C4）时直接返回空集合，
+ * 空集合既可能是「全被别人约走」也可能是「本人冲突」，无法区分。
+ * 这种情况下不把座位画成「已约」，改用「占用暂不显示」，只呈现资源状态。
+ */
+const occupancyKnown = computed(() => {
+  const ids = availableIds.value
+  if (ids === null) return false
+  if (userBlock.value === 'C4' && ids.size === 0 && seats.value.length > 0) return false
+  return true
+})
+
+/** 画到座位图上的座位：按类型、插座、靠窗筛选，与时段无关。 */
 const visibleSeats = computed(() =>
-    seats.value.filter(
+  seats.value.filter(
     (seat) =>
       (filters.seatType === '' || seat.seat_type === filters.seatType) &&
       (!filters.powerOnly || seat.has_power) &&
@@ -132,16 +166,16 @@ const groups = computed<MatrixGroup[]>(() => {
     note: group.note,
     cells: group.seats.map((seat) => ({
       seat,
-      state: seatCellState(seat, ids),
-      occupancy: occupancyText(seat, ids),
+      state: seatCellState(seat, ids, occupancyKnown.value, closedIds.value),
+      occupancy: occupancyText(seat, ids, occupancyKnown.value, closedIds.value),
     })),
 }))
 })
 
 const freeCount = computed(() => {
   const ids = availableIds.value
-  if (ids === null) return 0
-  return visibleSeats.value.filter((seat) => seatCellState(seat, ids) === 'free').length
+  if (ids === null || !occupancyKnown.value) return 0
+  return visibleSeats.value.filter((seat) => seatCellState(seat, ids, true, closedIds.value) === 'free').length
 })
 
 const selectedSeat = computed(
@@ -199,7 +233,7 @@ const summary = computed(() => {
 
 const hint = computed(() => {
   if (loadError.value) return ''
-  if (userBlock.value) return '该时段没有可预约座位'
+  if (userBlock.value) return ''
   return `可约 ${freeCount.value} / ${visibleSeats.value.length} 座`
 })
 
@@ -208,13 +242,10 @@ const blockedHint = computed(() => {
   if (block === null) return ''
   if (block === 'C4') {
     const conflict = usage.value.conflict
-    return `时段冲突：你在 ${filters.reserveDate} ${timeRangeText(
-  conflict?.start_time ?? '',
-  conflict?.end_time ?? '',
-)} 已有有效预约（预约单 #${conflict?.id ?? '-'}）。同一用户在同一时段不得存在两条有效预约，因此该时段没有可预约座位。`
-    }
-    return `每日次数已达上限：你在 ${filters.reserveDate} 已有 ${usage.value.dailyCount} 条有效预约，达到每人每日 ${BOOKING_RULES.dailyLimit} 条上限，当日不能再预约。`
-  })
+    return `${timeRangeText(conflict?.start_time ?? '', conflict?.end_time ?? '')} 已有预约，同一时段只能约一个座位。`
+  }
+  return `今天已有 ${usage.value.dailyCount} 条预约（每人每天最多 ${BOOKING_RULES.dailyLimit} 条），换个日期再约。`
+})
 
 /* ---------------------------------------------------------------- 取数 */
 
@@ -260,7 +291,8 @@ function todayHasSlotLeft(): boolean {
   const open = parseTimeToMinutes(openTime.value) ?? 8 * 60
   const close = parseTimeToMinutes(closeTime.value) ?? 22 * 60
   const now = clock.value
-  const aligned = ceilToStep(Math.max(open, now.getHours() * 60 + now.getMinutes()))
+  /* +1 分钟：正好在半点/整点时，这个时刻已经开始，可选的起点要往后一格 */
+  const aligned = ceilToStep(Math.max(open, now.getHours() * 60 + now.getMinutes() + 1))
   return aligned + BOOKING_RULES.granularity <= close
 }
 
@@ -330,6 +362,35 @@ let querySeq = 0
  * 之前只弹一条会消失的 toast，`loading` 留在 true，页面就永远转圈（收口轮修掉）。
  * 这里把原因同时写进 `loadError`，让错误块常驻显示，并提供重试入口。
  */
+/**
+ * 自动刷新：日期 / 时段 / 类型 / 只有电源 这些筛选项决定「看哪个时段的座位」，
+ * 改完不必再点按钮。400ms 防抖把「改开始时间 → 结束时间被自动收敛」这类连击合并成一次请求；
+ * `autoReady` 保证首屏 bootstrap（含默认时段顺延）期间不会被监听器打断。
+ */
+let autoTimer: ReturnType<typeof setTimeout> | null = null
+let autoReady = false
+
+watch(
+  () =>
+    [
+      filters.roomId,
+      filters.reserveDate,
+      filters.startTime,
+      filters.endTime,
+      filters.seatType,
+      filters.powerOnly,
+      filters.windowOnly,
+    ].join('|'),
+  () => {
+    if (!autoReady) return
+    if (autoTimer) clearTimeout(autoTimer)
+    autoTimer = setTimeout(() => {
+      autoTimer = null
+      void query()
+    }, 400)
+  },
+)
+
 async function query() {
   const problem = validationError()
   if (problem) {
@@ -363,11 +424,13 @@ async function query() {
     if (seq !== querySeq) return
     seats.value = data.seats
     availableIds.value = data.availableIds
+    closedIds.value = data.closedIds
     myReservations.value = data.myReservations
   } catch (error) {
     if (seq !== querySeq) return
     // 失败不清空已选条件：filters 与 selectedSeatId 保持原值
     availableIds.value = null
+    closedIds.value = new Set<number>()
     loadError.value = toBookingFailure(error)
   } finally {
     if (seq === querySeq) loading.value = false
@@ -388,8 +451,9 @@ async function bootstrap() {
   // 否则用户一进页面就只看到「该时段不可预约」而看不到座位矩阵。
   if (userBlock.value === 'C4') {
     await findAlternative()
-    ElMessage.info('默认时段与你现有的有效预约重叠，已自动改选到冲突结束后的时段')
+    ElMessage.info('默认时段已被占用，已自动改选到下一个可用时段')
   }
+  autoReady = true
 }
 
 function resetFilters() {
@@ -483,16 +547,24 @@ async function submit() {
     endTime: created.end_time,
     window: checkinWindow(created.reserve_date, created.start_time),
   }
-  submitted.value.set(intentCombo(), info)
-  success.value = info
-  submitState.value = 'submitted'
-  ElMessage.success('预约提交成功')
-  // 刷新可预约座位：该座位该时段按 C3 变为不可预约，同时本人当日次数 +1
-  await query()
-} catch (error) {
-  failure.value = toBookingFailure(error)
-  submitState.value = 'idle'
-}
+    submitted.value.set(intentCombo(), info)
+    success.value = info
+    submitState.value = 'submitted'
+    ElMessage.success('预约提交成功')
+    // 成功后不重新拉「可预约座位」：服务端会把本人冲突（C4）一起算进去，
+    // 结果是一张「全空」的座位表，用户就看不到其它座位的状态了。
+    // 这里只把刚约到的这个座位从可约集合里去掉，并把自己这条预约并入 myReservations，
+    // 座位矩阵与「该时段已被预约」的展示保持可用；换筛选条件时再整体重查。
+    if (availableIds.value) {
+      const next = new Set(availableIds.value)
+      next.delete(seat.id)
+      availableIds.value = next
+    }
+    myReservations.value = [...myReservations.value, created]
+  } catch (error) {
+    failure.value = toBookingFailure(error)
+    submitState.value = 'idle'
+  }
 }
 
 /** 只要「本人时段占用 / 每日次数」这类用户级条件成立，界面就不再显示座位矩阵。 */
@@ -552,6 +624,8 @@ return {
   blockedHint,
   summary,
   hint,
+  occupancyKnown,
+  mySeatIds,
   // 抽屉
   drawerVisible,
   selectedSeat,
@@ -571,7 +645,9 @@ return {
   openSeat,
   submit,
   findAlternative,
-  availableEmpty: computed(() => availableIds.value !== null && freeCount.value === 0),
+  availableEmpty: computed(
+    () => availableIds.value !== null && occupancyKnown.value && freeCount.value === 0,
+  ),
   emptyIds: EMPTY_IDS,
 }
 }

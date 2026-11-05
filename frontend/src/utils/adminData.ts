@@ -187,7 +187,7 @@ export function studentNoOf(directory: AdminDirectory | null, userId: number): s
 }
 
 export function operatorLabelOf(directory: AdminDirectory | null, operatorId: number | null): string {
-  if (operatorId === null) return '系统自动判定'
+  if (operatorId === null) return '系统自动记录'
   const user = directory?.usersById.get(operatorId)
   return user ? `${user.name}（管理员 #${user.id}）` : `管理员 #${operatorId}`
 }

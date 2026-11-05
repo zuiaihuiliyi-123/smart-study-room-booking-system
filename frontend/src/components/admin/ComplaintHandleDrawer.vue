@@ -37,9 +37,9 @@ const target = ref<Complaint['status'] | ''>('')
 const note = ref('')
 
 const ACTION_LABEL: Record<string, string> = {
-  处理中: '受理（待处理 → 处理中）',
-  已驳回: '驳回（必填驳回理由）',
-  已处理: '录入处理结果（处理中 → 已处理）',
+  处理中: '受理',
+  已驳回: '驳回',
+  已处理: '录入处理结果',
 }
 
 watch(
@@ -101,11 +101,11 @@ const title = computed(() =>
         <el-descriptions-item label="处理时限">
           {{ sla.deadlineText }}
           <span class="ssr-text-muted">{{ sla.note }}</span>
-          <span v-if="sla.overdue && pending" class="ssr-text-muted">已超时 {{ sla.overdueDays }} 天（按自然日计）</span>
+          <span v-if="sla.overdue && pending" class="ssr-text-muted">已超时 {{ sla.overdueDays }} 天</span>
           <span v-else-if="sla.overdue" class="ssr-text-muted">
-            处理结果超出时限 {{ sla.overdueDays }} 天（按自然日计，要求 3 个工作日内给出处理结果）
+            处理结果超出时限 {{ sla.overdueDays }} 天
           </span>
-          <span v-else-if="pending" class="ssr-text-muted">距截止尚余 {{ sla.remainingWorkdays }} 个工作日</span>
+          <span v-else-if="pending" class="ssr-text-muted">距截止还有 {{ sla.remainingWorkdays }} 个工作日</span>
         </el-descriptions-item>
         <el-descriptions-item label="当前处理记录">
           <span v-if="props.complaint.handle_note === null" class="ssr-text-muted">尚未处理</span>
@@ -123,11 +123,8 @@ const title = computed(() =>
       </el-descriptions>
 
       <el-alert class="notice" type="info" :closable="false" show-icon title="可以怎么处理">
-        <p>待处理 →（受理）处理中 →（录入处理结果）已处理；待处理 →（驳回）已驳回。</p>
-        <p>
-          已处理 → 已关闭 由<strong>投诉人确认</strong>或<strong>超过关闭时限</strong>自动触发，
-          管理端不提供直接置为「已关闭」的入口。
-        </p>
+        <p>受理后请填写处理说明；不受理可直接驳回，并写明理由。</p>
+        <p>处理完成后，投诉人确认或超过时限后，该投诉会自动关闭。</p>
       </el-alert>
 
       <template v-if="props.actions.length > 0">
@@ -171,15 +168,14 @@ const title = computed(() =>
         type="warning"
         :closable="false"
         show-icon
-        title="当前状态不能再处理"
+        title="这条投诉不需要再处理"
       >
         <p>
-          「{{ props.complaint.status }}」是管理员流程的终态：
           {{
           props.complaint.status === '已处理'
-          ? '等待投诉人确认后由系统关闭'
-          : '该记录已结束，不能再退回处理'
-          }}。
+          ? '已给出处理结果，等待投诉人确认后自动关闭。'
+          : '该投诉已结束，不能再修改。'
+          }}
         </p>
       </el-alert>
     </template>

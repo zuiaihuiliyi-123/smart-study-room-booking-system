@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import BusinessError
 from app.models.enums import MessageType, ReservationStatus, SeatStatus
 from app.models.reservation import Reservation
-from app.models.room import Area, Room
+from app.models.reservation_slot import ReservationSlot
+from app.models.room import Area, Room, RoomClosure
 from app.models.seat import Seat
 from app.models.user import User
 from app.schemas.room import (
@@ -158,6 +159,75 @@ def update_room(
     return room
 
 
+def delete_room(db: Session, room_id: int, reason: str, operator_id: int) -> None:
+    """M1 / FR-001：删除自习室（仅限没有任何预约历史的自习室）。
+
+    预约记录是审计与统计的依据（DR-002 / NFR-009），因此只要该馆的座位产生过预约，
+    就不再允许物理删除，只能停用——停用后不再出现在可预约范围，历史数据仍可追溯。
+    """
+    text = reason.strip()
+    if not text:
+        raise BusinessError("请填写删除原因", code="REASON_REQUIRED", status_code=422)
+
+    room = db.get(Room, room_id)
+    if room is None:
+        raise BusinessError("自习室不存在", code="ROOM_NOT_FOUND", status_code=404)
+
+    seats = list(db.scalars(select(Seat).where(Seat.room_id == room_id)).all())
+    seat_ids = [seat.id for seat in seats]
+    if seat_ids:
+        history = db.scalar(
+            select(Reservation.id).where(Reservation.seat_id.in_(seat_ids)).limit(1)
+        )
+        if history is not None:
+            raise BusinessError(
+                "该自习室已有预约记录，不能删除，请改为停用",
+                code="ROOM_HAS_HISTORY",
+                status_code=409,
+            )
+        # 取消后释放时段也可能留下时段占位记录，同样视为历史
+        leftover = db.scalar(
+            select(ReservationSlot.id)
+            .where(ReservationSlot.seat_id.in_(seat_ids))
+            .limit(1)
+        )
+        if leftover is not None:
+            raise BusinessError(
+                "该自习室已有预约记录，不能删除，请改为停用",
+                code="ROOM_HAS_HISTORY",
+                status_code=409,
+            )
+
+    areas = list(db.scalars(select(Area).where(Area.room_id == room_id)).all())
+    # 先删子表再删父表，并逐段 flush，避免外键在同一个事务里仍在引用
+    for seat in seats:
+        db.delete(seat)
+    db.flush()
+    for area in areas:
+        db.delete(area)
+    db.flush()
+
+    audit_service.record(
+        db,
+        operator_id=operator_id,
+        action_type="ROOM_DELETE",
+        target_type="ROOM",
+        target_id=room.id,
+        reason=text,
+        before_value=str(
+            {
+                "name": room.name,
+                "location": room.location,
+                "area_count": len(areas),
+                "seat_count": len(seats),
+            }
+        ),
+        after_value=str({"deleted": True}),
+    )
+    db.delete(room)
+    db.commit()
+
+
 def list_areas(db: Session, room_id: int) -> list[Area]:
     if db.get(Room, room_id) is None:
         raise BusinessError("自习室不存在", code="ROOM_NOT_FOUND", status_code=404)
@@ -275,10 +345,16 @@ def close_room(
         )
 
     now = datetime.now()
-    for seat in seats:
-        seat.status = SeatStatus.DISABLED.value
+    closure = RoomClosure(
+        room_id=room.id,
+        area_id=payload.area_id,
+        start_at=payload.start_at,
+        end_at=payload.end_at,
+        reason=reason,
+        operator_id=operator_id,
+    )
+    db.add(closure)
 
-    affected_ids = {record.id for record in affected}
     cancelled = 0
     messages: list[dict] = []
     for record in affected:
@@ -317,41 +393,8 @@ def close_room(
                 )
             )
 
-    # 窗口外孤儿预约：被停用座位上、状态待使用、但不在关闭窗口内（不与窗口冲突），
-    # 座位已被全局停用导致无法签到/使用。按 BR-019 默认保留（不自动取消），
-    # 但须发站内提示告知用户联系管理员，避免预约静默失效（§5.7 消息异常不回滚核心业务）。
-    seat_ids_set = {seat.id for seat in seats}
-    outside_stmt = (
-        select(Reservation)
-        .where(
-            Reservation.seat_id.in_(seat_ids_set),
-            Reservation.status.in_(
-                (ReservationStatus.PENDING.value, ReservationStatus.IN_USE.value)
-            ),
-        )
-        .order_by(Reservation.reserve_date, Reservation.start_time)
-    )
-    if affected_ids:
-        outside_stmt = outside_stmt.where(Reservation.id.not_in(affected_ids))
-    outside_records = list(db.scalars(outside_stmt).all())
-    for record in outside_records:
-        messages.append(
-            dict(
-                user_id=record.user_id,
-                message_type=MessageType.SYSTEM,
-                title="你的预约所在座位已被停用",
-                content=(
-                    f"你 {record.reserve_date} 的预约所在座位"
-                    f"（{room.name}）因场地临时关闭（原因：{reason}）已被停用，"
-                    "该预约不在关闭窗口内故暂未取消。如需使用请联系管理员处理，"
-                    "或等待座位恢复后再签到。"
-                ),
-                related_type="预约单",
-                related_id=record.id,
-            )
-        )
-    notified_outside_window = len(outside_records)
-
+    # 关闭只生成时间窗记录，座位资源状态保持不变；窗口结束后自动失效，
+    # 因此不再需要「窗口外孤儿预约」的停用提示。
     audit_service.record(
         db,
         operator_id=operator_id,
@@ -359,18 +402,20 @@ def close_room(
         target_type="ROOM",
         target_id=room.id,
         reason=reason,
-        before_value=str({"seat_count": len(seats), "affected": actual_ids}),
+        before_value=str({"affected": actual_ids}),
         after_value=str(
             {
+                "closure_id": None,
                 "closed_seats": len(seats),
                 "cancelled": cancelled,
                 "kept": len(affected) - cancelled,
-                "notified_outside_window": notified_outside_window,
                 "window": [payload.start_at.isoformat(), payload.end_at.isoformat()],
+                "scope": "AREA" if payload.area_id else "ROOM",
             }
         ),
     )
     db.commit()
+    db.refresh(closure)
 
     for message in messages:
         notification_service.notify_safe(**message)
@@ -379,5 +424,67 @@ def close_room(
         closed_seats=len(seats),
         cancelled=cancelled,
         kept=len(affected) - cancelled,
-        notified_outside_window=notified_outside_window,
+        notified_outside_window=0,
     )
+
+
+def list_closures(db: Session, room_id: int) -> list[RoomClosure]:
+    """列出该自习室「尚未结束」的临时关闭记录（含未来时段），按开始时间升序。"""
+    if db.get(Room, room_id) is None:
+        raise BusinessError("自习室不存在", code="ROOM_NOT_FOUND", status_code=404)
+    stmt = (
+        select(RoomClosure)
+        .where(RoomClosure.room_id == room_id, RoomClosure.end_at > datetime.now())
+        .order_by(RoomClosure.start_at)
+    )
+    return list(db.scalars(stmt))
+
+
+def release_closure(
+    db: Session, room_id: int, closure_id: int, reason: str, operator_id: int
+) -> None:
+    """提前解除一条临时关闭记录。"""
+    text = (reason or "").strip()
+    if not text:
+        raise BusinessError("请填写解除原因", code="REASON_REQUIRED", status_code=422)
+
+    closure = db.get(RoomClosure, closure_id)
+    if closure is None or closure.room_id != room_id:
+        raise BusinessError(
+            "关闭记录不存在", code="CLOSURE_NOT_FOUND", status_code=404
+        )
+
+    audit_service.record(
+        db,
+        operator_id=operator_id,
+        action_type="ROOM_CLOSURE_RELEASE",
+        target_type="ROOM",
+        target_id=room_id,
+        reason=text,
+        before_value=str(
+            {
+                "closure_id": closure.id,
+                "area_id": closure.area_id,
+                "window": [closure.start_at.isoformat(), closure.end_at.isoformat()],
+            }
+        ),
+        after_value=str({"released": True}),
+    )
+    db.delete(closure)
+    db.commit()
+
+
+def active_closures(
+    db: Session, room_id: int, start_at: datetime, end_at: datetime
+) -> list[RoomClosure]:
+    """返回与给定时间窗重叠的关闭记录（供预约校验与座位图使用）。"""
+    stmt = (
+        select(RoomClosure)
+        .where(
+            RoomClosure.room_id == room_id,
+            RoomClosure.start_at < end_at,
+            RoomClosure.end_at > start_at,
+        )
+        .order_by(RoomClosure.start_at)
+    )
+    return list(db.scalars(stmt))

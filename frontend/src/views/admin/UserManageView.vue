@@ -206,14 +206,13 @@ onMounted(() => {
       </template>
     </section>
 
-    <el-alert class="notice" type="info" :closable="false" show-icon title="权限与隐私说明">
+    <el-alert class="notice" type="info" :closable="false" show-icon title="本页可以做什么">
       <p>
-        管理员<strong>仅可查询</strong>用户信息，<strong>不可编辑</strong>姓名、学号、院系等身份信息与密码；
-        联系方式只能由用户本人修改，管理员不能代改。因此本页没有任何编辑入口。
+        这里只能<strong>查询</strong>用户信息，不能修改姓名、学号、院系或密码；
+        联系方式也只有用户本人能改，因此本页没有编辑入口。
       </p>
       <p>
-        列表中手机号与邮箱只显示部分数字。
-        账户状态变更不在此页执行，请到「黑名单管理」页面处理。
+        列表中的手机号与邮箱只显示部分数字。要调整账户状态，请到「黑名单管理」。
       </p>
     </el-alert>
 

@@ -1,4 +1,4 @@
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -13,7 +13,7 @@ from app.models.enums import (
     SeatStatus,
 )
 from app.models.reservation import Reservation
-from app.models.room import Room
+from app.models.room import Room, RoomClosure
 from app.models.seat import Seat
 from app.models.user import User
 from app.utils import time_utils
@@ -57,6 +57,31 @@ def _parse_room_time(value: str) -> time:
             code="ROOM_TIME_INVALID",
             status_code=500,
         ) from exc
+
+
+def _blocking_closure(
+    db: Session,
+    seat: Seat,
+    reserve_date: date,
+    start_time: time,
+    end_time: time,
+) -> RoomClosure | None:
+    """返回与目标时段重叠、且覆盖该座位的临时关闭记录（无则 None）。"""
+    start_at = datetime.combine(reserve_date, start_time)
+    end_at = datetime.combine(reserve_date, end_time)
+    stmt = (
+        select(RoomClosure)
+        .where(
+            RoomClosure.room_id == seat.room_id,
+            RoomClosure.start_at < end_at,
+            RoomClosure.end_at > start_at,
+        )
+        .order_by(RoomClosure.start_at)
+    )
+    for closure in db.scalars(stmt).all():
+        if closure.area_id is None or closure.area_id == seat.area_id:
+            return closure
+    return None
 
 
 def _details(
@@ -239,6 +264,26 @@ def check_reservation_rules(
             ),
         )
 
+    # C2b 场地临时关闭（按时间窗生效，过期自动失效）
+    closure = _blocking_closure(
+        db, seat, reserve_date, start_time, end_time
+    )
+    if closure is not None:
+        raise BusinessError(
+            f"该时段场地临时关闭（原因：{closure.reason}），请另选时段",
+            code="ROOM_CLOSED",
+            status_code=409,
+            details=_details(
+                "C2",
+                "BR-019",
+                {
+                    "closure_id": closure.id,
+                    "start_at": closure.start_at.isoformat(),
+                    "end_at": closure.end_at.isoformat(),
+                },
+            ),
+        )
+
     # C6 每日次数上限
     daily_count = (
         db.scalar(
@@ -334,13 +379,17 @@ def list_available_seats(
     end_time: time,
     *,
     user_id: int,
+    include_user_conflict: bool = False,
 ) -> list[Seat]:
     """M2 / FR-013：查询某时段可预约的座位。
 
-    只读查询，按 C1（资源状态）、C3（座位占用）、C4（本人冲突）过滤；
+    只读查询，按 C1（资源状态）、C3（座位占用）过滤；
     C5/C6 在创建预约时强制校验。返回的座位**不包含**“已预约/使用中”状态，
     座位资源状态始终保持原值（第 10.0 节 MD-01）。
-    """
+
+    C4（本人时段冲突）默认仍会把结果清空——预约接口本身依旧拒绝冲突；
+    `include_user_conflict=True` 时保留座位明细，只用于界面展示占用情况
+    （本人已有预约时也要能看到别的座位是否被占）。"""
     if end_time <= start_time:
         raise BusinessError(
             "结束时间必须晚于开始时间，且一次预约不得跨日",
@@ -401,7 +450,23 @@ def list_available_seats(
         )
     }
 
-    # C4：当前用户在该时段已有有效预约时，任何座位都会与其冲突
+    # 场地临时关闭：窗口内的座位不进入可约集合（窗口结束后自动恢复）
+    start_at = datetime.combine(reserve_date, start_time)
+    end_at = datetime.combine(reserve_date, end_time)
+    closures = list(
+        db.scalars(
+            select(RoomClosure).where(
+                RoomClosure.room_id == room_id,
+                RoomClosure.start_at < end_at,
+                RoomClosure.end_at > start_at,
+            )
+        ).all()
+    )
+    closed_area_ids = {item.area_id for item in closures if item.area_id is not None}
+    room_closed = any(item.area_id is None for item in closures)
+
+    # C4：当前用户在该时段已有有效预约时，默认任何座位都会与其冲突；
+    # 界面需要展示占用明细时（include_user_conflict）照常返回，预约接口仍会拒绝。
     user_conflict = bool(
         _active_overlaps(
             db,
@@ -411,7 +476,14 @@ def list_available_seats(
             end_time=end_time,
         )
     )
-    if user_conflict:
+    if user_conflict and not include_user_conflict:
         return []
 
-    return [seat for seat in seats if seat.id not in occupied_seat_ids]
+    if room_closed:
+        return []
+
+    return [
+        seat
+        for seat in seats
+        if seat.id not in occupied_seat_ids and seat.area_id not in closed_area_ids
+    ]

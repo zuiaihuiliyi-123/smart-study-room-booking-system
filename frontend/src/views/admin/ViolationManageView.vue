@@ -179,14 +179,12 @@ onMounted(() => {
       </template>
     </section>
 
-    <el-alert class="notice" type="info" :closable="false" show-icon title="说明">
+    <el-alert class="notice" type="info" :closable="false" show-icon title="关于违约记录">
       <p>
-        违约记录分两类：「自动违约」由系统在签到截止后判定，「手动违约」由管理员登记。
-        累计达到 3 次，系统会限制该账户 7 天。
+        「自动违约」由系统在签到截止后记录，「手动违约」由管理员登记；
+        累计违约满 3 次，账户会被限制 7 天。
       </p>
-      <p>
-        本页不提供记录导出；违约处理过程由系统自动留痕。
-      </p>
+      <p>如对记录有疑问，可到「我的投诉」提交反馈。</p>
     </el-alert>
 
     <ViolationDetailDrawer v-model="detailVisible" :violation="detail" :directory="directory" />

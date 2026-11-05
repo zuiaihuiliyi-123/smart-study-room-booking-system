@@ -22,10 +22,10 @@ defineProps<{
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  padding-bottom: 14px;
-  margin-bottom: 18px;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
   border-bottom: 1px solid var(--ssr-line);
 }
 
@@ -36,17 +36,17 @@ defineProps<{
 h2 {
   margin: 0;
   color: var(--ssr-ink);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.3;
   letter-spacing: 0.2px;
 }
 
 p {
-  margin: 6px 0 0;
+  margin: 3px 0 0;
   color: var(--ssr-muted-ink);
-  font-size: var(--ssr-font-note);
-  line-height: 1.6;
+  font-size: calc(var(--ssr-font-note) - 1px);
+  line-height: 1.5;
 }
 
 .page-header__actions {

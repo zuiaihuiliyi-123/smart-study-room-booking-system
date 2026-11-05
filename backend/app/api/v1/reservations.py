@@ -69,6 +69,10 @@ def list_available_seats(
     reserve_date: date,
     start_time: time,
     end_time: time,
+    include_conflict: bool = Query(
+        False,
+        description="本人该时段已有预约时仍返回座位明细（只用于展示占用，不放开预约）",
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[Seat]:
@@ -79,6 +83,7 @@ def list_available_seats(
         start_time,
         end_time,
         user_id=current_user.id,
+        include_user_conflict=include_conflict,
     )
 
 

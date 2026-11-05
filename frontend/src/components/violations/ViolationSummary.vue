@@ -28,7 +28,7 @@ const consequence = computed(() => {
   if (props.tone === 'warn') {
     return `再发生 ${props.remaining} 次违约即达到阈值 ${props.threshold} 次，届时账户将被限制 ${days} 天。`
   }
-  return `累计达到 ${props.threshold} 次有效违约将触发限制 ${days} 天，期满自动解除。`
+  return `累计达到 ${props.threshold} 次违约将触发限制 ${days} 天，期满自动解除。`
 })
 </script>
 
@@ -50,7 +50,7 @@ const consequence = computed(() => {
       />
       <p class="summary__consequence">{{ consequence }}</p>
       <p class="ssr-text-muted">
-        违约次数由有效违约记录累加得出；记录不可撤销，次数不会回退。
+        违约次数由违约记录累加得出；记录不可撤销，次数不会回退。
       </p>
     </div>
 
@@ -78,7 +78,7 @@ const consequence = computed(() => {
           <span v-else>管理员手动限制，没有自动解除时间，须由管理员解除</span>
         </p>
         <p class="summary__label">
-          限制规则：累计有效违约满 {{ props.threshold }} 次自动限制 7 天，期满自动解除。
+          限制规则：累计违约满 {{ props.threshold }} 次，账户被限制 7 天，期满自动解除。
         </p>
       </div>
     </el-alert>

@@ -88,7 +88,7 @@ async function onSubmit(): Promise<void> {
   >
     <AuditNotice
       :scope="props.scopeLabel"
-      :extra="'黑名单记录保留 1 年；加入时必须填写限制原因，加入后账户转为「受限」，该用户无法创建新预约。'"
+      :extra="'加入时必须填写限制原因；加入后账户转为「受限」，该用户无法创建新预约。'"
     />
 
     <el-form ref="formRef" :model="form" :rules="rules" label-width="112px">

@@ -153,13 +153,26 @@ export interface ConflictPreview {
   reservations: Reservation[]
 }
 
-/** 临时关闭的执行结果：关闭座位数、按管理员选择批量取消的预约数、按默认口径保留的预约数、
- * 关闭窗口外座位被停用后无法使用但已发提示的未来预约数。 */
+/** 临时关闭的执行结果：关闭范围内的座位数、按管理员选择批量取消的预约数、按默认口径保留的预约数。 */
 export interface RoomCloseResult {
   closed_seats: number
   cancelled: number
   kept: number
+  /** 兼容字段：关闭不再停用座位，窗口外预约不受影响，恒为 0。 */
   notified_outside_window?: number
+}
+
+/** 一条场地临时关闭记录：只在 [start_at, end_at) 内生效，窗口结束自动失效。 */
+export interface RoomClosure {
+  id: number
+  room_id: number
+  /** 为空表示整间自习室关闭，否则只关闭该分区 */
+  area_id?: number | null
+  start_at: string
+  end_at: string
+  reason: string
+  operator_id: number
+  created_at: string
 }
 
 /** 批量调整座位资源状态的结果：已更新的座位 + 仅作提示、未被自动取消的冲突预约。 */

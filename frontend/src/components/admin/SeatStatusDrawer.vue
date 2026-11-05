@@ -114,14 +114,12 @@ const summary = computed(() =>
           :model-value="props.conflictTo"
           type="datetime"
           value-format="YYYY-MM-DDTHH:mm"
-          placeholder="窗口结束（不含）"
-          aria-label="影响窗口（结束，不含）"
+          placeholder="窗口结束"
+          aria-label="影响窗口（结束）"
           class="w-datetime"
           @update:model-value="emit('update:conflictTo', String($event ?? ''))"
         />
-        <p class="ssr-text-muted hint">
-          该窗口只用于圈定「冲突的有效预约」（待使用 / 使用中），默认覆盖未来 7 天。
-        </p>
+        <p class="ssr-text-muted hint">默认覆盖未来 7 天内的预约。</p>
       </el-form-item>
 
       <el-form-item v-if="windowError" label=" ">
@@ -131,10 +129,10 @@ const summary = computed(() =>
 
     <div class="drawer-actions step">
       <el-button :loading="props.conflictLoading" :disabled="windowError !== ''" @click="emit('check')">
-        查询冲突预约
+        查询受影响的预约
       </el-button>
       <span class="ssr-text-muted">
-        查询不会改动任何数据；调整前先看冲突清单，系统不会自动取消任何预约。
+        查询不会改动任何数据；调整前先看受影响的预约，系统不会自动取消任何预约。
       </span>
     </div>
 

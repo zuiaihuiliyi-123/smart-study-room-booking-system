@@ -7,7 +7,7 @@
  */
 import StatusTag from '@/components/StatusTag.vue'
 import type { Room, Seat } from '@/types'
-import { shortTime, timeRangeText } from '@/utils/bookingRules'
+import { timeRangeText } from '@/utils/bookingRules'
 
 defineProps<{
   seat: Seat
@@ -48,24 +48,16 @@ defineProps<{
         <dt>时段占用</dt>
         <dd>
           {{ occupancyLabel }}
-          <span class="ssr-text-muted">（两者互不影响）</span>
         </dd>
       </div>
       <div>
-        <dt>预约日期</dt>
-        <dd>{{ reserveDate }}</dd>
-      </div>
-      <div>
         <dt>预约时段</dt>
-        <dd>{{ timeRangeText(startTime, endTime) }}</dd>
-      </div>
-      <div>
-        <dt>开放时间</dt>
-        <dd>{{ room ? `${shortTime(room.open_time)}–${shortTime(room.close_time)}` : '—' }}</dd>
+        <dd>
+          {{ reserveDate }} {{ timeRangeText(startTime, endTime) }}
+          <span class="ssr-text-muted">（{{ durationNote }}）</span>
+        </dd>
       </div>
     </dl>
-
-    <p class="drawer-note">{{ durationNote }}</p>
   </section>
 </template>
 
@@ -91,12 +83,4 @@ defineProps<{
   margin: 0;
 }
 
-.drawer-note {
-  padding: 8px 10px;
-  margin: 10px 0 0;
-  color: var(--ssr-muted-ink);
-  font-size: var(--ssr-font-note);
-  background: var(--ssr-bg);
-  border-radius: var(--ssr-radius-sm);
-}
 </style>

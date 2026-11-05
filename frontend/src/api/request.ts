@@ -64,7 +64,7 @@ export const http = {
   patch<T>(url: string, data?: unknown) {
     return request.patch<unknown, T>(url, data)
   },
-  delete<T>(url: string) {
-    return request.delete<unknown, T>(url)
+  delete<T>(url: string, params?: object, options?: RequestOptions) {
+    return request.delete<unknown, T>(url, { params, ...options })
   },
 }

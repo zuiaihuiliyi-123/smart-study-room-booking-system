@@ -1,12 +1,24 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 
+import BookingActionBar from '@/components/booking/BookingActionBar.vue'
 import BookingFilter from '@/components/booking/BookingFilter.vue'
 import BookingResultPanel from '@/components/booking/BookingResultPanel.vue'
 import SeatDetailDrawer from '@/components/booking/SeatDetailDrawer.vue'
 import type { MatrixCell } from '@/components/booking/types'
 import PageHeader from '@/components/PageHeader.vue'
+import { type SeatCellState, timeRangeText } from '@/utils/bookingRules'
 import { useSeatBooking } from '@/utils/useSeatBooking'
+
+/** 底部操作条里的状态用短词，括号里的解释留给座位详情 */
+const STATE_SHORT: Record<SeatCellState, string> = {
+  free: '可约',
+  taken: '已被预约',
+  unknown: '占用暂不显示',
+  closed: '临时关闭',
+  fix: '维修中',
+  off: '已停用',
+}
 
 const {
   rooms,
@@ -15,6 +27,7 @@ const {
   loadError,
   dateOptions,
   room,
+  seats,
   openTime,
   closeTime,
   seatTypes,
@@ -26,6 +39,8 @@ const {
   blockedHint,
   summary,
   hint,
+  occupancyKnown,
+  mySeatIds,
   drawerVisible,
   selectedSeat,
   selectedSeatId,
@@ -45,6 +60,29 @@ const {
   findAlternative,
 } = useSeatBooking()
 
+const dateText = computed(
+  () => dateOptions.value.find((item) => item.value === filters.reserveDate)?.label ?? filters.reserveDate,
+)
+
+const timeText = computed(() => timeRangeText(filters.startTime, filters.endTime))
+
+const seatStateText = computed(() => {
+  if (!selectedSeat.value) return ''
+  const cell = groups.value.flatMap((group) => group.cells).find((item) => item.seat.id === selectedSeat.value?.id)
+  return cell ? STATE_SHORT[cell.state] : ''
+})
+
+/** 这间自习室一个座位都没有（新开馆还没录入座位时会出现） */
+const roomEmpty = computed(() => !loading.value && seats.value.length === 0)
+
+/** 换到下一间有座位的自习室 */
+function switchRoom() {
+  const next = rooms.value.find((item) => item.id !== filters.roomId)
+  if (!next) return
+  filters.roomId = next.id
+  applyRoomChange()
+}
+
 function onSelect(cell: MatrixCell) {
   openSeat(cell.seat)
 }
@@ -55,16 +93,18 @@ function clearSeatFilter() {
   filters.windowOnly = false
 }
 
+/** 底部操作条的「确认预约」：把抽屉重新打开，让用户看判断结果再提交 */
+function confirmPick() {
+  if (selectedSeat.value) drawerVisible.value = true
+}
+
 // 切回「今天」时若原时段已过，自动收敛到下一个可预约时段
 watch(() => filters.reserveDate, applyDateChange)
 </script>
 
 <template>
   <div class="page booking-page">
-    <PageHeader
-      title="预约座位"
-      subtitle="按自习室、日期与时段查找可预约的座位，选中后创建预约"
-    />
+    <PageHeader title="预约座位" />
 
     <div class="booking-layout">
       <BookingFilter
@@ -76,27 +116,39 @@ watch(() => filters.reserveDate, applyDateChange)
         :close-time="closeTime"
         :min-start-time="minStartTime"
         :loading="loading"
-        :hint="hint"
         @search="query"
         @reset="resetFilters"
         @room-change="applyRoomChange"
+        @date-change="applyDateChange"
       />
 
       <BookingResultPanel
         :loading="loading"
         :error="loadError"
-        :user-block="userBlock"
-        :blocked-hint="blockedHint"
         :groups="groups"
         :selected-seat-id="selectedSeatId"
+        :mine-ids="mySeatIds"
         :summary="summary"
         :hint="hint"
         :free-count="freeCount"
         :visible-count="visibleCount"
+        :room-empty="roomEmpty"
+        :no-room="rooms.length === 0"
         @retry="query"
-        @alternative="findAlternative"
         @clear-seat-filter="clearSeatFilter"
+        @switch-room="switchRoom"
         @select="onSelect"
+      />
+
+      <BookingActionBar
+        :seat="selectedSeat"
+        :date-text="dateText"
+        :time-text="timeText"
+        :state-text="seatStateText"
+        :blocked="userBlock !== null"
+        :blocked-text="blockedHint"
+        @confirm="confirmPick"
+        @alternative="findAlternative"
       />
     </div>
 
@@ -114,35 +166,22 @@ watch(() => filters.reserveDate, applyDateChange)
       :success="success"
       :stale-reason="staleReason"
       :can-submit="canSubmit"
+      :mine="selectedSeat ? mySeatIds.includes(selectedSeat.id) : false"
       @submit="submit"
     />
   </div>
 </template>
 
 <style scoped>
+/* 筛选条置顶、座位图整宽、操作条吸底：横向空间全部留给座位矩阵 */
 .booking-layout {
-  display: grid;
-  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .booking-page {
   /* 抽屉为非模态，右侧留出 8px 视觉呼吸位；窄屏由抽屉自身宽度兜底 */
-  padding-bottom: 40px;
-}
-
-/* 三档宽度：≤1024px 筛选栏置顶、矩阵整宽；≥1025px 左筛选 + 右矩阵（抽屉从右侧覆盖） */
-@media (min-width: 1025px) {
-  .booking-layout > :first-child {
-    position: sticky;
-    top: 12px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .booking-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  padding-bottom: 8px;
 }
 </style>

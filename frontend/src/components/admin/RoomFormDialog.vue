@@ -8,8 +8,8 @@
  * - 「变更说明」为审计事由（NFR-009），必填。
  *
  * 口径提示：本对话框的「启用状态」只改自习室**自身**的启用标记（FR-001 用停用代替删除）。
- * 后端第 4.4.2 节的 C1 判定目前不引用 `room.enabled`，所以停用自习室**不会**让它的座位
- * 变为不可预约——要立即阻止预约须走「临时关闭」（FR-016 / BR-022），界面已就地说明。
+ * 停用后该馆不再出现在可预约范围内（后端取数与下单都会校验 `room.enabled`）；
+ * 若只想关掉某个时段或某个分区，仍走「临时关闭」（FR-016 / BR-022）。
  */
 import { computed, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -55,7 +55,7 @@ const rules: FormRules = {
   open_time: [{ required: true, message: '请选择开放时间', trigger: 'change' }],
   close_time: [{ required: true, message: '请选择闭馆时间', trigger: 'change' }],
   reason: [
-    { required: true, message: '请填写变更说明：该说明会写入审计日志', trigger: 'blur' },
+    { required: true, message: '请填写变更说明，该说明会写入审计日志', trigger: 'blur' },
     { max: 255, message: '说明不超过 255 字', trigger: 'blur' },
   ],
 }

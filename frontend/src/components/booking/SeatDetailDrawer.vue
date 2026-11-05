@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { CircleCheckFilled, CircleCloseFilled, WarningFilled } from '@element-plus/icons-vue'
+import { computed, type Component } from 'vue'
 
-import RuleChecklist from '@/components/booking/RuleChecklist.vue'
 import SeatSummaryList from '@/components/booking/SeatSummaryList.vue'
 import type { BookingFailure, JudgementItem, SubmitState, SubmitSuccess } from '@/components/booking/types'
 import type { Room, Seat } from '@/types'
@@ -29,6 +29,8 @@ const props = defineProps<{
   /** 已选座位不在当前筛选结果中时的说明 */
   staleReason: string
   canSubmit: boolean
+  /** 这个座位是不是你自己在这个时段已经约下的 */
+  mine?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -41,15 +43,15 @@ const minutes = computed(() => slotMinutes(props.startTime, props.endTime))
 /** 时段占用（派生结论）与上面的资源状态分开呈现，两者不合并（AGENTS.md §4）。 */
 const occupancyLabel = computed(() => {
   const state = props.judgements.find((item) => item.id === 'C3')?.state ?? 'unknown'
-  if (state === 'pass') return '可约（该时段无其他有效预约）'
-  if (state === 'fail') return '该时段已被预约'
+  if (state === 'pass') return '可约'
+  if (state === 'fail') return props.mine ? '你已预约这个座位' : '该时段已被预约'
   return '暂无法判断'
 })
 
 const durationNote = computed(() => {
   const total = minutes.value
   if (total <= 0) return '结束时间须晚于开始时间'
-  return `时长 ${durationText(total)}（上限 ${BOOKING_RULES.maxHours} 小时）；时段含开始、不含结束，结束后该时段会自动重新开放。`
+  return `${durationText(total)}`
 })
 
 const failureTitle = computed(() => {
@@ -72,9 +74,45 @@ const failedJudgementText = computed(() => {
   return hit ? hit.title : ''
 })
 
+/** 只回答「能不能约」：一句结论 + 一句原因，不再逐条展开检查项 */
+const verdict = computed<{ tone: 'ok' | 'no' | 'wait'; icon: Component; title: string; note: string }>(() => {
+  if (props.submitState === 'submitted') {
+    return {
+      tone: 'ok',
+      icon: CircleCheckFilled,
+      title: '已提交成功',
+      note: '再次打开时会显示该时段属于你',
+    }
+  }
+
+  const failed = props.judgements.filter((item) => item.state === 'fail')
+  const firstFailed = failed[0]
+  if (firstFailed) {
+    const extra = failed.length > 1 ? `（另有 ${failed.length - 1} 项不满足）` : ''
+    return {
+      tone: 'no',
+      icon: CircleCloseFilled,
+      title: '暂时不能预约',
+      note: `${firstFailed.detail}${extra}`,
+    }
+  }
+
+  const unknown = props.judgements.find((item) => item.state === 'unknown')
+  if (unknown) {
+    return { tone: 'wait', icon: WarningFilled, title: '暂无法判断', note: unknown.detail }
+  }
+
+  return {
+    tone: 'ok',
+    icon: CircleCheckFilled,
+    title: '可以预约',
+    note: '所选时段空闲，确认后点「提交预约」即可',
+  }
+})
+
 const submitLabel = computed(() => {
   if (props.submitState === 'submitting') return '提交中'
-  if (props.submitState === 'submitted') return '已提交，请勿重复操作'
+  if (props.submitState === 'submitted') return '已提交'
   return '提交预约'
 })
 
@@ -106,15 +144,14 @@ function onClose() {
         :duration-note="durationNote"
       />
 
-      <section class="drawer-block">
-        <h4 class="drawer-block__title">
-          预约前检查
-          <span v-if="props.submitState === 'submitted'" class="ssr-text-muted">
-            提交成功后重新检查：该时段此刻已归你占用，因此「座位时段占用」「我的时段占用」「每日次数」会显示为未通过
-          </span>
-          <span v-else class="ssr-text-muted">提交前自动检查，最终以下单结果为准</span>
-        </h4>
-        <RuleChecklist :items="props.judgements" />
+      <section v-if="props.submitState !== 'submitted'" class="drawer-block">
+        <div class="verdict" :class="`verdict--${verdict.tone}`">
+          <el-icon class="verdict__icon"><component :is="verdict.icon" /></el-icon>
+          <div class="verdict__body">
+            <strong class="verdict__title">{{ verdict.title }}</strong>
+            <p class="verdict__note">{{ verdict.note }}</p>
+          </div>
+        </div>
       </section>
 
       <el-alert
@@ -157,19 +194,11 @@ function onClose() {
         type="success"
         :closable="false"
         show-icon
-        title="已提交，请勿重复操作"
+        title="预约成功"
+        :description="`${props.success.seatText} · ${props.success.reserveDate} ${timeRangeText(props.success.startTime, props.success.endTime)}`"
       >
         <p>
-          预约单号 #{{ props.success.id }} · {{ props.success.seatText }} ·
-          {{ props.success.reserveDate }} {{ timeRangeText(props.success.startTime, props.success.endTime) }}
-        </p>
-        <p>
-          签到时间窗：<strong>{{ props.success.window.rangeText }}</strong>
-          （{{ props.success.window.opensText }} 至 {{ props.success.window.closesText }}，开始前
-          {{ BOOKING_RULES.checkinEarly }} 分钟至开始后 {{ BOOKING_RULES.checkinLate }} 分钟）
-        </p>
-        <p class="ssr-text-muted">
-          该时段对他人已变为不可预约；座位资源状态保持「可用」不变（D-04）。
+          签到时间：<strong>{{ props.success.window.rangeText }}</strong>，请按时到座签到。
         </p>
       </el-alert>
     </template>
@@ -191,42 +220,29 @@ function onClose() {
 </template>
 
 <style scoped>
-  .drawer-block + .drawer-block {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--ssr-line);
-}
+.drawer-block + .drawer-block { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--ssr-line); }
+.drawer-block__title { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; margin: 0 0 8px; font-size: 15px; font-weight: 600; }
+.drawer-block__title .ssr-text-muted { font-weight: 400; }
 
-  .drawer-block__title {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: baseline;
-  margin: 0 0 8px;
-  font-size: 15px;
-  font-weight: 600;
-}
+/* 一句结论：能不能约。底色 + 图标 + 文字三重区分，不只靠颜色 */
+.verdict { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--ssr-line); border-radius: var(--ssr-radius); }
+.verdict__icon { margin-top: 1px; font-size: 18px; }
+.verdict__body { min-width: 0; }
+.verdict__title { display: block; font-size: 15px; line-height: 1.4; }
+.verdict__note { margin: 3px 0 0; font-size: var(--ssr-font-note); line-height: 1.7; color: var(--ssr-muted-ink); }
+.verdict--ok { border-color: color-mix(in srgb, var(--ssr-success) 32%, transparent); background: var(--ssr-success-bg); }
+.verdict--ok .verdict__icon,
+.verdict--ok .verdict__title { color: var(--ssr-success); }
+.verdict--no { border-color: color-mix(in srgb, var(--ssr-danger) 32%, transparent); background: var(--ssr-danger-bg); }
+.verdict--no .verdict__icon,
+.verdict--no .verdict__title { color: var(--ssr-danger); }
+.verdict--wait { border-color: color-mix(in srgb, var(--ssr-warning) 32%, transparent); background: var(--ssr-warning-bg); }
+.verdict--wait .verdict__icon,
+.verdict--wait .verdict__title { color: var(--ssr-warning-ink); }
 
-  .drawer-block__title .ssr-text-muted {
-  font-weight: 400;
-}
-
-
-  .drawer-alert {
-  margin-top: 14px;
-}
-
-  .drawer-alert p {
-  margin: 2px 0 0;
-  font-size: var(--ssr-font-note);
-  line-height: 1.7;
-}
-
-  .drawer-footer {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
+.drawer-alert { margin-top: 14px; }
+.drawer-alert p { margin: 2px 0 0; font-size: var(--ssr-font-note); line-height: 1.7; }
+.drawer-footer { display: flex; gap: 8px; justify-content: flex-end; }
 </style>
 
 <!--
@@ -244,5 +260,3 @@ function onClose() {
   pointer-events: auto;
 }
 </style>
-
-

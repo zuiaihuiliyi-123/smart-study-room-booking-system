@@ -69,7 +69,7 @@ onMounted(() => {
       <header class="ssr-card__head">
         <h3>违约记录</h3>
         <span class="ssr-text-muted">
-          共 {{ total }} 条 · 记录保留 1 年；违约记录不可撤销，也不提供申诉入口
+          共 {{ total }} 条 · 违约记录不可撤销，也不能通过本页删除
         </span>
       </header>
 

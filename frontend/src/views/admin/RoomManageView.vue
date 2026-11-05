@@ -6,8 +6,8 @@
  * 详情与复杂操作一律 el-drawer（分区管理、临时关闭），轻量表单用 el-dialog（新增 / 编辑）。
  *
  * 关键口径（全部来自需求条文，未自行裁定）：
- * - FR-001：新增 / 修改 / 停用自习室与分区，维护名称、位置、开放时间与容量；
- *   本版**不提供物理删除**（Q-032：用「停用」代替删除，避免历史记录失去关联对象）。
+ * - FR-001：新增 / 修改 / 停用 / 删除自习室与分区，维护名称、位置、开放时间与容量；
+ *   有预约历史的自习室只能停用（删除会丢失审计与统计依据，后端会拒绝）。
  * - BR-019 / BR-022：场地临时关闭必须先列受影响预约清单 → 二次确认 → 才执行；
  *   确认前不得自动取消用户预约（清单与选择见 `RoomCloseDrawer.vue`）。
  * - NFR-009：所有写操作都提示「本次操作将记入审计日志」并收集原因。
@@ -54,6 +54,8 @@ const {
   openAreas,
   openClose,
   submitForm,
+  toggleEnabled,
+  remove,
   seatCount,
   areaCount,
 } = useRoomManage()
@@ -160,11 +162,29 @@ onMounted(() => {
               </template>
             </el-table-column>
 
-            <el-table-column label="操作" width="230" fixed="right">
+            <el-table-column label="操作" width="300" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
                 <el-button link type="primary" size="small" @click="openAreas(row)">分区管理</el-button>
-                <el-button link type="danger" size="small" @click="openClose(row)">临时关闭</el-button>
+                <el-button link type="primary" size="small" @click="openClose(row)">临时关闭</el-button>
+                <el-button
+                  link
+                  :type="row.enabled ? 'warning' : 'success'"
+                  size="small"
+                  :loading="submitting"
+                  @click="toggleEnabled(row)"
+                >
+                  {{ row.enabled ? '停用' : '启用' }}
+                </el-button>
+                <el-button
+                  link
+                  type="danger"
+                  size="small"
+                  :loading="submitting"
+                  @click="remove(row)"
+                >
+                  删除
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -190,13 +210,17 @@ onMounted(() => {
       type="info"
       :closable="false"
       show-icon
-      title="关于「启用状态」与「临时关闭」的区别"
+      title="停用、临时关闭与删除"
     >
       <p>
-        「启用状态」只改自习室自身的标记，不影响座位是否可被预约，
-        因此停用自习室不会让它的座位变成不可预约。
-        「临时关闭」会先列出受影响的预约，再把范围内座位置为「停用」，
-        可选的批量取消不计违约。两者语义不同，请按实际场景选择。
+        「停用」后该自习室不再出现在可预约范围，历史预约与统计保留；「启用」随时可恢复。
+      </p>
+      <p>
+        「临时关闭」会先列出受影响的预约，再把相关座位置为「停用」；
+        如果同时取消这些预约，取消不会记为违约。
+      </p>
+      <p>
+        只有从未产生过预约的自习室才能「删除」；有预约历史的会被拒绝，请改用停用。
       </p>
     </el-alert>
 

@@ -102,7 +102,7 @@ touched.value = false
   <section class="ssr-card form">
     <header class="ssr-card__head">
       <h3>提交投诉</h3>
-      <span class="ssr-text-muted">提交后状态为「待处理」</span>
+      <span class="ssr-text-muted">提交后由管理员受理</span>
     </header>
 
     <el-form label-position="top" @submit.prevent>
@@ -154,8 +154,7 @@ touched.value = false
 
     <div class="form__foot">
       <p class="ssr-text-muted form__note">
-        约束：内容必填且不超过 {{ CONTENT_MAX }} 字；投诉由用户发起，管理员只在「投诉处理」中受理
-        （权限要求）。处理时限为自提交起 3 个工作日。
+        投诉由管理员在 3 个工作日内处理，可在「我的投诉」查看处理结果。
       </p>
       <el-button type="primary" :loading="props.submitting" @click="onSubmit">
         {{ props.submitting ? '提交中' : '提交投诉' }}

@@ -1,5 +1,5 @@
 import { http } from './request'
-import type { Area, ConflictPreview, Room, RoomCloseResult } from '@/types'
+import type { Area, ConflictPreview, Room, RoomClosure, RoomCloseResult } from '@/types'
 
 export const listRooms = () => http.get<Room[]>('/rooms')
 
@@ -17,6 +17,15 @@ export const createArea = (roomId: number, name: string, reason?: string) =>
 
 /** 分区列表（FR-001 / 座位筛选需要）。 */
 export const listAreas = (roomId: number) => http.get<Area[]>(`/rooms/${roomId}/areas`)
+
+/**
+ * 删除自习室（FR-001）。
+ *
+ * 仅允许删除没有任何预约记录的自习室；有历史记录时后端返回 409 `ROOM_HAS_HISTORY`，
+ * 提示改为停用（历史预约与统计需要保留）。
+ */
+export const deleteRoom = (roomId: number, reason: string) =>
+  http.delete<void>(`/rooms/${roomId}`, { reason })
 
 export interface RoomCloseQuery {
   /** 关闭窗口起点（含），形如 `2026-10-30T08:00` */
@@ -43,6 +52,19 @@ export interface RoomCloseRequest extends RoomCloseQuery {
 export const previewRoomClose = (roomId: number, params: RoomCloseQuery) =>
   http.get<ConflictPreview>(`/rooms/${roomId}/close-preview`, params)
 
-/** BR-022 第二步：执行关闭（座位资源状态转「停用」；按选择决定是否批量取消受影响预约）。 */
+/**
+ * BR-022 第二步：执行关闭。
+ *
+ * 后端只写入一条「临时关闭记录」，在 [start_at, end_at) 内生效，窗口结束自动失效；
+ * 座位资源状态保持不变。按 `cancel_affected` 决定是否同时取消受影响预约。
+ */
 export const closeRoom = (roomId: number, data: RoomCloseRequest) =>
   http.post<RoomCloseResult>(`/rooms/${roomId}/close`, data)
+
+/** 未结束的临时关闭记录（学生端也用：座位图据此标出「临时关闭」）。 */
+export const listRoomClosures = (roomId: number) =>
+  http.get<RoomClosure[]>(`/rooms/${roomId}/closures`)
+
+/** 提前解除一条临时关闭记录（管理员，原因必填）。 */
+export const releaseRoomClosure = (roomId: number, closureId: number, reason: string) =>
+  http.delete<void>(`/rooms/${roomId}/closures/${closureId}`, { reason })

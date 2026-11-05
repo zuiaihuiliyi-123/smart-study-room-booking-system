@@ -116,7 +116,7 @@ export function trendOptionOf(points: TrendPoint[], mode: ThemeMode): EChartsOpt
   const dates = points.map((point) => point.date.slice(5))
   return {
     tooltip: { ...styles.tooltipBase, trigger: 'axis' },
-    legend: { ...styles.legendBase, data: ['每日有效预约数', '每日违约数'] },
+    legend: { ...styles.legendBase, data: ['每日预约数', '每日违约数'] },
     grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
     xAxis: {
       type: 'category',
@@ -137,7 +137,7 @@ export function trendOptionOf(points: TrendPoint[], mode: ThemeMode): EChartsOpt
     },
     series: [
       {
-        name: '每日有效预约数',
+        name: '每日预约数',
         type: 'line',
         smooth: true,
         symbolSize: 6,

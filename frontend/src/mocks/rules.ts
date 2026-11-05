@@ -285,7 +285,7 @@ export function parseSlot(input: SlotInput): Result<Slot> {
       return fail(
         400,
         'DAILY_LIMIT',
-        `每位用户每日最多 ${RULES.dailyLimit} 条有效预约，你当日已有 ${dailyCount} 条`,
+        `每位用户每日最多 ${RULES.dailyLimit} 条预约，你当日已有 ${dailyCount} 条`,
       { rule: 'BR-004' },
     )
   }
@@ -308,7 +308,7 @@ export function parseSlot(input: SlotInput): Result<Slot> {
           overlapsSlot(item, slot),
       )
       if (userConflict) {
-        return fail(400, 'USER_CONFLICT', `你在 ${readableRange(userConflict)} 已有有效预约，该时段不能重复预约`, {
+        return fail(400, 'USER_CONFLICT', `你在 ${readableRange(userConflict)} 已有预约，该时段不能重复预约`, {
       rule: 'BR-005',
     })
   }
@@ -414,7 +414,7 @@ export function validateSeatQuery(
               return fail(
                 400,
                 'CHECKIN_EXPIRED',
-                `已超过签到截止时间 ${readableDateTime(formatDateTime(closesAt))}（开始后 ${RULES.checkinLate} 分钟），该预约将判定为违约`,
+                `已超过签到截止时间 ${readableDateTime(formatDateTime(closesAt))}（开始后 ${RULES.checkinLate} 分钟），该预约将记为违约`,
       { rule: 'BR-007', window_closed_at: formatDateTime(closesAt) },
     )
   }

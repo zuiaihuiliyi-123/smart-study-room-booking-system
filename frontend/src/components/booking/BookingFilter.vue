@@ -1,16 +1,18 @@
 <script setup lang="ts">
+import { Refresh } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 
+import RoomStrip from '@/components/booking/RoomStrip.vue'
 import type { BookingFilters } from '@/components/booking/types'
 import type { Room } from '@/types'
-import { BOOKING_RULES, durationText, minutesToTimeText, parseTimeToMinutes, shortTime } from '@/utils/bookingRules'
+import { BOOKING_RULES, durationText, minutesToTimeText, parseTimeToMinutes } from '@/utils/bookingRules'
 import type { DateOption } from '@/utils/bookingRules'
 
 /**
- * 左栏筛选面板。
+ * 顶部工具条：日期 / 自习室 / 时段 / 筛选。
  *
- * `filters` 由页面持有并**就地编辑**（表单绑定对象字段，不触发 prop 赋值告警）；
- * 点击「查询」才把当前值提交给页面重新取数，因此改动筛选不会清空其他条件与已选座位。
+ * `filters` 由页面持有并**就地编辑**；改动日期、自习室或时间都会自动重新取数，
+ * 「刷新」只是手动兜底。
  */
 const props = defineProps<{
   filters: BookingFilters
@@ -22,17 +24,28 @@ const props = defineProps<{
   /** 今天的最早可选开始时间（已过时刻不可选） */
   minStartTime: string
   loading: boolean
-  /** 查询结果摘要，如「可约 24 / 30 座」 */
-  hint: string
 }>()
 
 const emit = defineEmits<{
   (e: 'search'): void
   (e: 'reset'): void
   (e: 'room-change'): void
+  (e: 'date-change'): void
 }>()
 
-/** 结束时间上限：开始时间 + 4 小时，且不超过闭馆时间（BR-003）。 */
+/** 日期条：上面一行写「今天/明天/后天」或周几，下面一行写具体日期，八档宽度一致 */
+const dateChips = computed(() =>
+  props.dateOptions.map((option) => {
+    const [head, rest] = option.label.includes(' · ') ? option.label.split(' · ') : ['', option.label]
+    if (head) {
+      const [date] = rest.split(' ')
+      return { value: option.value, top: head, sub: date ?? '' }
+    }
+    const [date, weekday] = rest.split(' ')
+    return { value: option.value, top: weekday ?? rest, sub: date ?? '' }
+  }),
+)
+
 const maxEndTime = computed(() => {
   const start = parseTimeToMinutes(props.filters.startTime)
   const close = parseTimeToMinutes(props.closeTime) ?? 22 * 60
@@ -43,8 +56,8 @@ const maxEndTime = computed(() => {
 const durationHint = computed(() => {
   const start = parseTimeToMinutes(props.filters.startTime)
   const end = parseTimeToMinutes(props.filters.endTime)
-  if (start === null || end === null || end <= start) return '请选择开始与结束时间（结束须晚于开始）'
-  return `本次时长 ${durationText(end - start)}，上限 ${BOOKING_RULES.maxHours} 小时`
+  if (start === null || end === null || end <= start) return '结束时间需要晚于开始时间'
+  return `本次 ${durationText(end - start)}`
 })
 
 /** 开始时间变化后，结束时间若越界则自动收敛到合法值，避免留下无效组合。 */
@@ -58,181 +71,189 @@ function onStartChange() {
     props.filters.endTime = minutesToTimeText(Math.min(start + 120, maxEnd))
   }
 }
+
+function pickDate(value: string) {
+  if (props.filters.reserveDate === value) return
+  props.filters.reserveDate = value
+  emit('date-change')
+}
+
+function pickRoom(id: number) {
+  if (props.filters.roomId === id) return
+  props.filters.roomId = id
+  emit('room-change')
+}
 </script>
 
 <template>
-  <aside class="booking-filter" aria-label="筛选条件">
-    <el-form label-position="top" size="default" @submit.prevent>
-      <el-form-item label="自习室">
-        <el-select
-          v-model="filters.roomId"
-          class="booking-filter__full"
-          placeholder="请选择自习室"
-          @change="emit('room-change')"
-        >
-          <el-option
-            v-for="room in props.rooms"
-            :key="room.id"
-            :label="`${room.name}（${room.location}）`"
-            :value="room.id"
-          />
-        </el-select>
-      </el-form-item>
+  <section class="booking-bar" aria-label="筛选条件">
+    <div class="date-strip" role="group" aria-label="预约日期">
+      <button
+        v-for="chip in dateChips"
+        :key="chip.value"
+        type="button"
+        class="date-chip"
+        :class="{ 'date-chip--on': props.filters.reserveDate === chip.value }"
+        @click="pickDate(chip.value)"
+      >
+        <span class="date-chip__top">{{ chip.top }}</span>
+        <span class="date-chip__sub">{{ chip.sub }}</span>
+      </button>
+    </div>
 
-      <el-form-item label="日期（今天起 7 天内）">
-        <el-select v-model="filters.reserveDate" class="booking-filter__full">
-          <el-option
-            v-for="option in props.dateOptions"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
-          />
-        </el-select>
-      </el-form-item>
+    <div class="bar-row">
+      <RoomStrip :rooms="props.rooms" :room-id="props.filters.roomId" @change="pickRoom" />
 
-      <div class="booking-filter__times">
-        <el-form-item label="开始时间">
-          <el-time-select
-            v-model="filters.startTime"
-            class="booking-filter__full"
-            :start="props.openTime"
-            :end="props.closeTime"
-            :min-time="props.minStartTime"
-            step="00:30"
-            :editable="false"
-            placeholder="开始"
-            @change="onStartChange"
-          />
-        </el-form-item>
-
-        <el-form-item label="结束时间">
-          <el-time-select
-            v-model="filters.endTime"
-            class="booking-filter__full"
-            :start="props.openTime"
-            :end="props.closeTime"
-            :min-time="filters.startTime || props.openTime"
-            :max-time="maxEndTime"
-            step="00:30"
-            :editable="false"
-            placeholder="结束"
-          />
-        </el-form-item>
-      </div>
-
-      <p class="booking-filter__note">
-        {{ durationHint }}；时间段含开始时间、不含结束时间。
-      </p>
-
-      <!-- 只有一个座位类型时这个下拉没有可筛的值，直接不显示，不放一个选不了的控件 -->
-      <el-form-item v-if="props.seatTypes.length > 1" label="座位类型">
-        <el-select
-          v-model="filters.seatType"
-          class="booking-filter__full"
-          placeholder="全部类型"
+      <div class="time-range">
+        <el-time-select
+          v-model="props.filters.startTime"
+          class="time-control"
+          :start="props.openTime"
+          :end="props.closeTime"
+          :min-time="props.minStartTime"
+          step="00:30"
+          :editable="false"
           :clearable="false"
-        >
-          <el-option label="全部类型" value="" />
-          <el-option
-            v-for="type in props.seatTypes"
-            :key="type"
-            :label="type"
-            :value="type"
-          />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item>
-        <div class="booking-filter__flags">
-          <el-checkbox v-model="filters.powerOnly">仅看有插座</el-checkbox>
-          <el-checkbox v-model="filters.windowOnly">仅看靠窗</el-checkbox>
-        </div>
-      </el-form-item>
-
-      <div class="booking-filter__actions">
-        <el-button type="primary" :loading="props.loading" @click="emit('search')">
-          查询可预约座位
-        </el-button>
-        <el-button @click="emit('reset')">重置</el-button>
+          placeholder="开始"
+          @change="onStartChange"
+        />
+        <span class="time-dash">–</span>
+        <el-time-select
+          v-model="props.filters.endTime"
+          class="time-control"
+          :start="props.openTime"
+          :end="props.closeTime"
+          :min-time="props.filters.startTime || props.openTime"
+          :max-time="maxEndTime"
+          step="00:30"
+          :editable="false"
+          :clearable="false"
+          placeholder="结束"
+        />
+        <span class="time-note">{{ durationHint }}</span>
       </div>
 
-      <p v-if="props.hint" class="booking-filter__hint">{{ props.hint }}</p>
+      <label v-if="props.seatTypes.length > 1" class="type-select">
+        <el-select v-model="props.filters.seatType" class="time-control" :clearable="false">
+          <el-option label="全部类型" value="" />
+          <el-option v-for="type in props.seatTypes" :key="type" :label="type" :value="type" />
+        </el-select>
+      </label>
 
-      <p class="booking-filter__note">
-        开放时间 {{ shortTime(props.openTime) }}–{{ shortTime(props.closeTime) }}；最多提前
-        {{ BOOKING_RULES.advanceDays }} 天，每人每日最多 {{ BOOKING_RULES.dailyLimit }} 条有效预约。
-      </p>
-    </el-form>
-  </aside>
+      <div class="toggles">
+        <el-checkbox v-model="props.filters.powerOnly">有插座</el-checkbox>
+        <el-checkbox v-model="props.filters.windowOnly">靠窗</el-checkbox>
+      </div>
+
+      <div class="bar-actions">
+        <el-button :icon="Refresh" :loading="props.loading" @click="emit('search')">刷新</el-button>
+        <el-button text @click="emit('reset')">重置</el-button>
+      </div>
+    </div>
+  </section>
 </template>
 
 <style scoped>
-.booking-filter {
-  padding: 14px 16px;
+.booking-bar {
+  padding: 10px 14px;
   background: var(--ssr-surface);
   border: 1px solid var(--ssr-line);
   border-radius: var(--ssr-radius);
 }
 
-.booking-filter__full {
-  width: 100%;
-}
-
-.booking-filter__times {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0 12px;
-}
-
-/*
-窄屏（≤1024px）筛选栏会变成整行宽，此时若让 el-form-item / el-select 的 min-content
-撑开网格轨道，整张卡片就会溢出视口，结束时间被裁掉。这里显式允许子项收缩。
-*/
-.booking-filter__times > * {
-  min-width: 0;
-}
-
-:deep(.el-form-item__content) {
-  min-width: 0;
-}
-
-:deep(.el-select) {
-  min-width: 0;
-}
-
-.booking-filter__actions {
+.date-strip {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
-.booking-filter__flags {
+.date-chip {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 1px;
+  align-items: center;
+  min-width: 70px;
+  padding: 5px 10px;
+  font: inherit;
+  color: var(--ssr-ink);
+  cursor: pointer;
+  background: var(--ssr-bg);
+  border: 1px solid var(--ssr-line);
+  border-radius: var(--ssr-radius-sm);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.date-chip:hover {
+  border-color: var(--ssr-primary);
+}
+
+.date-chip--on {
+  color: var(--ssr-primary-ink);
+  background: var(--ssr-primary-light);
+  border-color: var(--ssr-primary);
+}
+
+.date-chip__top {
+  font-size: var(--ssr-font-note);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.date-chip__sub {
+  font-size: calc(var(--ssr-font-note) - 1px);
+  color: var(--ssr-muted-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.date-chip--on .date-chip__sub {
+  color: var(--ssr-primary-ink);
+  opacity: 0.8;
+}
+
+.bar-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
+  gap: 10px 14px;
+  align-items: center;
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px solid var(--ssr-line);
 }
 
-.booking-filter__note,
-.booking-filter__hint {
-  margin: 0 0 12px;
+
+.time-range {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.time-control {
+  width: 104px;
+}
+
+.time-dash {
+  color: var(--ssr-muted-ink);
+}
+
+.time-note {
   color: var(--ssr-muted-ink);
   font-size: var(--ssr-font-note);
-  line-height: 1.7;
 }
 
-.booking-filter__hint {
-  margin: 10px 0 0;
-  color: var(--ssr-primary-ink);
-  font-weight: 600;
+.toggles {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
-.booking-filter__note code {
-  padding: 0 3px;
-  background: var(--ssr-primary-light);
-  border-radius: 3px;
-}
-
-:deep(.el-form-item) {
-  margin-bottom: 12px;
+.bar-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
 }
 </style>

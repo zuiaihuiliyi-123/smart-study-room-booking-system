@@ -10,11 +10,13 @@
  * 状态与流程全部在 `useRoomClose()` 里，本层只负责呈现。
  */
 import { watch } from 'vue'
+import dayjs from 'dayjs'
 
 import AuditNotice from '@/components/admin/AuditNotice.vue'
 import ConflictPanel from '@/components/admin/ConflictPanel.vue'
 import type { Room } from '@/types'
 import type { AdminDirectory } from '@/utils/adminData'
+import { areaLabelOf } from '@/utils/adminData'
 import { useRoomClose } from '@/utils/useRoomClose'
 
 const props = defineProps<{
@@ -40,6 +42,9 @@ const {
   previewError,
   cancelAffected,
   executing,
+  closures,
+  closuresLoading,
+  releasingId,
   areaOptions,
   windowError,
   reservations,
@@ -47,6 +52,7 @@ const {
   invalidatePreview,
   preview,
   execute,
+  releaseClosure,
 } = useRoomClose()
 
 watch(
@@ -63,6 +69,15 @@ async function onExecute(): Promise<void> {
     emit('done')
   }
 }
+
+function formatRange(start: string, end: string): string {
+  return `${dayjs(start).format('MM-DD HH:mm')} – ${dayjs(end).format('MM-DD HH:mm')}`
+}
+
+function areaNameOf(areaId: number): string {
+  const label = areaLabelOf(props.directory, areaId)
+  return label === '' ? '某个分区' : label
+}
 </script>
 
 <template>
@@ -77,6 +92,34 @@ async function onExecute(): Promise<void> {
       type="warning"
       :extra="'批量操作前会先列出影响清单；确认前不会自动取消任何用户预约。'"
     />
+
+    <section v-if="closures.length > 0 || closuresLoading" class="ongoing">
+      <div class="ongoing__head">
+        <strong>进行中的临时关闭</strong>
+        <span class="ssr-text-muted">到期自动失效，也可以提前解除</span>
+      </div>
+      <ul v-loading="closuresLoading" class="ongoing__list">
+        <li v-for="item in closures" :key="item.id" class="ongoing__item">
+          <div class="ongoing__main">
+            <span class="ongoing__window">
+              {{ formatRange(item.start_at, item.end_at) }}
+            </span>
+            <span class="ongoing__scope">
+              {{ item.area_id === null || item.area_id === undefined ? '整个自习室' : areaNameOf(item.area_id) }}
+            </span>
+            <span class="ssr-text-muted ongoing__reason">{{ item.reason }}</span>
+          </div>
+          <el-button
+            link
+            type="primary"
+            :loading="releasingId === item.id"
+            @click="releaseClosure(item)"
+          >
+            提前解除
+          </el-button>
+        </li>
+      </ul>
+    </section>
 
     <el-form label-width="112px" @submit.prevent>
       <el-form-item label="关闭范围">
@@ -118,7 +161,7 @@ async function onExecute(): Promise<void> {
           end="23:30"
           aria-label="关闭窗口（结束）"
         />
-        <p class="ssr-text-muted hint">时间区间含开始、不含结束；该窗口只用于圈定受影响的预约。</p>
+        <p class="ssr-text-muted hint">关闭只在这段时间内生效，窗口结束后自动恢复，座位资源状态不变。</p>
       </el-form-item>
 
       <el-form-item v-if="windowError" label=" ">
@@ -166,7 +209,7 @@ async function onExecute(): Promise<void> {
       title="下一步：查询受影响预约"
     >
       <p>
-        关闭后范围内座位会被置为「停用」，且不会自动恢复，需要之后手动改回「可用」。
+        关闭期间该范围内的座位不可预约，窗口结束后自动恢复；受影响预约默认保留原状态，也可在下方勾选一并取消。
       </p>
     </el-alert>
 
@@ -210,6 +253,67 @@ async function onExecute(): Promise<void> {
 
 .notice {
   margin-top: 4px;
+}
+
+.ongoing {
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  background: var(--ssr-surface);
+  border: 1px solid var(--ssr-line);
+  border-radius: var(--ssr-radius-sm);
+}
+
+.ongoing__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ongoing__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ongoing__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px dashed var(--ssr-line);
+}
+
+.ongoing__item:first-child {
+  border-top: 0;
+}
+
+.ongoing__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ongoing__window {
+  font-weight: 600;
+}
+
+.ongoing__scope {
+  padding: 0 6px;
+  color: var(--ssr-primary-ink);
+  background: var(--ssr-primary-light);
+  border-radius: 999px;
+  font-size: calc(var(--ssr-font-note) - 1px);
+}
+
+.ongoing__reason {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
 }
 
 .notice p {

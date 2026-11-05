@@ -70,7 +70,7 @@ function reservationLabel(reservationId: number): string {
 
   /** NFR-006：不展示他人姓名，只显示操作者编号。 */
   function operatorLabel(item: Violation): string {
-    return item.operator_id === null ? '系统自动判定' : `管理员 #${item.operator_id}`
+    return item.operator_id === null ? '系统自动记录' : `管理员 #${item.operator_id}`
   }
 
   async function load(): Promise<void> {

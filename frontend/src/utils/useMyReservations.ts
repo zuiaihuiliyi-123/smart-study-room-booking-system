@@ -183,7 +183,7 @@ function checkinTip(item: Reservation): string {
     return `签到窗口尚未开启：${window.opensText} 起可签到（开始前 ${BOOKING_RULES.checkinEarly} 分钟）`
   }
   if (current >= window.closesAt.getTime()) {
-    return `已超过签到截止时间 ${window.closesText}（开始后 ${BOOKING_RULES.checkinLate} 分钟），该预约将判定为违约`
+    return `已超过签到截止时间 ${window.closesText}（开始后 ${BOOKING_RULES.checkinLate} 分钟），该预约将记为违约`
   }
   return `签到窗口 ${window.rangeText}（${window.opensText} 起），点击完成签到`
 }

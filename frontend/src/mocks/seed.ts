@@ -250,7 +250,7 @@ export function buildSeed(): MockDb {
       type: seed.type,
       reason:
         seed.type === '自动违约'
-          ? '超过签到截止时间仍未签到，系统自动判定违约'
+          ? '超过签到截止时间仍未签到，记为违约'
           : '现场巡查发现超时占座并影响他人，管理员登记',
       operator_id: seed.operator,
       created_at: formatDateTime(combine(addDays(today, seed.detectedDayOffset), seed.detectedMinute)),
@@ -516,7 +516,7 @@ export function buildSeed(): MockDb {
       {
         type: '预约通知',
         title: '签到提醒',
-        content: '签到窗口为预约开始前 15 分钟至开始后 15 分钟，逾期未签到将判定违约。',
+        content: '签到窗口为预约开始前 15 分钟至开始后 15 分钟，逾期未签到将记为违约。',
         relatedType: '预约单',
         relatedId: relatedReservation,
         isRead: false,

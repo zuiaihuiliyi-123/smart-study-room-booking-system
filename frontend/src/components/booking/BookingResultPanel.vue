@@ -1,34 +1,37 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import SeatMatrix from '@/components/booking/SeatMatrix.vue'
 import type { BookingFailure, MatrixCell, MatrixGroup } from '@/components/booking/types'
 import EmptyState from '@/components/EmptyState.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
 import { restrictUntilText } from '@/utils/bookingRules'
-import { computed } from 'vue'
 
 const props = defineProps<{
   loading: boolean
   error: BookingFailure | null
-  /** C4 / C6：整时段因本人原因不可约时不再展示座位矩阵 */
-  userBlock: 'C4' | 'C6' | null
-  blockedHint: string
   groups: MatrixGroup[]
   selectedSeatId: number | null
+  /** 我在当前时段已占的座位 */
+  mineIds?: readonly number[]
   summary: string
   hint: string
   freeCount: number
   visibleCount: number
+  /** 这间自习室还没录入座位 */
+  roomEmpty?: boolean
+  /** 系统里还没有任何可预约的自习室 */
+  noRoom?: boolean
 }>()
 
 const restrictText = computed(() =>
-    restrictUntilText(props.error?.restrictUntil ?? '') ||
-    '管理员手动限制，须由管理员解除',
+  restrictUntilText(props.error?.restrictUntil ?? '') || '管理员手动限制，须由管理员解除',
 )
 
 const emit = defineEmits<{
   (e: 'retry'): void
-  (e: 'alternative'): void
   (e: 'clear-seat-filter'): void
+  (e: 'switch-room'): void
   (e: 'select', cell: MatrixCell): void
 }>()
 </script>
@@ -64,19 +67,19 @@ const emit = defineEmits<{
       </el-button>
     </div>
 
-    <div v-else-if="props.userBlock" class="booking-result__panel">
-      <el-alert type="warning" :closable="false" show-icon title="该时段暂不可预约">
-        <p>{{ props.blockedHint }}</p>
-        <p class="ssr-text-muted">
-          这一条与具体座位无关，因此不再列出座位，改选其它时段即可。
-        </p>
-      </el-alert>
-      <EmptyState
-        description="该时段没有可预约座位"
-        action-text="替我改选一个时段"
-        @action="emit('alternative')"
-      />
-    </div>
+    <EmptyState
+      v-else-if="props.noRoom"
+      description="当前还没有可预约的自习室"
+      action-text="刷新看看"
+      @action="emit('retry')"
+    />
+
+    <EmptyState
+      v-else-if="props.roomEmpty"
+      description="这间自习室还没有座位，换一间试试"
+      action-text="换一间自习室"
+      @action="emit('switch-room')"
+    />
 
     <EmptyState
       v-else-if="props.groups.length === 0"
@@ -93,15 +96,13 @@ const emit = defineEmits<{
         :closable="false"
         show-icon
         title="本时段没有可预约座位"
-        :description="`已列出 ${props.visibleCount} 个座位的资源状态与该时段占用情况，可改选其它时段。`"
+        :description="`已列出 ${props.visibleCount} 个座位，可改选其它时段。`"
       />
-      <p v-else class="ssr-text-muted booking-result__notice">
-        点击座位查看预约前检查结果并提交；鼠标悬停可看座位号、类型、有无插座与当前时段占用。
-      </p>
 
       <SeatMatrix
         :groups="props.groups"
         :selected-seat-id="props.selectedSeatId"
+        :mine-ids="props.mineIds"
         @select="emit('select', $event)"
       />
     </template>
@@ -119,7 +120,7 @@ const emit = defineEmits<{
   gap: 8px 14px;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .booking-result__summary {

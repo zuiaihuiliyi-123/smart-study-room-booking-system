@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 import MessageList from '@/components/messages/MessageList.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -15,6 +15,7 @@ const store = useMessageStore()
 const typeFilter = ref('all')
 const page = ref(1)
 const pageSize = ref(10)
+const markingAll = ref(false)
 
 const filtered = computed(() =>
     typeFilter.value === 'all'
@@ -61,6 +62,30 @@ async function onOpen(message: StationMessage): Promise<void> {
   ElMessage.info('该消息没有关联对象，已标记为已读')
 }
 
+async function onMarkAllRead(): Promise<void> {
+  const count = store.unreadCount
+  if (count === 0) return
+  try {
+    await ElMessageBox.confirm(
+      `将把 ${count} 条未读消息标为已读，标记后不再显示未读提示。`,
+      '全部标为已读',
+      { confirmButtonText: '标为已读', cancelButtonText: '取消', type: 'info' },
+    )
+  } catch {
+    return
+  }
+
+  markingAll.value = true
+  try {
+    const done = await store.markAllRead()
+    ElMessage.success(`已把 ${done} 条消息标为已读`)
+  } catch (caught) {
+    ElMessage.error(caught instanceof Error ? caught.message : '标记失败，请刷新后重试')
+  } finally {
+    markingAll.value = false
+  }
+}
+
 onMounted(() => {
   // 顶栏铃铛已经触发过加载时不会重复请求（store 内部去重）
   void store.load()
@@ -77,6 +102,15 @@ onMounted(() => {
         <span class="ssr-text-muted">
           {{ store.unreadCount }} 条未读 / 共 {{ store.items.length }} 条
         </span>
+        <el-button
+          type="primary"
+          plain
+          :disabled="store.unreadCount === 0 || store.loading"
+          :loading="markingAll"
+          @click="onMarkAllRead"
+        >
+          全部标为已读
+        </el-button>
         <el-button :loading="store.loading" @click="store.load(true)">刷新</el-button>
       </template>
     </PageHeader>
@@ -107,10 +141,6 @@ onMounted(() => {
         @current-change="(next: number) => (page = next)"
       />
     </div>
-
-    <p class="ssr-text-muted note">
-      点击消息会标记为已读，并跳转到对应的列表页（列表内会高亮该条记录）。
-    </p>
   </div>
 </template>
 
@@ -126,13 +156,5 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   padding-top: 12px;
-}
-
-.note {
-  padding: 10px 12px;
-  margin: 14px 0 0;
-  line-height: 1.7;
-  background: var(--ssr-bg);
-  border-radius: var(--ssr-radius-sm);
 }
 </style>

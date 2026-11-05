@@ -5,20 +5,19 @@
  * 1. 填关闭范围与窗口 → `preview()`（只读，不产生任何变化）；
  * 2. `execute()` 前必须已有清单 → 二次确认（含审计提示）→ 才真正执行。
  *
- * 执行语义（取自 FR-016 的状态与数据影响，不自行发挥）：
- * - 座位资源状态 →「停用」；
- * - 受影响预约**默认保持原状态**（BR-019：保留并持续提示）；
- * - 仅当明确勾选时按 BR-022 批量取消，且不计违约、无补偿、不支持改约。
+ * 执行语义：
+ * - 后端写入一条**带时间窗的关闭记录**，只在 [start_at, end_at) 内生效，窗口结束自动失效；
+ * - 座位资源状态（可用 / 维修中 / 停用）**不被改写**，关闭期间只影响该时段的预约；
+ * - 受影响预约默认保持原状态（BR-019），仅当明确勾选时按 BR-022 批量取消，不计违约。
  *
- * 口径提醒：「关闭窗口」只用于圈定受影响预约。座位资源状态是不带时间窗的标记，本版没有
- * 「场地关闭记录」实体，因此关闭后不会自动恢复，需管理员之后手动改回「可用」。
+ * 管理员可在抽屉里看到「进行中」的关闭记录，并随时提前解除。
  */
 import { computed, ref } from 'vue'
 import dayjs from 'dayjs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-import { closeRoom, previewRoomClose } from '@/api/room'
-import type { ConflictPreview, Reservation, Room } from '@/types'
+import { closeRoom, listRoomClosures, previewRoomClose, releaseRoomClosure } from '@/api/room'
+import type { ConflictPreview, Reservation, Room, RoomClosure } from '@/types'
 import { areaLabelOf, invalidateAdminDirectory, type AdminDirectory } from '@/utils/adminData'
 import { toBookingFailure } from '@/utils/bookingData'
 
@@ -39,6 +38,10 @@ export function useRoomClose() {
   const cancelAffected = ref(false)
   const executing = ref(false)
 
+  const closures = ref<RoomClosure[]>([])
+  const closuresLoading = ref(false)
+  const releasingId = ref<number | null>(null)
+
   const areaOptions = computed(() => directory.value?.areasByRoom.get(room.value?.id ?? 0) ?? [])
   const startAt = computed(() =>
       dateRange.value.length === 2 ? `${dateRange.value[0]}T${startTime.value}` : '',
@@ -54,6 +57,18 @@ export function useRoomClose() {
   })
 const reservations = computed<Reservation[]>(() => previewResult.value?.reservations ?? [])
 
+async function loadClosures(): Promise<void> {
+  if (room.value === null) return
+  closuresLoading.value = true
+  try {
+    closures.value = await listRoomClosures(room.value.id)
+  } catch {
+    closures.value = []
+  } finally {
+    closuresLoading.value = false
+  }
+}
+
 function open(target: Room, dir: AdminDirectory | null): void {
   room.value = target
   directory.value = dir
@@ -67,6 +82,39 @@ function open(target: Room, dir: AdminDirectory | null): void {
   previewError.value = ''
   previewResult.value = null
   cancelAffected.value = false
+  closures.value = []
+  void loadClosures()
+}
+
+/** 提前解除一条关闭记录（原因必填）。 */
+async function releaseClosure(closure: RoomClosure): Promise<void> {
+  if (room.value === null) return
+  let input = ''
+  try {
+    const result = await ElMessageBox.prompt(
+      `确认解除 ${dayjs(closure.start_at).format('MM-DD HH:mm')}–${dayjs(closure.end_at).format('HH:mm')} 的临时关闭？解除后该时段立即恢复可约。`,
+      '解除临时关闭',
+      {
+        confirmButtonText: '确认解除',
+        cancelButtonText: '返回',
+        inputPlaceholder: '请填写解除原因（记入审计日志）',
+        inputValidator: (value: string) => (value.trim() === '' ? '解除原因不能为空' : true),
+      },
+    )
+    input = result.value.trim()
+  } catch {
+    return
+  }
+  releasingId.value = closure.id
+  try {
+    await releaseRoomClosure(room.value.id, closure.id, input)
+    ElMessage.success('已解除该临时关闭，该时段恢复可约')
+    await loadClosures()
+  } catch (caught) {
+    ElMessage.error(toBookingFailure(caught).message)
+  } finally {
+    releasingId.value = null
+  }
 }
 
 /** 影响窗口一旦变化，之前查询的清单即失效，必须重新查询（避免拿旧清单确认新窗口） */
@@ -123,7 +171,7 @@ async function execute(): Promise<boolean> {
 
   try {
     await ElMessageBox.confirm(
-      `关闭范围：${room.value.name}（${scopeLine}）；关闭窗口：${startAt.value.replace('T', ' ')} ~ ${endAt.value.replace('T', ' ')}（含开始、不含结束）。处理方式：${cancelLine}。本次操作将记入审计日志。确认执行？`,
+      `关闭范围：${room.value.name}（${scopeLine}）；关闭时段：${startAt.value.replace('T', ' ')} ~ ${endAt.value.replace('T', ' ')}。处理方式：${cancelLine}。本次操作将记入审计日志。确认执行？`,
       '确认操作：场地临时关闭',
       { type: 'warning', confirmButtonText: '确认执行', cancelButtonText: '返回检查' },
     )
@@ -142,11 +190,10 @@ async function execute(): Promise<boolean> {
       expected_reservation_ids: reservations.value.map((item) => item.id),
     })
   ElMessage.success(
-    `临时关闭已执行：${result.closed_seats} 个座位置为「停用」，取消预约 ${result.cancelled} 条，保留 ${result.kept} 条${
-      result.notified_outside_window ? `，已提示窗口外受影响预约 ${result.notified_outside_window} 条` : ''
-    }`,
+    `已临时关闭 ${result.closed_seats} 个座位所在的时段：取消预约 ${result.cancelled} 条，保留 ${result.kept} 条；窗口结束后自动恢复。`,
   )
   invalidateAdminDirectory()
+  await loadClosures()
   return true
 } catch (caught) {
   ElMessage.error(toBookingFailure(caught).message)
@@ -169,6 +216,9 @@ return {
   previewError,
   cancelAffected,
   executing,
+  closures,
+  closuresLoading,
+  releasingId,
   areaOptions,
   startAt,
   endAt,
@@ -178,6 +228,7 @@ return {
   invalidatePreview,
   preview: loadPreview,
   execute,
+  releaseClosure,
 }
 }
 

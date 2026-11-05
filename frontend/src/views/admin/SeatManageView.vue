@@ -227,16 +227,12 @@ onMounted(() => {
       </template>
     </section>
 
-    <el-alert class="notice" type="info" :closable="false" show-icon title="关于「资源状态」与「该时段占用」">
+    <el-alert class="notice" type="info" :closable="false" show-icon title="提示">
       <p>
-        资源状态（可用 / 维修中 / 停用）是座位自身的属性，由本页的批量调整写入；
-        该时段占用由选定日期与时段的实时查询得出，只用于查看与筛选。
-        已被预约<strong>不会</strong>改动座位状态；调整座位状态也<strong>不会</strong>自动取消任何预约。
+        已被预约不会改动座位状态；调整座位状态也不会自动取消任何预约。
+        批量调整前会先列出受影响的预约，确认后才执行。
       </p>
-      <p>
-        已选 {{ selectedSeats.length }} 个座位；批量调整前会先让你查看冲突清单，确认后才会执行。
-        当前时段可约座位 {{ availableIds.size }} 个。
-      </p>
+      <p>已选 {{ selectedSeats.length }} 个座位；当前时段可约座位 {{ availableIds.size }} 个。</p>
     </el-alert>
 
     <SeatStatusDrawer

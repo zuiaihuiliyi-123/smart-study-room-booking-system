@@ -90,7 +90,7 @@ async function onAdd(): Promise<void> {
     return
   }
   if (reason.value.trim() === '') {
-    ElMessage.warning('请填写新增分区的说明：该说明会写入审计日志')
+    ElMessage.warning('请填写新增分区的说明，该说明会写入审计日志')
     return
   }
   submitting.value = true
