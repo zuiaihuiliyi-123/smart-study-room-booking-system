@@ -108,31 +108,28 @@ def test_system_admin_rejected_from_business_endpoints(
     assert users.status_code == 403, users.text
 
 
-def test_teacher_rejected_from_booking(api_client, db, make_user, make_room, make_seat) -> None:
-    make_user(
-        student_no="T8001",
-        name="教师",
-        role=Role.TEACHER.value,
-        password_hash=hash_password("teacher123"),
-    )
-    room = make_room()
-    seat = make_seat(room.id)
-    headers = _login(api_client, "T8001", "teacher123")
+def test_teacher_role_removed(db) -> None:
+    """V2.1（2026-11-05）：教师角色已取消，Role 枚举与数据库约束都不再接受「教师用户」。"""
+    from sqlalchemy.exc import IntegrityError
 
-    day = (datetime(2026, 11, 2, 10, 0).date() + timedelta(days=1)).isoformat()
-    reserved = api_client.post(
-        "/api/v1/reservations",
-        headers=headers,
-        json={
-            "seat_id": seat.id,
-            "reserve_date": day,
-            "start_time": "14:00",
-            "end_time": "16:00",
-            "idempotency_key": "teacher-booking-key",
-        },
+    from app.models.user import User
+
+    # 枚举层：不再提供 TEACHER
+    assert "教师用户" not in {item.value for item in Role}
+    assert not hasattr(Role, "TEACHER")
+
+    # 数据层：直接写入非法角色应被 ck_user_role 拒绝
+    db.add(
+        User(
+            name="教师",
+            student_no="T8001",
+            password_hash="hash",
+            role="教师用户",
+        )
     )
-    # R-03 教师本版无预约操作权限（§4.1.1 定稿矩阵）
-    assert reserved.status_code == 403, reserved.text
+    with pytest.raises(IntegrityError):
+        db.commit()
+    db.rollback()
 
 
 def test_business_admin_still_has_access(api_client, db, make_user) -> None:

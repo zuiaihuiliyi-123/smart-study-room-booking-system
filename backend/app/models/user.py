@@ -8,12 +8,12 @@ from app.models.enums import AccountStatus, Role
 
 
 class User(Base):
-    """用户（DR-001）：学生、教师、自习室管理员、系统管理员。"""
+    """用户（DR-001）：学生、自习室管理员、系统管理员（R-03 教师已于 V2.1 取消）。"""
 
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(
-            "role IN ('学生用户', '自习室管理员', '教师用户', '系统管理员')",
+            "role IN ('学生用户', '自习室管理员', '系统管理员')",
             name="ck_user_role",
         ),
         CheckConstraint(

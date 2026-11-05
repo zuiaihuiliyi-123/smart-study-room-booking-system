@@ -88,7 +88,6 @@ onMounted(() => {
         <el-select v-model="roleFilter" class="w-150">
           <el-option label="全部" value="全部" />
           <el-option label="学生用户" value="学生用户" />
-          <el-option label="教师用户" value="教师用户" />
           <el-option label="自习室管理员" value="自习室管理员" />
           <el-option label="系统管理员" value="系统管理员" />
         </el-select>

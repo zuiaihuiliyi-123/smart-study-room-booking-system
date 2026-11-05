@@ -31,7 +31,7 @@ export interface MenuGroup {
   items: MenuItem[]
 }
 
-/** 学生端菜单（含教师用户，路由守卫同组放行） */
+/** 学生端菜单（仅学生用户 R-01；R-03 教师角色已于 V2.1 取消） */
 export const studentMenus: MenuItem[] = [
   { path: '/student/home', title: '首页', icon: HomeFilled, group: '学习服务' },
   { path: '/student/booking', title: '预约座位', icon: Calendar, group: '学习服务' },

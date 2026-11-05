@@ -1,4 +1,5 @@
-export type Role = '学生用户' | '自习室管理员' | '教师用户' | '系统管理员'
+/** 用户角色（需求规格说明书 V2.1：R-03 教师用户已于 2026-11-05 取消，编号退役不复用）。 */
+export type Role = '学生用户' | '自习室管理员' | '系统管理员'
 
 export interface CurrentUser {
   id: number

@@ -11,7 +11,7 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     """学生自助注册。
 
-    只开放「学生用户」角色：管理员 / 教师账号由信息中心统一开通，
+    只开放「学生用户」角色：管理员账号由信息中心统一开通（R-03 教师角色已于 V2.1 取消），
     注册接口不接受 role 字段，避免自助提权。
     """
 
