@@ -17,7 +17,7 @@ import LoadingBlock from '@/components/LoadingBlock.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import type { Reservation } from '@/types'
 import { seatIdLabel, userLabelOf, type AdminDirectory } from '@/utils/adminData'
-import { bracketRangeText, durationText, slotMinutes } from '@/utils/bookingRules'
+import { timeRangeText, durationText, slotMinutes } from '@/utils/bookingRules'
 import { formatDateTime } from '@/utils/format'
 
 const props = defineProps<{
@@ -54,7 +54,7 @@ const title = computed(() =>
 const slot = computed(() => {
   const item = props.detail
   if (item === null) return '—'
-  return `${item.reserve_date} ${bracketRangeText(item.start_time, item.end_time)}（${durationText(slotMinutes(item.start_time, item.end_time))}）`
+  return `${item.reserve_date} ${timeRangeText(item.start_time, item.end_time)}（${durationText(slotMinutes(item.start_time, item.end_time))}）`
 })
 
 const reasonLabel = computed(() => (props.canForceCancel ? '取消原因（必填）' : '登记原因（必填）'))
@@ -76,7 +76,7 @@ const stateNote = computed(() => {
   >
     <AuditNotice
       :scope="props.scopeLabel"
-      :extra="'强制取消与 手动违约登记互斥；两者都要求填写原因并写入审计日志。'"
+      :extra="'强制取消与手动违约登记只能选一个；两者都要求填写原因，并记入审计日志。'"
     />
 
     <LoadingBlock v-if="props.loading" :rows="4" text="正在读取预约单…" />
@@ -133,12 +133,12 @@ const stateNote = computed(() => {
         <h4 class="drawer-section">管理操作</h4>
 
         <p class="drawer-note">
-          两个操作的区别：<strong>强制取消</strong>用于事前终止（不收违约、不累加次数）；
+          两个操作的区别：<strong>强制取消</strong>用于事前终止（不产生违约记录、不累加次数）；
           <strong>手动违约登记</strong>用于事后追责（会累加违约次数，累计 3 次触发 7 天限制）。
-            同一预约单只会出现其中一个可用按钮。
-            </p>
+          同一预约单只会出现其中一个可用按钮。
+        </p>
 
-            <el-form label-width="112px" @submit.prevent>
+        <el-form label-width="132px" @submit.prevent>
               <el-form-item :label="reasonLabel">
                 <el-input
                   v-model="reason"

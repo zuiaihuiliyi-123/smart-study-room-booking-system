@@ -43,13 +43,13 @@ const occupancyLabel = computed(() => {
   const state = props.judgements.find((item) => item.id === 'C3')?.state ?? 'unknown'
   if (state === 'pass') return '可约（该时段无其他有效预约）'
   if (state === 'fail') return '该时段已被预约'
-  return '未判定'
+  return '暂无法判断'
 })
 
 const durationNote = computed(() => {
   const total = minutes.value
   if (total <= 0) return '结束时间须晚于开始时间'
-  return `时长 ${durationText(total)}（上限 ${BOOKING_RULES.maxHours} 小时）；区间按左闭右开 [s, e) 判定，结束后该时段自动重新可预约。`
+  return `时长 ${durationText(total)}（上限 ${BOOKING_RULES.maxHours} 小时）；时段含开始、不含结束，结束后该时段会自动重新开放。`
 })
 
 const failureTitle = computed(() => {
@@ -69,7 +69,7 @@ const failedJudgementText = computed(() => {
   const failure = props.failure
   if (!failure?.judgement) return ''
   const hit = props.judgements.find((item) => item.id === failure.judgement)
-  return `${failure.judgement} ${hit ? hit.title : ''}`.trim()
+  return hit ? hit.title : ''
 })
 
 const submitLabel = computed(() => {
@@ -108,11 +108,11 @@ function onClose() {
 
       <section class="drawer-block">
         <h4 class="drawer-block__title">
-          规则校验
+          预约前检查
           <span v-if="props.submitState === 'submitted'" class="ssr-text-muted">
-            提交成功后的重新评估：该时段此刻已归你占用，因此「时段占用」「本人时段冲突」「每日次数」会转为未通过
+            提交成功后重新检查：该时段此刻已归你占用，因此「座位时段占用」「我的时段占用」「每日次数」会显示为未通过
           </span>
-          <span v-else class="ssr-text-muted">本地预估，提交结果以服务端为准</span>
+          <span v-else class="ssr-text-muted">提交前自动检查，最终以下单结果为准</span>
         </h4>
         <RuleChecklist :items="props.judgements" />
       </section>
@@ -138,13 +138,13 @@ function onClose() {
         <p>{{ props.failure.message }}</p>
         <p v-if="props.failure.kind === 'restricted' && props.failure.restrictUntil">
           预计解除时间：{{ restrictUntilText(props.failure.restrictUntil) }}
-          <span class="ssr-text-muted">（仅自动限制有自动解除时间）</span>
+          <span class="ssr-text-muted">（限制 7 天，期满自动解除）</span>
         </p>
         <p v-else-if="props.failure.kind === 'restricted'">
           该限制为管理员手动限制，须由管理员解除，没有自动解除时间。
         </p>
         <p v-if="failedJudgementText">
-          未通过判定项：{{ failedJudgementText }}
+          未通过检查：{{ failedJudgementText }}
         </p>
         <p v-if="props.failure.kind === 'conflict'">
           同一座位同一时段至多一条预约成功，请改选其他座位或时段后重新提交。
@@ -203,7 +203,7 @@ function onClose() {
   gap: 8px;
   align-items: baseline;
   margin: 0 0 8px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 

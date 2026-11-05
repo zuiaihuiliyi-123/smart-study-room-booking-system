@@ -11,6 +11,12 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true },
   },
   {
+    path: '/register',
+    name: 'register',
+    component: () => import('@/views/auth/RegisterView.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/student',
     component: () => import('@/layouts/StudentLayout.vue'),
     meta: { roles: ['学生用户', '教师用户'] },

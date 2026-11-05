@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { CircleCheckFilled, CircleCloseFilled, QuestionFilled } from '@element-plus/icons-vue'
 import type { Component } from 'vue'
 
@@ -15,7 +15,7 @@ const STATE_ICON: Record<JudgementState, Component> = {
 const STATE_TEXT: Record<JudgementState, string> = {
   pass: '通过',
   fail: '未通过',
-  unknown: '未判定',
+  unknown: '暂无法检查',
 }
 </script>
 
@@ -35,8 +35,6 @@ const STATE_TEXT: Record<JudgementState, string> = {
             {{ STATE_TEXT[item.state] }}
           </span>
         </p>
-
-        <p class="rule-item__cond">判定条件：{{ item.condition }}</p>
 
         <p class="rule-item__detail">{{ item.detail }}</p>
 
@@ -101,17 +99,9 @@ const STATE_TEXT: Record<JudgementState, string> = {
   color: var(--ssr-muted-ink);
 }
 
-.rule-item__cond,
 .rule-item__detail {
   margin: 3px 0 0;
   font-size: var(--ssr-font-note);
-}
-
-.rule-item__cond {
-  color: var(--ssr-muted-ink);
-}
-
-.rule-item__detail {
   color: var(--ssr-ink);
 }
 

@@ -36,10 +36,15 @@ withDefaults(
 
 <style scoped>
 .stat-card {
-  padding: 14px 16px;
+  padding: 18px 20px;
   background: var(--ssr-surface);
   border: 1px solid var(--ssr-line);
   border-radius: var(--ssr-radius);
+  transition: border-color 0.15s ease;
+}
+
+.stat-card:hover {
+  border-color: var(--ssr-line-strong);
 }
 
 .stat-card__label {
@@ -50,16 +55,17 @@ withDefaults(
 
 .stat-card__value {
   display: flex;
-  gap: 4px;
+  gap: 5px;
   align-items: baseline;
-  margin: 6px 0 0;
+  margin: 8px 0 0;
 }
 
 .stat-card__num {
-  color: var(--ssr-primary);
-  font-size: 24px;
+  color: var(--ssr-primary-ink);
+  font-size: 30px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
 }
 
 .stat-card__unit {

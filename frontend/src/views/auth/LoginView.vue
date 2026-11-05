@@ -101,6 +101,11 @@ async function submit() {
           </el-button>
         </el-form>
 
+        <p class="login__foot">
+          学生首次使用？
+          <router-link class="login__link" to="/register">注册账号</router-link>
+        </p>
+
         <div class="login__demo">
           <button
             class="login__demo-toggle"
@@ -176,6 +181,18 @@ async function submit() {
 
 .login__submit {
   width: 100%;
+}
+
+.login__foot {
+  margin: 14px 0 0;
+  color: var(--ssr-muted-ink);
+  font-size: var(--ssr-font-note);
+  text-align: center;
+}
+
+.login__link {
+  color: var(--ssr-primary-ink);
+  font-weight: 600;
 }
 
 .login__demo {

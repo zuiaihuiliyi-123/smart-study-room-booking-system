@@ -22,7 +22,7 @@ import BrandPanel from './BrandPanel.vue'
 .auth {
   display: flex;
   min-height: 100%;
-  background: var(--ssr-surface);
+  background: var(--ssr-bg);
 }
 
 /* 品牌区的视觉样式在 components/auth/BrandPanel.vue；这里只管栅格占位 */
@@ -39,7 +39,7 @@ import BrandPanel from './BrandPanel.vue'
   min-width: 0;
   padding: 24px 20px;
   overflow-y: auto;
-  background: var(--ssr-surface);
+  background: var(--ssr-bg);
   border-left: 1px solid var(--ssr-line);
 }
 
