@@ -4,6 +4,32 @@
 
 > **当前阶段：可演示闭环。** 本仓库包含需求分析阶段的文档与图模型，以及基于 FastAPI + Vue 3 的前后端实现；M1～M7 业务接口均不再返回 501，前端 17 个页面默认直连真实后端演示，也可切换为 MSW mock 独立演示。
 
+## 一键启动（Windows，推荐）
+
+前提：电脑上已安装 **Python 3.11+**、**Node.js 18+**、**MySQL 8.x**，并知道本机 MySQL 的 root 密码。启动脚本会自动完成建库、建账号、迁移、演示数据和前后端启动；它不负责安装 MySQL 服务本身。
+
+1. 双击仓库根目录的 `start.bat`（或在仓库根目录的 cmd 中执行 `start.bat`）。
+2. 首次运行按提示输入 MySQL root 密码。脚本会自动创建：
+   - 数据库 `smart_study_room`（utf8mb4）
+   - 应用账号 `study_app`（随机密码，只写入被 Git 忽略的 `backend/.env`）
+   - JWT 密钥（随机生成，写入 `backend/.env`）
+   - 表结构（`alembic upgrade head`）与演示数据
+3. 脚本会打开两个服务窗口，并访问 <http://127.0.0.1:5173>。
+
+| 地址 | 说明 |
+|---|---|
+| <http://127.0.0.1:5173> | 前端页面 |
+| <http://127.0.0.1:8000/docs> | Swagger API 文档 |
+| <http://127.0.0.1:8000/health> | 后端健康检查 |
+
+演示账户：`student / student123`、`admin / admin123`。
+
+重复运行 `start.bat` 是安全的：已存在的数据库、账号、迁移和演示数据会被跳过。停止时运行根目录的 `stop.bat`（MySQL 服务会保留运行）。只想启动、不打开浏览器时使用 `start.bat --no-browser`。
+
+> 第一次运行需要联网安装前后端依赖。若数据库连接串不可用或 JWT 密钥仍是占位符，脚本会自动修复，并把原 `backend/.env` 备份为 `backend/.env.bak`。
+>
+> 没有安装 MySQL？先按 <https://dev.mysql.com/downloads/installer/> 安装并记住 root 密码，再运行 `start.bat`；也可以参照 [`docs/系统使用说明.md`](docs/系统使用说明.md) 手工配置。
+
 ## 仓库结构
 
 ```
@@ -11,6 +37,8 @@
 ├── README.md
 ├── LICENSE
 ├── .gitignore
+├── start.bat                # Windows 一键启动（数据库 + 后端 + 前端）
+├── stop.bat                 # 停止由 start.bat 启动的服务
 ├── docs/                    # 需求规格说明书、质量验证报告
 ├── models/                  # 用例图、类图、活动图、时序图
 ├── backend/                 # FastAPI + SQLAlchemy + Alembic + MySQL

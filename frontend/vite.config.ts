@@ -28,6 +28,9 @@ export default defineConfig({
     },
   },
   server: {
+    // 显式绑定 IPv4：Node 17+ 的 localhost 可能只解析到 ::1，
+    // 而文档、代理和启动脚本统一使用 http://127.0.0.1:5173。
+    host: '127.0.0.1',
     port: 5173,
     proxy: {
       '/api': {

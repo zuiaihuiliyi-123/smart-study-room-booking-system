@@ -19,14 +19,18 @@ backend/
 │   └── utils/               # 时间区间、分页等工具
 ├── alembic/                 # 数据库迁移
 ├── scripts/
-│   ├── init_db.sql          # 本地建库/建账号（方案 A）
-│   └── seed.py              # 演示账户
+│   ├── init_db.sql          # 本地建库/建账号（方案 A，手工方式）
+│   ├── bootstrap_db.py      # 一键启动的 .env / 建库 / 账号辅助脚本
+│   ├── seed.py              # 演示账户
+│   └── seed_demo.py         # 演示自习室 / 分区 / 座位
 ├── tests/                   # Pytest
 ├── alembic.ini
 └── requirements.txt
 ```
 
 ## 启动
+
+> **一键启动（Windows，推荐）**：在仓库根目录执行 `start.bat`。它会创建虚拟环境、检查/启动 MySQL、生成 `backend/.env`、建库建账号、执行迁移和 seed，并同时启动前后端。下面的步骤用于手工配置或排查。
 
 ```bash
 cd backend
@@ -63,6 +67,21 @@ cd backend
 ```
 
 脚本内容为 `.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000`，并会检查 `.venv` 与 `.env`。启动顺序与故障排查见 [`../docs/系统使用说明.md`](../docs/系统使用说明.md) 第 3、7 节。
+
+### 配置与建库辅助脚本
+
+`scripts/bootstrap_db.py` 是根目录 `start.bat` 使用的辅助脚本，也可以单独运行（工作目录为 `backend`）：
+
+```bash
+python -m scripts.bootstrap_db probe    # 只探测 MySQL TCP 连通性
+python -m scripts.bootstrap_db check    # 校验 .env、数据库连接与 JWT 密钥
+python -m scripts.bootstrap_db ensure --root-user root
+# 需要建库/建账号时，root 密码通过 MYSQL_ROOT_PASSWORD 环境变量传入，
+# 避免出现在命令行参数和进程列表中：
+#   MYSQL_ROOT_PASSWORD=xxx python -m scripts.bootstrap_db ensure --root-user root
+```
+
+退出码：`0` 可用；`2` 需要初始化数据库；`3` MySQL 不可达；`5` 需要重新生成 JWT 密钥。脚本只创建数据库、`study_app` 账号和 `.env`，不会修改已有业务数据。
 
 - Swagger UI：<http://127.0.0.1:8000/docs>
 - 健康检查：<http://127.0.0.1:8000/health>

@@ -260,7 +260,9 @@ def test_seat_occupancy_conflicts_and_batch(
     user = make_user()
     room = make_room()
     seat = make_seat(room.id)
-    day = date(2026, 11, 3)
+    # 使用明天的日期：update_status_batch 以「当前时间 ~ +7 天」计算冲突，
+    # 固定写死的过去日期会让该用例随时间推移而失效。
+    day = date.today() + timedelta(days=1)
     reservation = make_reservation(
         user.id,
         seat.id,
@@ -278,8 +280,8 @@ def test_seat_occupancy_conflicts_and_batch(
     conflicts = seat_service.list_conflicts(
         db,
         [seat.id],
-        datetime(2026, 11, 3, 14, 30),
-        datetime(2026, 11, 3, 15, 30),
+        datetime.combine(day, time(14, 30)),
+        datetime.combine(day, time(15, 30)),
     )
     assert [item.id for item in conflicts] == [reservation.id]
 

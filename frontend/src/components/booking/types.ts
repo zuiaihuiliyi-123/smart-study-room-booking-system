@@ -15,7 +15,10 @@ export interface BookingFilters {
   endTime: string
   /** 空串表示不限 */
   seatType: string
+  /** 仅看带插座 */
   powerOnly: boolean
+  /** 仅看靠窗 */
+  windowOnly: boolean
 }
 
 /** 矩阵单元格：资源状态（fix / off）与时段占用（free / taken）两个维度都已算好 */

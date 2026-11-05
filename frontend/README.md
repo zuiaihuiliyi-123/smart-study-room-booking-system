@@ -35,7 +35,11 @@ npm install
 npm run dev          # http://127.0.0.1:5173
 ```
 
+仓库根目录的 `start.bat` 会连同数据库和后端一起启动，无需手工执行上面的命令。
+
 需先启动后端。演示账户：`student / student123`、`admin / admin123`。
+
+`vite.config.ts` 已显式绑定 `host: '127.0.0.1'`：Node 17+ 的 `localhost` 可能只解析到 `::1`，会与文档、代理统一使用的 `127.0.0.1` 不一致。
 
 `.env.development` 默认 `VITE_USE_MOCK=false`，所有请求经 Vite 代理到真实后端；如需脱离后端独立演示，改为 `true` 后重启（MSW 在浏览器内拦截）。
 
