@@ -67,7 +67,7 @@ async function submit() {
     <section class="login__panel">
       <div class="login__card">
         <h2>统一身份登录</h2>
-        <p class="login__hint">学生 / 教师 / 管理员使用同一入口</p>
+        <p class="login__hint">学生 / 管理员使用同一入口</p>
 
         <el-form label-position="top" @submit.prevent="submit">
           <el-form-item label="学号 / 工号">

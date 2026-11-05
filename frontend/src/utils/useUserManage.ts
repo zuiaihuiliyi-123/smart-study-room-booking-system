@@ -14,7 +14,7 @@ import type { CurrentUser } from '@/types'
 import { toBookingFailure } from '@/utils/bookingData'
 import { useAdminScope } from '@/utils/useAdminScope'
 
-export type UserRoleFilter = '全部' | '学生用户' | '教师用户' | '自习室管理员' | '系统管理员'
+export type UserRoleFilter = '全部' | '学生用户' | '自习室管理员' | '系统管理员'
 export type UserStatusFilter = '全部' | '正常' | '受限' | '停用'
 
 export function useUserManage() {

@@ -67,6 +67,11 @@ export function timeRangeText(startTime: string, endTime: string): string {
   return `${shortTime(startTime)}–${shortTime(endTime)}`
 }
 
+/** 形如 `[14:00, 16:00)`：把左闭右开口径直接写进文案（预约列表的「时段」列）。 */
+export function bracketRangeText(startTime: string, endTime: string): string {
+  return `[${shortTime(startTime)}, ${shortTime(endTime)})`
+}
+
 /** 预约开始时刻；日期或时间不合法时返回 null（不猜测缺省值）。 */
 export function slotStartAt(reserveDate: string, startTime: string): Date | null {
   if (!reserveDate || !startTime) return null

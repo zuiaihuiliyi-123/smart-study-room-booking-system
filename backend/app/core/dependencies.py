@@ -104,7 +104,7 @@ def require_booking_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> User:
-    """预约与签到签退仅限学生 R-01（权限矩阵 §4.1.1 定稿：R-03 教师本版无操作级权限）。
+    """预约与签到签退仅限学生 R-01（权限矩阵 §4.1.1；R-03 教师角色已于 V2.1 取消）。
 
     管理员 R-02/R-04 不得以个人身份预约（UCD-02"创建预约"仅出现在学生端）。
     """

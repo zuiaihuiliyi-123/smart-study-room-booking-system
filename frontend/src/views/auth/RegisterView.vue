@@ -8,7 +8,7 @@
  * - 联系方式选填，填了则限定手机号或邮箱（后端只做长度 ≤100 的宽松校验）。
  *
  * 后端只开放「学生用户」角色，注册成功后直接签发令牌，因此这里注册即登录并进入学生端首页；
- * 教师 / 管理员账号由信息中心分配，不在本页开通。
+ * 管理员账号由信息中心分配，不在本页开通（R-03 教师角色已于 V2.1 取消）。
  */
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -95,7 +95,7 @@ async function submit() {
 <template>
   <AuthLayout>
     <h2 class="reg__title">学生注册</h2>
-    <p class="reg__hint">注册后即可预约座位；教师与管理员账号由信息中心分配</p>
+    <p class="reg__hint">注册后即可预约座位；管理员账号由信息中心分配</p>
 
     <el-form
       ref="formRef"

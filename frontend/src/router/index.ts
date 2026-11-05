@@ -19,7 +19,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/student',
     component: () => import('@/layouts/StudentLayout.vue'),
-    meta: { roles: ['学生用户', '教师用户'] },
+    meta: { roles: ['学生用户'] },
     children: [
       { path: '', redirect: '/student/home' },
       {
