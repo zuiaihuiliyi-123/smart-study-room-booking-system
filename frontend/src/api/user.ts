@@ -20,3 +20,14 @@ export const updateMyProfile = (data: { contact?: string }) =>
 
   export const listUsers = (params: UserQuery) =>
       http.get<PageResult<CurrentUser>>('/users', params)
+
+/** 管理员停用 / 恢复账户（ST-044 / ST-045 / ST-046），须填写原因（NFR-009）。 */
+export interface AccountStatusUpdate {
+  /** 目标状态：停用（封禁登录）或 正常（恢复） */
+  account_status: '停用' | '正常'
+  /** 变更原因，写入审计日志 */
+  reason: string
+}
+
+export const updateUserAccountStatus = (userId: number, data: AccountStatusUpdate) =>
+    http.patch<CurrentUser>(`/users/${userId}/account-status`, data)

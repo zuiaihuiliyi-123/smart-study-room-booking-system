@@ -46,6 +46,10 @@ def list_all_complaints(
     target_type: str | None = None,
     created_from: date | None = None,
     created_to: date | None = None,
+    user_id: int | None = Query(
+        default=None, description="只看该提交人的投诉（学号由前端翻译为 user_id）"
+    ),
+    keyword: str | None = Query(default=None, description="按投诉内容模糊匹配"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -59,6 +63,8 @@ def list_all_complaints(
         target_type=target_type,
         created_from=created_from,
         created_to=created_to,
+        user_id=user_id,
+        keyword=keyword,
     )
 
 

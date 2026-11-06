@@ -11,6 +11,7 @@ from app.models.audit_log import AuditLog
 from app.models.enums import ReservationStatus, SeatStatus
 from app.models.reservation import Reservation
 from app.models.reservation_slot import ReservationSlot
+from app.models.room import RoomClosure
 from app.models.seat import Seat
 from app.models.violation import ViolationRecord
 from app.schemas.reservation import CancelRequest, ReservationCreate
@@ -249,7 +250,12 @@ def test_room_close_preview_then_execute(
 
     assert result.closed_seats == 1
     assert result.cancelled == 1
-    assert db.get(Seat, seat.id).status == SeatStatus.DISABLED.value
+    # 关闭改为「关闭时间窗」记录：座位资源状态保持不变，窗口内由可预约性判定为不可约
+    assert db.get(Seat, seat.id).status == SeatStatus.AVAILABLE.value
+    closure = db.scalar(select(RoomClosure).where(RoomClosure.room_id == room.id))
+    assert closure is not None
+    assert closure.start_at == window_start
+    assert closure.end_at == window_end
     assert db.get(Reservation, reservation.id).status == ReservationStatus.CANCELLED.value
     assert db.scalar(select(func.count()).select_from(AuditLog)) >= 1
 

@@ -32,6 +32,9 @@ const {
   statusFilter,
   targetFilter,
   dateRange,
+  studentNo,
+  keyword,
+  resolving,
   page,
   pageSize,
   detailVisible,
@@ -49,6 +52,7 @@ const {
   submitHandle,
   nextActions,
   targetText,
+  applicantText,
   slaOf,
 } = useComplaintManage()
 
@@ -81,7 +85,29 @@ onMounted(() => {
       subtitle="受理并处理学生投诉，跟进处理进度"
     />
 
-    <FilterBar :loading="loading" @search="onSearch" @reset="onReset">
+    <FilterBar :loading="loading || resolving" @search="onSearch" @reset="onReset">
+      <label class="filter-field">
+        <span class="filter-field__label">提交人学号</span>
+        <el-input
+          v-model="studentNo"
+          class="w-150"
+          clearable
+          placeholder="精确学号"
+          @keyup.enter="onSearch"
+        />
+      </label>
+
+      <label class="filter-field">
+        <span class="filter-field__label">内容关键词</span>
+        <el-input
+          v-model="keyword"
+          class="w-170"
+          clearable
+          placeholder="如：噪音 / 占座"
+          @keyup.enter="onSearch"
+        />
+      </label>
+
       <label class="filter-field">
         <span class="filter-field__label">状态</span>
         <el-select v-model="statusFilter" class="w-200">
@@ -146,11 +172,15 @@ onMounted(() => {
 
       <template v-else>
         <div class="table-wrap">
-          <el-table :data="items" size="small" border :row-class-name="rowClass" style="min-width: 1000px">
+          <el-table :data="items" size="small" border :row-class-name="rowClass" style="min-width: 1140px">
             <el-table-column label="投诉号" width="84">
               <template #default="{ row }">
                 <el-button link type="primary" @click="openDetail(row)">#{{ row.id }}</el-button>
               </template>
+            </el-table-column>
+
+            <el-table-column label="提交人" min-width="150">
+              <template #default="{ row }">{{ applicantText(row) }}</template>
             </el-table-column>
 
             <el-table-column label="投诉对象" min-width="170">

@@ -14,18 +14,21 @@ const messages = useMessageStore()
 const REFRESH_INTERVAL_MS = 60_000
 let timer: number | null = null
 
+/**
+ * 壳层只关心**未读数**：消息列表已改为服务端分页，
+ * 拉整页列表既浪费请求，也无法代表「全部未读」。
+ */
 function refresh(): void {
-  if (document.visibilityState === 'visible') void messages.load(true)
+  if (document.visibilityState === 'visible') void messages.loadUnreadCount()
 }
 
 function onVisible(): void {
   refresh()
 }
 
-// 未读消息的唯一数据源：壳层与「站内消息」页、首页摘要共用同一个 store，
-// 避免三处各自拉取导致角标与列表不一致（FR-060 / SCOPE-07）。
+// 未读数与「站内消息」页、首页摘要共用同一个 store，避免三处数字不一致（FR-060 / SCOPE-07）。
 onMounted(() => {
-  void messages.load()
+  void messages.loadUnreadCount()
   timer = window.setInterval(refresh, REFRESH_INTERVAL_MS)
   document.addEventListener('visibilitychange', onVisible)
 })
@@ -35,11 +38,11 @@ onUnmounted(() => {
   document.removeEventListener('visibilitychange', onVisible)
 })
 
-// 进入消息页时强制取一次，避免「角标 3 条、列表 0 条未读」这种前后不一致
+// 进入消息页时刷新一次角标；列表本身由 MessagesView 自行按页加载
 watch(
   () => route.path,
   (path) => {
-    if (path === '/student/messages') void messages.load(true)
+    if (path === '/student/messages') void messages.loadUnreadCount()
   },
 )
 </script>

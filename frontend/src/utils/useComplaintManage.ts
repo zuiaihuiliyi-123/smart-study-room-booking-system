@@ -17,6 +17,7 @@ import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { handleComplaint, listAllComplaints } from '@/api/complaint'
+import { listUsers } from '@/api/user'
 import type { Complaint } from '@/types'
 import {
   complaintTargetLabel,
@@ -48,6 +49,13 @@ export function useComplaintManage() {
   const statusFilter = ref<ComplaintStatusFilter>('待处理')
   const targetFilter = ref<ComplaintTargetFilter>('全部')
   const dateRange = ref<string[]>([])
+  /** 提交人学号输入（回车/查询时由后端翻译成 user_id） */
+  const studentNo = ref('')
+  /** 投诉内容关键词 */
+  const keyword = ref('')
+  /** 学号解析出的 user_id；为空表示不按提交人过滤 */
+  const applicantId = ref<number | null>(null)
+  const resolving = ref(false)
   const page = ref(1)
   const pageSize = ref(20)
 
@@ -72,6 +80,8 @@ export function useComplaintManage() {
           target_type: targetFilter.value === '全部' ? undefined : targetFilter.value,
           created_from: dateRange.value[0],
           created_to: dateRange.value[1],
+          user_id: applicantId.value ?? undefined,
+          keyword: keyword.value.trim() === '' ? undefined : keyword.value.trim(),
         }),
       loadAdminDirectory(force).catch(() => null),
     ])
@@ -101,15 +111,43 @@ async function refresh(): Promise<void> {
   }
 }
 
-function onSearch(): void {
+/**
+ * 查询：若填了学号，先向后端把学号解析成 user_id（不受用户目录 500 条上限影响），
+ * 再按条件加载列表。学号解析失败时不发起列表请求，避免「悄悄返回全部投诉」。
+ */
+async function onSearch(): Promise<void> {
   page.value = 1
-  void load()
+  const text = studentNo.value.trim()
+  if (text !== '') {
+    resolving.value = true
+    try {
+      const result = await listUsers({ keyword: text, page: 1, page_size: 20 })
+      const found = result.items.find((user) => user.student_no === text)
+      if (!found) {
+        applicantId.value = null
+        ElMessage.warning(`未找到学号「${text}」的用户，请确认学号是否正确`)
+        return
+      }
+      applicantId.value = found.id
+    } catch (caught) {
+      ElMessage.error(toBookingFailure(caught).message)
+      return
+    } finally {
+      resolving.value = false
+    }
+  } else {
+    applicantId.value = null
+  }
+  await load()
 }
 
 function onReset(): void {
   statusFilter.value = '待处理'
   targetFilter.value = '全部'
   dateRange.value = []
+  studentNo.value = ''
+  keyword.value = ''
+  applicantId.value = null
   page.value = 1
   void load()
 }
@@ -186,6 +224,12 @@ function targetText(item: Complaint): string {
   return complaintTargetLabel(directory.value, item.target_type, item.target_id)
 }
 
+/** 提交人展示：优先用目录里的姓名（学号），取不到时退回「用户 #id」。 */
+function applicantText(item: Complaint): string {
+  const user = directory.value?.usersById.get(item.user_id)
+  return user ? `${user.name}（${user.student_no}）` : `用户 #${item.user_id}`
+}
+
 function slaOf(item: Complaint): ReturnType<typeof complaintSla> {
   return complaintSla(item.created_at, now.value)
 }
@@ -201,6 +245,10 @@ return {
   statusFilter,
   targetFilter,
   dateRange,
+  studentNo,
+  keyword,
+  resolving,
+  applicantId,
   page,
   pageSize,
   detailVisible,
@@ -218,6 +266,7 @@ return {
   submitHandle,
   nextActions,
   targetText,
+  applicantText,
   slaOf,
 }
 }

@@ -63,16 +63,16 @@ async function load() {
   }
 }
 
-/** 站内消息来自 store（与顶栏角标、消息页同一份数据），首次加载由布局触发，此处不重复请求。 */
-async function loadMessages(force = false) {
-  await messages.load(force)
+/** 站内消息摘要：只取未读前 3 条（列表已改为服务端分页，拉整页既浪费也无法代表全部未读）。 */
+async function loadMessages() {
+  await messages.loadDigest()
 }
 
 async function onCheckIn(reservation: Reservation) {
   try {
     const result = await checkIn(reservation.id)
     ElMessage.success(result.message)
-    await Promise.all([load(), loadMessages(true)])
+    await Promise.all([load(), loadMessages()])
   } catch {
     // 失败提示由 request.ts 拦截器统一用 ElMessage 呈现，已选条件不受影响
   }
@@ -82,7 +82,7 @@ async function onCheckOut(reservation: Reservation) {
   try {
     const result = await checkOut(reservation.id)
     ElMessage.success(result.message)
-    await Promise.all([load(), loadMessages(true)])
+    await Promise.all([load(), loadMessages()])
   } catch {
     // 同上
   }
@@ -162,12 +162,12 @@ onMounted(() => {
         </div>
 
         <MessageDigest
-          :messages="messages.unreadItems.slice(0, 3)"
+          :messages="messages.digestItems"
           :unread-total="messages.unreadCount"
           :loading="messages.loading"
           :error-message="messages.errorMessage"
           @open="onOpenMessage"
-          @retry="loadMessages(true)"
+          @retry="loadMessages"
         />
       </div>
     </div>

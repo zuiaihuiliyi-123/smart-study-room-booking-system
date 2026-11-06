@@ -17,7 +17,7 @@ import DashboardStatusBar from '@/components/admin/DashboardStatusBar.vue'
 import StatCard from '@/components/StatCard.vue'
 import { chartHeight } from '@/utils/chartTheme'
 import { formatTimeSecond, isAfterToday } from '@/utils/format'
-import { REFRESH_INTERVAL_MS, TOP_N, useDashboard } from '@/utils/useDashboard'
+import { REFRESH_INTERVAL_MS, TOP_N, VIOLATION_AGGREGATE_LIMIT, useDashboard } from '@/utils/useDashboard'
 import { useDashboardCharts } from '@/utils/dashboardCharts'
 
 const {
@@ -67,7 +67,9 @@ function disabledDate(value: Date): boolean {
 
 const topSourceText = computed(() => {
   if (violationSample.value === 0) return '所选区间内没有违约记录'
-  const extra = violationsTruncated.value ? '（超过分页上限，仅统计前 1000 条）' : ''
+  const extra = violationsTruncated.value
+    ? `（超过聚合上限，仅统计前 ${VIOLATION_AGGREGATE_LIMIT} 条）`
+    : ''
   return `数据来源：违约记录汇总（所选区间共 ${violationSample.value} 条，取前 ${TOP_N} 名）${extra}；该统计覆盖全站，不受上方「自习室」筛选影响`
 })
 
@@ -207,7 +209,8 @@ const topViolatorsLabel = computed(
           :label="trendLabel"
         />
         <p class="dash-caption">
-          每日预约数按当日创建且未取消的预约单统计；每日违约数按当日产生的违约记录统计。
+          每日有效预约数按<strong>当日状态流转</strong>统计（签到进入「使用中」或签退进入「已完成」的预约单，按预约单去重）；
+          每日违约数按当日产生的违约记录统计（含系统判定与管理员登记）。两者均不按创建时间统计。
         </p>
       </section>
 

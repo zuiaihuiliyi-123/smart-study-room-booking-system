@@ -17,8 +17,9 @@ import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { cancelReservation, checkIn, checkOut, listMyReservations } from '@/api/reservation'
+import { listRooms } from '@/api/room'
 import { createReview, listMyReviews } from '@/api/review'
-import type { Reservation } from '@/types'
+import type { Reservation, Room } from '@/types'
 import { loadSeatDirectory, toBookingFailure, type SeatRef } from '@/utils/bookingData'
 import {
   BOOKING_RULES,
@@ -93,13 +94,53 @@ export function useMyReservations() {
   const reviewTarget = ref<Reservation | null>(null)
   const reviewSubmitting = ref(false)
 
+  /* ---------- 筛选：预约日期区间 + 自习室（服务端筛选，后端 `/reservations/me` 已支持） ---------- */
+  const dateRange = ref<string[]>([])
+  const roomId = ref<number | null>(null)
+  const rooms = ref<Room[]>([])
+  const roomsLoaded = ref(false)
+
+  /** 当前筛选条件（供 load 与计数共用，保证页签角标与列表口径一致）。 */
+  function activeFilters() {
+    return {
+      reserve_date_from: dateRange.value[0] ?? undefined,
+      reserve_date_to: dateRange.value[1] ?? undefined,
+      room_id: roomId.value ?? undefined,
+    }
+  }
+
+  async function ensureRooms(): Promise<void> {
+    if (roomsLoaded.value) return
+    try {
+      rooms.value = await listRooms()
+      roomsLoaded.value = true
+    } catch {
+      // 自习室列表失败不影响主列表：筛选下拉为空，仍需能用日期区间筛选
+    }
+  }
+
+  async function onApplyFilters(): Promise<void> {
+    page.value = 1
+    await Promise.all([load(), loadCounts()])
+  }
+
+  async function onResetFilters(): Promise<void> {
+    dateRange.value = []
+    roomId.value = null
+    page.value = 1
+    await Promise.all([load(), loadCounts()])
+  }
+
   const currentTab = computed(
     () => STATUS_TABS.find((tab) => tab.value === status.value) ?? STATUS_TABS[0],
   )
 
   async function loadCounts(): Promise<void> {
+    const filters = activeFilters()
     const pages = await Promise.all(
-      COUNT_STATUSES.map((value) => listMyReservations({ status: value, page: 1, page_size: 1 })),
+      COUNT_STATUSES.map((value) =>
+        listMyReservations({ status: value, page: 1, page_size: 1, ...filters }),
+      ),
     )
     const next: Record<string, number> = { all: 0 }
     COUNT_STATUSES.forEach((value, index) => {
@@ -117,6 +158,7 @@ async function load(): Promise<void> {
       status: status.value === 'all' ? undefined : status.value,
       page: page.value,
       page_size: pageSize.value,
+      ...activeFilters(),
     })
   items.value = result.items
   total.value = result.total
@@ -142,6 +184,7 @@ async function bootstrap(): Promise<void> {
   const [reviews] = await Promise.all([
     fetchAllMyReviews().catch(() => [] as number[]),
     loadCounts().catch(() => undefined),
+    ensureRooms(),
   ])
 reviewedIds.value = new Set(reviews)
 await load()
@@ -341,6 +384,11 @@ return {
   reviewTarget,
   reviewSubmitting,
   canReview,
+  dateRange,
+  roomId,
+  rooms,
+  onApplyFilters,
+  onResetFilters,
   bootstrap,
   load,
   refresh,

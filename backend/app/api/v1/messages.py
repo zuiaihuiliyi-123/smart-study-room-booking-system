@@ -16,10 +16,17 @@ router = APIRouter(prefix="/messages", tags=["M7 站内通知"])
 def list_my_messages(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    message_type: str | None = Query(
+        default=None,
+        alias="type",
+        description="消息类型筛选：预约通知 / 违约通知 / 投诉反馈 / 系统通知",
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> PageResult[MessageRead]:
-    return message_service.list_my_messages(db, current_user.id, page, page_size)
+    return message_service.list_my_messages(
+        db, current_user.id, page, page_size, message_type=message_type
+    )
 
 
 @router.get("/unread-count", response_model=UnreadCount, summary="本人未读通知数")

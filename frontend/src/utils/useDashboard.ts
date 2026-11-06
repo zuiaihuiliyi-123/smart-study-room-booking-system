@@ -30,6 +30,8 @@ export const TOP_N = 8
 /** 后端 `GET /violations` 的 `page_size` 上限是 100（`le=100`），超过会被判 422 */
 const VIOLATION_PAGE_SIZE = 100
 const MAX_VIOLATION_PAGES = 5
+/** 图 3 违约聚合的最大样本量：超出后排行只统计前 N 条，页面须如实标注 */
+export const VIOLATION_AGGREGATE_LIMIT = VIOLATION_PAGE_SIZE * MAX_VIOLATION_PAGES
 
 export type RefreshSource = 'initial' | 'auto' | 'manual' | 'resume'
 

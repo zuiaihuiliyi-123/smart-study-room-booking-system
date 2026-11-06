@@ -11,20 +11,25 @@ from app.utils.pagination import to_offset
 
 
 def list_my_messages(
-    db: Session, user_id: int, page: int, page_size: int
+    db: Session,
+    user_id: int,
+    page: int,
+    page_size: int,
+    message_type: str | None = None,
 ) -> PageResult[MessageRead]:
-    """M7 / FR-060：查询本人站内通知（按时间倒序）。"""
+    """M7 / FR-060：查询本人站内通知（按时间倒序），可按消息类型筛选。"""
+    conditions = [StationMessage.user_id == user_id]
+    if message_type:
+        conditions.append(StationMessage.type == message_type)
     total = (
         db.scalar(
-            select(func.count())
-            .select_from(StationMessage)
-            .where(StationMessage.user_id == user_id)
+            select(func.count()).select_from(StationMessage).where(*conditions)
         )
         or 0
     )
     rows = db.scalars(
         select(StationMessage)
-        .where(StationMessage.user_id == user_id)
+        .where(*conditions)
         .order_by(StationMessage.created_at.desc(), StationMessage.id.desc())
         .offset(to_offset(page, page_size))
         .limit(page_size)

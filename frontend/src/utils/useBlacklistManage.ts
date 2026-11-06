@@ -13,6 +13,7 @@ import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { addBlacklist, listBlacklist, releaseBlacklist } from '@/api/blacklist'
+import { listUsers } from '@/api/user'
 import type { BlacklistEntry } from '@/types'
 import { invalidateAdminDirectory, loadAdminDirectory, type AdminDirectory } from '@/utils/adminData'
 import { toBookingFailure } from '@/utils/bookingData'
@@ -150,23 +151,34 @@ function expireText(entry: BlacklistEntry): string {
   return entry.expire_at.replace('T', ' ').slice(0, 16)
 }
 
-/** 按学号定位用户：接口只接受 user_id，因此先用用户目录把学号翻译成 id */
-function onSearchByStudentNo(): void {
+/**
+ * 按学号定位用户：**直接向后端查询**（`GET /users?keyword=`），不受管理端目录
+ * 最多 500 条的缓存上限影响，因此第 501 名之后的用户同样能定位到。
+ * 失败提示区分「确实没有该学号」与「查询请求失败」，不再把目录未加载完误报成学号不存在。
+ */
+async function onSearchByStudentNo(): Promise<void> {
   const text = studentNoInput.value.trim()
   if (text === '') {
     ElMessage.warning('请先输入学号')
     return
   }
-  const found = directory.value?.usersByStudentNo.get(text)
-  if (!found) {
-    ElMessage.warning(`用户目录中没找到学号 ${text}：请确认学号是否正确，或先在「用户管理」确认该用户存在`)
-    return
+  try {
+    const result = await listUsers({ keyword: text, page: 1, page_size: 20 })
+    const found = result.items.find((item) => item.student_no === text)
+    if (!found) {
+      ElMessage.warning(
+        `未找到学号「${text}」的用户：已按学号向后端查询，请确认学号是否正确`,
+      )
+      return
+    }
+    userId.value = found.id
+    userIdLabel.value = found.name
+    stateFilter.value = '全部'
+    page.value = 1
+    void load()
+  } catch (caught) {
+    ElMessage.error(toBookingFailure(caught).message)
   }
-  userId.value = found.id
-  userIdLabel.value = found.name
-  stateFilter.value = '全部'
-  page.value = 1
-  void load()
 }
 
 /** ST-041：手动加入黑名单（必填原因 + 期限） */

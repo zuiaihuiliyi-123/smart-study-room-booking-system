@@ -370,19 +370,26 @@ def test_disable_account_rejects_same_status(api_client, db, make_user) -> None:
     assert response.status_code == 409, response.text
 
 
-# ---- #1 场地关闭：窗口外孤儿预约发提示（BR-019 默认保留 + 避免静默失效）----
+# ---- 场地关闭：改为「关闭时间窗」实体，不再永久停用座位 ----
 
 
-def test_room_close_notifies_outside_window_reservations(
+def test_room_close_creates_window_without_disabling_seats(
     db, make_user, make_room, make_seat, make_reservation, monkeypatch
 ) -> None:
-    """场地关闭把座位永久停用；窗口外的未来预约不在冲突清单里，但座位已停用
-    无法使用——须发站内提示（不自动取消，符合 BR-019 默认保留）。"""
+    """场地临时关闭生成关闭时间窗记录，座位资源状态保持不变。
+
+    旧实现会把座位永久置为「停用」并需要对窗口外预约做孤儿提示；
+    现行实现改用 `RoomClosure` 时间窗（可自动失效、可提前解除），
+    因此座位仍为「可用」，窗口内由可预约性计算判定不可约。
+    """
     from datetime import date, datetime, time
 
+    from sqlalchemy import select
+
     from app.models.enums import ReservationStatus, SeatStatus
+    from app.models.room import RoomClosure
     from app.schemas.room import RoomCloseRequest
-    from app.services import message_service, room_service
+    from app.services import room_service
 
     notified: list[int] = []
     monkeypatch.setattr(
@@ -420,16 +427,23 @@ def test_room_close_notifies_outside_window_reservations(
         operator_id=user.id,
     )
 
-    # 窗口内预约被保留（默认不取消），窗口外预约被提示
+    # 窗口内预约被保留（默认不取消）；窗口外预约同样不受影响
     assert result.kept == 1
-    assert result.notified_outside_window == 1
-    # 窗口内和窗口外预约状态都保持待使用（不自动取消）
+    assert result.notified_outside_window == 0
     db.refresh(inside)
     db.refresh(outside)
     assert inside.status == ReservationStatus.PENDING.value
     assert outside.status == ReservationStatus.PENDING.value
-    # 座位已停用
+
+    # 座位资源状态保持不变（不再永久停用）
     db.refresh(seat)
-    assert seat.status == SeatStatus.DISABLED.value
-    # 两条预约都发了通知（窗口内保留提示 + 窗口外孤儿提示）
-    assert notified.count(user.id) == 2
+    assert seat.status == SeatStatus.AVAILABLE.value
+
+    # 生成关闭时间窗记录
+    closure = db.scalar(select(RoomClosure).where(RoomClosure.room_id == room.id))
+    assert closure is not None
+    assert closure.start_at == datetime(2026, 11, 3, 13, 0)
+    assert closure.end_at == datetime(2026, 11, 3, 17, 0)
+
+    # 仅窗口内被保留的预约收到提示（窗口外无需孤儿提示）
+    assert notified.count(user.id) == 1

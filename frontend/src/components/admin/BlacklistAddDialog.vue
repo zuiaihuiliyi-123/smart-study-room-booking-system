@@ -5,10 +5,12 @@
  * 必填项：用户、限制原因；期限可选。手动限制无论是否设期限都不会自动解除（ST-042）。
  * 提交前会弹一次 `ElMessageBox.confirm` 二次确认（含审计提示），因此本组件本身不是确认环节。
  */
-import { computed, reactive, ref, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 
+import { listUsers } from '@/api/user'
 import AuditNotice from '@/components/admin/AuditNotice.vue'
+import type { CurrentUser } from '@/types'
 import type { AdminDirectory } from '@/utils/adminData'
 import { formatApiDateTime } from '@/utils/format'
 
@@ -51,9 +53,33 @@ const rules: FormRules = {
   ],
 }
 
-const candidates = computed(() =>
-    (props.directory?.users ?? []).filter((user) => user.role !== '系统管理员'),
-)
+/**
+ * 候选用户改为**后端按关键词查询**：不受管理端目录 500 条上限影响，
+ * 输入完整学号可精确定位到任何用户。
+ */
+const options = ref<CurrentUser[]>([])
+const loadingOptions = ref(false)
+let searchSeq = 0
+
+async function searchUsers(query: string): Promise<void> {
+  const seq = (searchSeq += 1)
+  loadingOptions.value = true
+  try {
+    const keyword = query.trim()
+    const result = await listUsers({
+      keyword: keyword === '' ? undefined : keyword,
+      page: 1,
+      page_size: 20,
+    })
+    // 丢弃过期结果（连续输入时只采用最后一次查询）
+    if (seq !== searchSeq) return
+    options.value = result.items.filter((user) => user.role !== '系统管理员')
+  } catch {
+    if (seq === searchSeq) options.value = []
+  } finally {
+    if (seq === searchSeq) loadingOptions.value = false
+  }
+}
 
 watch(
   () => props.modelValue,
@@ -64,6 +90,7 @@ watch(
     form.hasExpire = true
     form.expire_at = defaultExpireAt()
     formRef.value?.clearValidate()
+    void searchUsers('')
   },
 )
 
@@ -97,17 +124,21 @@ async function onSubmit(): Promise<void> {
           v-model="form.user_id"
           class="w-full"
           filterable
-          placeholder="按姓名 / 学号搜索用户"
+          remote
+          :remote-method="searchUsers"
+          :loading="loadingOptions"
+          placeholder="输入姓名 / 学号搜索用户"
         >
           <el-option
-            v-for="user in candidates"
+            v-for="user in options"
             :key="user.id"
             :label="`${user.name}（${user.student_no}）· ${user.role} · 违约 ${user.violation_count} 次`"
             :value="user.id"
           />
         </el-select>
         <p class="ssr-text-muted hint">
-          候选列表来自用户目录（不含系统管理员）。列表为空时请先在「用户管理」确认用户是否存在。
+          候选由<strong>后端按关键词实时查询</strong>（最多 20 条，不含系统管理员）；
+          输入完整学号可精确定位，不受用户目录缓存上限影响。
         </p>
       </el-form-item>
 

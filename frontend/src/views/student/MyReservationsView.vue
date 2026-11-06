@@ -27,6 +27,11 @@ const {
   gating,
   reviewTarget,
   reviewSubmitting,
+  dateRange,
+  roomId,
+  rooms,
+  onApplyFilters,
+  onResetFilters,
   bootstrap,
   refresh,
   load,
@@ -65,6 +70,30 @@ onMounted(() => {
         <el-button type="primary" @click="router.push('/student/booking')">预约座位</el-button>
       </template>
     </PageHeader>
+
+    <div class="filters" role="search" aria-label="预约记录筛选">
+      <el-date-picker
+        v-model="dateRange"
+        class="filters__date"
+        type="daterange"
+        value-format="YYYY-MM-DD"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        @change="onApplyFilters"
+      />
+      <el-select
+        v-model="roomId"
+        class="filters__room"
+        clearable
+        placeholder="全部自习室"
+        @change="onApplyFilters"
+      >
+        <el-option v-for="room in rooms" :key="room.id" :label="room.name" :value="room.id" />
+      </el-select>
+      <el-button @click="onResetFilters">重置筛选</el-button>
+      <span class="ssr-text-muted filters__hint">按预约日期与自习室筛选，服务端过滤</span>
+    </div>
 
     <el-tabs v-model="status" class="status-tabs" @tab-change="onTabChange">
       <el-tab-pane v-for="tab in tabs" :key="tab.value" :name="tab.value">
@@ -126,6 +155,26 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.filters__date {
+  max-width: 300px;
+}
+
+.filters__room {
+  width: 170px;
+}
+
+.filters__hint {
+  font-size: var(--ssr-font-note);
+}
+
 .status-tabs {
   margin-bottom: 4px;
 }

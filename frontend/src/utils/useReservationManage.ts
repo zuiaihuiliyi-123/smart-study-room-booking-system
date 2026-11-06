@@ -124,6 +124,7 @@ function onReset(): void {
 
 function onPageChange(next: number): void {
   page.value = next
+  void load()
 }
 
 function onPageSizeChange(next: number): void {

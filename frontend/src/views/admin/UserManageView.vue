@@ -45,6 +45,15 @@ const {
   onPageChange,
   onPageSizeChange,
   openDetail,
+  statusDialogVisible,
+  statusTarget,
+  statusTargetValue,
+  statusReason,
+  statusSubmitting,
+  statusError,
+  openStatusDialog,
+  closeStatusDialog,
+  submitStatus,
 } = useUserManage()
 
 function openBlacklist(userId: number, name: string): void {
@@ -169,12 +178,13 @@ onMounted(() => {
 
             <el-table-column label="预计解除时间" min-width="150">
               <template #default="{ row }">
-                <span v-if="row.restrict_until">{{ row.restrict_until }}</span>
-                <span v-else class="ssr-text-muted">暂无法查询</span>
+                <span v-if="row.account_status !== '受限'" class="ssr-text-muted">—</span>
+                <span v-else-if="row.restrict_until">{{ row.restrict_until }}</span>
+                <span v-else class="ssr-text-muted">手动限制，无自动解除时间</span>
               </template>
             </el-table-column>
 
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column label="操作" width="260" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="openDetail(row)">详情</el-button>
                 <el-button
@@ -185,6 +195,25 @@ onMounted(() => {
                 >
                   黑名单
                 </el-button>
+                <el-button
+                  v-if="row.account_status === '正常'"
+                  link
+                  type="danger"
+                  size="small"
+                  @click="openStatusDialog(row)"
+                >
+                  停用
+                </el-button>
+                <el-button
+                  v-else-if="row.account_status === '停用'"
+                  link
+                  type="success"
+                  size="small"
+                  @click="openStatusDialog(row)"
+                >
+                  恢复
+                </el-button>
+                <el-button v-else link size="small" disabled>受限中</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -208,12 +237,72 @@ onMounted(() => {
     <el-alert class="notice" type="info" :closable="false" show-icon title="本页可以做什么">
       <p>
         这里只能<strong>查询</strong>用户信息，不能修改姓名、学号、院系或密码；
-        联系方式也只有用户本人能改，因此本页没有编辑入口。
+        联系方式也只有用户本人能改，因此本页没有身份信息的编辑入口。
       </p>
       <p>
-        列表中的手机号与邮箱只显示部分数字。要调整账户状态，请到「黑名单管理」。
+        列表中的手机号与邮箱只显示部分数字。<strong>受限</strong>由「黑名单管理」产生；
+        <strong>停用 / 恢复</strong>可在本页操作（须填写原因并记入审计日志）。
+        受限账户需先在黑名单解除限制，才能停用。
       </p>
     </el-alert>
+
+    <el-dialog
+      v-model="statusDialogVisible"
+      :title="statusTargetValue === '停用' ? '停用账户' : '恢复账户'"
+      width="480px"
+      :close-on-click-modal="false"
+      @closed="closeStatusDialog"
+    >
+      <p class="status-line">
+        目标用户：<strong>{{ statusTarget?.name ?? '—' }}</strong>
+        <span class="ssr-text-muted">（{{ statusTarget?.student_no ?? '' }}）</span>
+      </p>
+
+      <el-alert
+        class="block"
+        :type="statusTargetValue === '停用' ? 'warning' : 'info'"
+        :closable="false"
+        show-icon
+        :title="
+          statusTargetValue === '停用'
+            ? '停用后该账户将无法登录；既有预约与历史记录不受影响。'
+            : '恢复后该账户可重新登录并创建预约。'
+        "
+      />
+
+      <el-form label-position="top" class="block">
+        <el-form-item label="变更原因（必填，将记入审计日志）">
+          <el-input
+            v-model="statusReason"
+            type="textarea"
+            :rows="3"
+            maxlength="255"
+            show-word-limit
+            placeholder="如：多次冒用他人账号 / 核实完毕，恢复使用"
+          />
+        </el-form-item>
+      </el-form>
+
+      <el-alert
+        v-if="statusError"
+        class="block"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="statusError"
+      />
+
+      <template #footer>
+        <el-button :disabled="statusSubmitting" @click="closeStatusDialog">取消</el-button>
+        <el-button
+          :type="statusTargetValue === '停用' ? 'danger' : 'primary'"
+          :loading="statusSubmitting"
+          @click="submitStatus"
+        >
+          确认{{ statusTargetValue === '停用' ? '停用' : '恢复' }}
+        </el-button>
+      </template>
+    </el-dialog>
 
     <UserDetailDrawer
       v-model="detailVisible"
@@ -239,6 +328,15 @@ onMounted(() => {
   font-size: var(--ssr-font-note);
   background: var(--ssr-primary-light);
   border-radius: 4px;
+}
+
+.status-line {
+  margin: 0 0 10px;
+  font-size: var(--ssr-font-body);
+}
+
+.block {
+  margin-bottom: 12px;
 }
 
 .panel {

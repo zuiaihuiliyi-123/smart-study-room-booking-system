@@ -39,7 +39,7 @@ async function submit() {
 
   loading.value = true
   try {
-    await auth.login(form)
+    await auth.login(form, remembering.value)
 
     if (remembering.value) {
       localStorage.setItem(REMEMBER_KEY, form.student_no)

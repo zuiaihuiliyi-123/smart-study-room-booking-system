@@ -23,7 +23,9 @@ const request = axios.create({
 })
 
 request.interceptors.request.use((config) => {
-  const token = localStorage.getItem('ssr_token')
+  // 「记住我」时令牌在 localStorage，否则在 sessionStorage（关闭浏览器即失效）
+  const token =
+    localStorage.getItem('ssr_token') ?? sessionStorage.getItem('ssr_token') ?? ''
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -38,10 +40,15 @@ request.interceptors.response.use(
       error.response?.data?.message ?? error.response?.data?.detail ?? '请求失败，请稍后重试'
 
     if (status === 401) {
+      // 凭证已失效：两种存储都要清，避免残留令牌反复触发 401
       localStorage.removeItem('ssr_token')
       localStorage.removeItem('ssr_user')
+      sessionStorage.removeItem('ssr_token')
+      sessionStorage.removeItem('ssr_user')
       if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+        // 记住当前页面，登录后可回到原处（登录页已支持读取 redirect 参数）
+        const back = encodeURIComponent(window.location.pathname + window.location.search)
+        window.location.href = `/login?redirect=${back}`
       }
     }
 

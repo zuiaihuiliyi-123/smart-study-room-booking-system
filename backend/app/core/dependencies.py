@@ -34,8 +34,15 @@ def get_current_user(
         raise unauthorized from None
 
     user = db.get(User, user_id)
-    if user is None or user.account_status == AccountStatus.DISABLED.value:
+    if user is None:
         raise unauthorized
+    if user.account_status == AccountStatus.DISABLED.value:
+        # 与 login 的口径保持一致：停用是「权限/资格」问题而非「登录过期」，
+        # 返回 403 可避免前端把它误当成 token 失效而反复跳转登录页。
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="账户已停用，请联系管理员",
+        )
     return user
 
 

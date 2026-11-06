@@ -121,13 +121,23 @@ def list_all_complaints(
     target_type: str | None = None,
     created_from: date | None = None,
     created_to: date | None = None,
+    user_id: int | None = None,
+    keyword: str | None = None,
 ) -> PageResult[ComplaintRead]:
-    """M5 / FR-043：管理员查询投诉列表（按提交时间倒序）。"""
+    """M5 / FR-043：管理员查询投诉列表（按提交时间倒序）。
+
+    - ``user_id``：只看某个提交人的投诉（由前端把学号翻译成 id 后传入）；
+    - ``keyword``：按投诉内容模糊匹配，便于定位具体问题。
+    """
     conditions: list = []
     if status:
         conditions.append(Complaint.status == status)
     if target_type:
         conditions.append(Complaint.target_type == target_type)
+    if user_id is not None:
+        conditions.append(Complaint.user_id == user_id)
+    if keyword:
+        conditions.append(Complaint.content.contains(keyword))
     if created_from is not None:
         conditions.append(
             Complaint.created_at

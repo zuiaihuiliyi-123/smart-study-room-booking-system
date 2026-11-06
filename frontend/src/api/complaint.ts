@@ -1,13 +1,17 @@
 import { http } from './request'
 import type { Complaint, PageResult } from '@/types'
 
-/** 管理端投诉队列查询（FR-043）：状态 / 对象类型 / 提交时间区间。 */
+/** 管理端投诉队列查询（FR-043）：状态 / 对象类型 / 提交时间区间 / 提交人 / 内容关键词。 */
 export interface ComplaintQuery {
   status?: string
   target_type?: string
   /** 提交时间区间（含端点），形如 `2026-10-01` */
   created_from?: string
   created_to?: string
+  /** 只看某提交人的投诉（前端把学号翻译为 user_id） */
+  user_id?: number
+  /** 按投诉内容模糊匹配 */
+  keyword?: string
   page?: number
   page_size?: number
 }
