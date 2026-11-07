@@ -208,6 +208,8 @@ async function submitHandle(status: Complaint['status'], note: string): Promise<
     ElMessage.success(`投诉 #${updated.id} 已更新为「${updated.status}」`)
     invalidateAdminDirectory()
     await refresh()
+    // 通知侧栏角标立即重新计数（不必等下一次 60 秒轮询）
+    window.dispatchEvent(new Event('ssr:complaints-changed'))
     // 流转后该投诉通常会离开当前筛选队列（默认只看「待处理」），仍保留这条最新快照，
     // 否则抽屉会在关闭瞬间变成空白；若还有下一步（如 处理中 → 已处理），可直接继续处理。
     detail.value = updated

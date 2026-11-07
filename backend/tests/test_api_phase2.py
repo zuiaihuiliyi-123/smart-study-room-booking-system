@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from app.core.security import create_access_token, hash_password
 from app.models.complaint import Complaint
 from app.models.enums import AccountStatus, Role
@@ -147,6 +149,68 @@ def test_complaints_filter_by_submitter_and_keyword(api_client, db, make_user) -
         headers=headers,
     )
     assert combined.json()["total"] == 1
+
+
+# ---------------------------------------------------------------- 我的预约计数
+
+
+def test_my_reservations_status_counts_grouped_and_filtered(
+    api_client, db, make_user, make_room, make_seat, make_reservation
+) -> None:
+    """状态计数一次返回 5 个状态，且与列表共用用户范围与筛选条件。"""
+    alice = make_user(
+        student_no="S9010", name="计数用户", password_hash=hash_password("student123")
+    )
+    bob = make_user(
+        student_no="S9011", name="其他用户", password_hash=hash_password("student123")
+    )
+    room = make_room()
+    other_room = make_room()
+    seat = make_seat(room.id)
+    other_seat = make_seat(other_room.id)
+
+    make_reservation(alice.id, seat.id, reserve_date=date(2099, 1, 1), status="待使用")
+    make_reservation(alice.id, seat.id, reserve_date=date(2099, 1, 2), status="已完成")
+    make_reservation(alice.id, seat.id, reserve_date=date(2099, 1, 3), status="已取消")
+    make_reservation(alice.id, other_seat.id, reserve_date=date(2099, 1, 4), status="已违约")
+    # 其他用户的记录不得计入
+    make_reservation(bob.id, seat.id, reserve_date=date(2099, 1, 1), status="待使用")
+
+    headers = _login(api_client, "S9010", "student123")
+
+    all_counts = api_client.get(
+        "/api/v1/reservations/me/status-counts", headers=headers
+    )
+    assert all_counts.status_code == 200, all_counts.text
+    body = all_counts.json()
+    assert body["counts"] == {
+        "待使用": 1,
+        "使用中": 0,
+        "已完成": 1,
+        "已取消": 1,
+        "已违约": 1,
+    }
+    assert body["total"] == 4
+
+    # 日期区间筛选：只统计当天
+    by_date = api_client.get(
+        "/api/v1/reservations/me/status-counts",
+        params={"reserve_date_from": "2099-01-02", "reserve_date_to": "2099-01-02"},
+        headers=headers,
+    )
+    assert by_date.status_code == 200, by_date.text
+    assert by_date.json()["counts"]["已完成"] == 1
+    assert by_date.json()["total"] == 1
+
+    # 自习室筛选：只统计另一间馆的违约记录
+    by_room = api_client.get(
+        "/api/v1/reservations/me/status-counts",
+        params={"room_id": other_room.id},
+        headers=headers,
+    )
+    assert by_room.status_code == 200, by_room.text
+    assert by_room.json()["counts"]["已违约"] == 1
+    assert by_room.json()["total"] == 1
 
 
 # ---------------------------------------------------------------- 停用账户

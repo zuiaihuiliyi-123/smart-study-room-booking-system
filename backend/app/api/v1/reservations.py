@@ -14,6 +14,7 @@ from app.schemas.reservation import (
     ForceCancelRequest,
     ReservationCreate,
     ReservationRead,
+    ReservationStatusCounts,
 )
 from app.schemas.seat import SeatRead
 from app.services import availability_service, reservation_service
@@ -52,6 +53,30 @@ def list_my_reservations(
         status=status,
         page=page,
         page_size=page_size,
+        reserve_date_from=reserve_date_from,
+        reserve_date_to=reserve_date_to,
+        room_id=room_id,
+        seat_id=seat_id,
+    )
+
+
+@router.get(
+    "/me/status-counts",
+    response_model=ReservationStatusCounts,
+    summary="本人预约按状态分组计数",
+)
+def count_my_reservations(
+    reserve_date_from: date | None = None,
+    reserve_date_to: date | None = None,
+    room_id: int | None = None,
+    seat_id: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ReservationStatusCounts:
+    """一次返回本人各状态的预约数量，口径与 ``GET /reservations/me`` 一致。"""
+    return reservation_service.count_my_reservations(
+        db,
+        current_user.id,
         reserve_date_from=reserve_date_from,
         reserve_date_to=reserve_date_to,
         room_id=room_id,

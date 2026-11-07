@@ -3,11 +3,16 @@ import { computed } from 'vue'
 
 import { groupMenus, type MenuItem } from '@/layouts/menu'
 
-const props = defineProps<{
-  menus: MenuItem[]
-  collapsed: boolean
-  activePath: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    menus: MenuItem[]
+    collapsed: boolean
+    activePath: string
+    /** 菜单项角标：path -> 数量；0 或未提供时不展示 */
+    badges?: Record<string, number>
+  }>(),
+  { badges: () => ({}) },
+)
 
 const groups = computed(() => groupMenus(props.menus))
 </script>
@@ -31,7 +36,14 @@ const groups = computed(() => groupMenus(props.menus))
           :index="item.path"
           tabindex="0"
         >
-          <el-icon><component :is="item.icon" /></el-icon>
+          <el-badge
+            :value="props.badges[item.path] ?? 0"
+            :max="99"
+            :hidden="(props.badges[item.path] ?? 0) <= 0"
+            class="app-sider__badge"
+          >
+            <el-icon><component :is="item.icon" /></el-icon>
+          </el-badge>
           <template #title>{{ item.title }}</template>
         </el-menu-item>
       </template>
@@ -69,5 +81,17 @@ const groups = computed(() => groupMenus(props.menus))
   margin: 8px 16px;
   background: var(--ssr-line);
   list-style: none;
+}
+
+.app-sider__badge {
+  display: inline-flex;
+  line-height: 1;
+}
+
+.app-sider__badge :deep(.el-badge__content) {
+  height: 16px;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 14px;
 }
 </style>

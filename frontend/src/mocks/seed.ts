@@ -8,6 +8,7 @@
  */
 import type {
   Area,
+  AuditLog,
   BlacklistEntry,
   Complaint,
   Reservation,
@@ -568,6 +569,65 @@ for (const user of users) {
   user.violation_count = violations.filter((item) => item.user_id === user.id).length
 }
 
+// ⑨ 审计日志样本（只读查询页演示）
+const auditLogs: AuditLog[] = [
+  {
+    id: 1,
+    operator_id: 5,
+    action_type: 'ROOM_UPDATE',
+    target_type: 'ROOM',
+    target_id: 1,
+    reason: '调整闭馆时间至 22:00',
+    before_value: '{"close_time":"21:30"}',
+    after_value: '{"close_time":"22:00"}',
+    created_at: formatDateTime(addDays(now, -2)),
+  },
+  {
+    id: 2,
+    operator_id: 5,
+    action_type: 'SEAT_STATUS_BATCH',
+    target_type: 'SEAT',
+    target_id: seatIdOf('B-07'),
+    reason: '现场巡查发现损坏，批量转维修',
+    before_value: '{"status":"可用"}',
+    after_value: '{"status":"维修中"}',
+    created_at: formatDateTime(addDays(now, -1)),
+  },
+  {
+    id: 3,
+    operator_id: 5,
+    action_type: 'COMPLAINT_HANDLE',
+    target_type: 'COMPLAINT',
+    target_id: 1,
+    reason: '受理投诉并联系物业',
+    before_value: '待处理',
+    after_value: '处理中',
+    created_at: formatDateTime(addMinutes(now, -26 * 60)),
+  },
+  {
+    id: 4,
+    operator_id: null,
+    action_type: 'LOGIN_FAILED',
+    target_type: 'USER',
+    target_id: null,
+    reason: '学号「3200104523」凭证错误',
+    before_value: null,
+    after_value: null,
+    created_at: formatDateTime(addMinutes(now, -3 * 60)),
+  },
+  {
+    id: 5,
+    operator_id: 5,
+    action_type: 'BLACKLIST_ADD',
+    target_type: 'USER',
+    target_id: 4,
+    reason: '多次占座不到场，手动限制',
+    before_value: '正常',
+    after_value: '受限',
+    created_at: formatDateTime(addDays(now, -5)),
+  },
+]
+
 return {
   users,
   rooms,
@@ -579,6 +639,7 @@ return {
   complaints,
   blacklist,
   messages,
+  audit_logs: auditLogs,
   sessions: new Map(),
   attempts: [],
   armed_conflicts: 0,

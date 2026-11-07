@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
+import PasswordChangeDialog from '@/components/account/PasswordChangeDialog.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { updateMyProfile } from '@/api/user'
@@ -16,6 +17,7 @@ const error = ref<BookingFailure | null>(null)
 const editing = ref(false)
 const saving = ref(false)
 const contactDraft = ref('')
+const passwordVisible = ref(false)
 
 const profile = computed(() => auth.user)
 const contactText = computed(() => profile.value?.contact?.trim() || '未填写')
@@ -72,7 +74,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="个人资料"
-      subtitle="查看个人资料，修改联系方式"
+      subtitle="查看个人资料，修改联系方式与登录密码"
     >
       <template #actions>
         <el-button :loading="loading" @click="load">刷新</el-button>
@@ -189,8 +191,10 @@ onMounted(() => {
           <div>
             <dt>修改密码</dt>
             <dd>
-              <el-button size="small" disabled>修改密码</el-button>
-              <span class="ssr-text-muted">暂未开通自助修改，请联系管理员处理。</span>
+              <el-button size="small" @click="passwordVisible = true">修改密码</el-button>
+              <span class="ssr-text-muted">
+                需验证原密码；修改后其他设备需重新登录。
+              </span>
             </dd>
           </div>
         </dl>
@@ -200,6 +204,8 @@ onMounted(() => {
     <div v-else class="ssr-card block">
       <el-empty description="未取得用户信息，请重新登录后再试" />
     </div>
+
+    <PasswordChangeDialog v-model="passwordVisible" />
       </div>
 </template>
 

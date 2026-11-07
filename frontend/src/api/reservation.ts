@@ -1,5 +1,5 @@
 import { http } from './request'
-import type { PageResult, Reservation, Seat } from '@/types'
+import type { PageResult, Reservation, ReservationStatusCounts, Seat } from '@/types'
 
 /**
  * 预约列表查询参数。
@@ -29,6 +29,11 @@ export const createReservation = (data: {
 
 export const listMyReservations = (params: ReservationQuery) =>
   http.get<PageResult<Reservation>>('/reservations/me', params)
+
+/** 本人预约按状态分组计数（与 `/reservations/me` 共用日期 / 自习室筛选）。 */
+export const getMyReservationStatusCounts = (
+  params: Omit<ReservationQuery, 'status' | 'page' | 'page_size'>,
+) => http.get<ReservationStatusCounts>('/reservations/me/status-counts', params)
 
 export const listAllReservations = (params: ReservationQuery) =>
   http.get<PageResult<Reservation>>('/reservations', params)

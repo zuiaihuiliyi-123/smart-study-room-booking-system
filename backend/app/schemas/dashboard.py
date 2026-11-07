@@ -31,3 +31,19 @@ class SeatUsageSlotRow(BaseModel):
     occupied: int
     capacity: int
     rate: float
+
+
+class ViolationTopItem(BaseModel):
+    """图 3：某用户在一个统计区间内的违约次数（后端聚合）。"""
+
+    user_id: int
+    name: str
+    student_no: str
+    count: int
+
+
+class ViolationTopResponse(BaseModel):
+    """图 3 的聚合结果：Top N 用户 + 区间内违约记录总数。"""
+
+    items: list[ViolationTopItem]
+    total_records: int

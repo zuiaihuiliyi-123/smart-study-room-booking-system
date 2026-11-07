@@ -2,6 +2,7 @@
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.security import verify_password
 from app.models.audit_log import AuditLog
 from app.models.enums import AccountStatus, Role
@@ -88,6 +89,39 @@ def test_register_rejects_invalid_payload(api_client, db):
         assert response.json()["code"] == "VALIDATION_ERROR"
 
     assert db.scalar(select(User).where(User.student_no == "S20260001")) is None
+
+
+def test_register_can_be_closed(api_client, db, monkeypatch):
+    """A2：关闭自助注册后，任何学号都不能创建账号。"""
+    monkeypatch.setattr(settings, "registration_enabled", False)
+
+    response = api_client.post("/api/v1/auth/register", json=_payload())
+
+    assert response.status_code == 403, response.text
+    assert response.json()["code"] == "REGISTRATION_CLOSED"
+    assert db.scalar(select(User).where(User.student_no == "S20260001")) is None
+
+
+def test_register_whitelist_blocks_unlisted_and_allows_listed(
+    api_client, db, monkeypatch
+):
+    """A2：配置学籍白名单后，仅名单内学号可注册。"""
+    monkeypatch.setattr(
+        settings, "registration_whitelist", "S20260010, S20260011"
+    )
+
+    denied = api_client.post(
+        "/api/v1/auth/register", json=_payload(student_no="S20260012")
+    )
+    assert denied.status_code == 403, denied.text
+    assert denied.json()["code"] == "STUDENT_NO_NOT_ALLOWED"
+    assert db.scalar(select(User).where(User.student_no == "S20260012")) is None
+
+    allowed = api_client.post(
+        "/api/v1/auth/register", json=_payload(student_no="S20260011")
+    )
+    assert allowed.status_code == 201, allowed.text
+    assert db.scalar(select(User).where(User.student_no == "S20260011")) is not None
 
 
 def test_register_defaults_contact_to_null(api_client, db):

@@ -17,8 +17,10 @@ const props = withDefaults(
     showMessages?: boolean
     /** 个人资料路由；不传则该下拉项禁用（如管理端暂无资料页） */
     profilePath?: string
+    /** 侧栏菜单角标：path -> 数量（管理端待处理投诉等） */
+    badges?: Record<string, number>
   }>(),
-  { unreadCount: 0, showMessages: true, profilePath: '' },
+  { unreadCount: 0, showMessages: true, profilePath: '', badges: () => ({}) },
 )
 
 const emit = defineEmits<{ (e: 'messages'): void }>()
@@ -76,7 +78,12 @@ const crumbs = computed(() =>
     />
 
     <div class="app-body">
-      <AppSider :menus="props.menus" :collapsed="collapsed" :active-path="activePath" />
+      <AppSider
+        :menus="props.menus"
+        :collapsed="collapsed"
+        :active-path="activePath"
+        :badges="props.badges"
+      />
 
       <div class="app-content">
         <nav class="app-crumb" aria-label="面包屑导航">

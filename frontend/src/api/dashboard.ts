@@ -1,5 +1,11 @@
 import { http, type RequestOptions } from './request'
-import type { ChartItem, SeatUsageSlotRow, StatOverview, TrendPoint } from '@/types'
+import type {
+  ChartItem,
+  SeatUsageSlotRow,
+  StatOverview,
+  TrendPoint,
+  ViolationTopResponse,
+} from '@/types'
 
 /**
  * 看板查询参数（IR-004 输入：自习室 + 统计周期起止自然日）。
@@ -40,3 +46,9 @@ export const getOverview = (params: DashboardQuery, options?: RequestOptions) =>
       /** FR-051：按自然日的每日有效预约数与违约数（近 7 天趋势）。 */
       export const getTrend = (params: DashboardQuery, options?: RequestOptions) =>
           http.get<TrendPoint[]>('/dashboard/trend', params, options)
+
+/** 图 3：用户违约次数 Top N（后端聚合，全站口径）。 */
+export const getViolationTop = (
+  params: { start_date: string; end_date: string; limit?: number },
+  options?: RequestOptions,
+) => http.get<ViolationTopResponse>('/dashboard/violation-top', params, options)

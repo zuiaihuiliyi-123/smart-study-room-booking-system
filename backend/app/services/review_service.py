@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime, time
+
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -89,12 +91,40 @@ def list_my_reviews(
 
 
 def list_all_reviews(
-    db: Session, page: int, page_size: int
+    db: Session,
+    page: int,
+    page_size: int,
+    *,
+    score: int | None = None,
+    created_from: date | None = None,
+    created_to: date | None = None,
 ) -> PageResult[ReviewRead]:
-    """M5 / FR-041：管理员查询评价（按提交时间倒序）。"""
-    total = db.scalar(select(func.count()).select_from(Review)) or 0
+    """M5 / FR-041：管理员查询评价（按提交时间倒序）。
+
+    支持按评分精确筛选与提交日期区间筛选；日期区间含端点，
+    与列表的 ``created_at`` 展示口径一致。
+    """
+    conditions: list = []
+    if score is not None:
+        conditions.append(Review.score == score)
+    if created_from is not None:
+        conditions.append(
+            Review.created_at >= datetime.combine(created_from, time.min)
+        )
+    if created_to is not None:
+        conditions.append(
+            Review.created_at <= datetime.combine(created_to, time.max)
+        )
+
+    total = (
+        db.scalar(
+            select(func.count()).select_from(Review).where(*conditions)
+        )
+        or 0
+    )
     rows = db.scalars(
         select(Review)
+        .where(*conditions)
         .order_by(Review.created_at.desc(), Review.id.desc())
         .offset(to_offset(page, page_size))
         .limit(page_size)

@@ -28,6 +28,13 @@ class ReservationRead(ORMModel):
     created_at: datetime
 
 
+class ReservationStatusCounts(BaseModel):
+    """本人预约按状态分组的数量（页签角标一次取回，避免 5 次分页查询）。"""
+
+    counts: dict[str, int]
+    total: int
+
+
 class CancelRequest(BaseModel):
     reason: str | None = Field(default=None, max_length=255)
 

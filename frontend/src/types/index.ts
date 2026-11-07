@@ -83,6 +83,12 @@ export interface Reservation {
   created_at: string
 }
 
+/** 本人预约按状态分组的计数（页签角标一次取回，口径与预约列表一致）。 */
+export interface ReservationStatusCounts {
+  counts: Record<Reservation['status'], number>
+  total: number
+}
+
 export interface Violation {
   id: number
   user_id: number
@@ -219,12 +225,31 @@ export interface SeatUsageSlotRow {
   rate: number
 }
 
-/** 图 3 的一行：用户违约次数（由 `/violations` 明细聚合，前端计算） */
+/** 图 3 的一行：用户违约次数（由 `/dashboard/violation-top` 后端聚合） */
 export interface ViolationTopEntry {
   user_id: number
   name: string
   student_no: string
   count: number
+}
+
+/** 图 3 的聚合结果：Top N 用户 + 统计区间内违约记录总数。 */
+export interface ViolationTopResponse {
+  items: ViolationTopEntry[]
+  total_records: number
+}
+
+/** 审计日志（NFR-009）：只追加、只读；管理员查询。 */
+export interface AuditLog {
+  id: number
+  operator_id: number | null
+  action_type: string
+  target_type: string
+  target_id: number | null
+  reason: string | null
+  before_value: string | null
+  after_value: string | null
+  created_at: string
 }
 
 export interface StationMessage {

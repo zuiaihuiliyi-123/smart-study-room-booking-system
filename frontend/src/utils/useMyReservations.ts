@@ -8,15 +8,23 @@
  * - BR-007：签到窗口 `[s−15, s+15)`；窗口未开 / 已关闭时按钮禁用并在提示里给出窗口时间。
  * - BR-013：仅「已完成」且**尚无评价**的预约单可评价，一单一评，评分 1～5。
  *
- * 已知接口限制：`/reservations/me` 只支持 `status / page / page_size`（无日期与自习室参数），
- * 因此日期、自习室不做服务端筛选；状态页签的数量角标用 5 次 `page_size=1` 的查询取 `total`
- * （服务端计数，避免把「当前页」当成全部）。
+ * 筛选与计数口径：
+ * - `/reservations/me` 支持 `status / reserve_date_from / reserve_date_to / room_id / seat_id`
+ *   与分页参数，日期与自习室均为**服务端**筛选；
+ * - 状态页签角标由 `/reservations/me/status-counts` 一次返回全部状态，
+ *   与列表共用同一组筛选条件，避免把「当前页」当成全部。
  */
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-import { cancelReservation, checkIn, checkOut, listMyReservations } from '@/api/reservation'
+import {
+  cancelReservation,
+  checkIn,
+  checkOut,
+  getMyReservationStatusCounts,
+  listMyReservations,
+} from '@/api/reservation'
 import { listRooms } from '@/api/room'
 import { createReview, listMyReviews } from '@/api/review'
 import type { Reservation, Room } from '@/types'
@@ -44,15 +52,6 @@ export const STATUS_TABS: readonly StatusTab[] = [
   { value: '已完成', label: '已完成', empty: '还没有已完成的预约' },
   { value: '已取消', label: '已取消', empty: '没有已取消的预约' },
   { value: '已违约', label: '已违约', empty: '没有违约记录，请继续保持' },
-]
-
-/** 5 种终态 / 中间态，用于取各页签的数量角标（不含「全部」）。 */
-const COUNT_STATUSES: readonly Reservation['status'][] = [
-  '待使用',
-  '使用中',
-  '已完成',
-  '已取消',
-  '已违约',
 ]
 
 /** 行内按钮的启用条件与禁用原因：由页面统一提供，表格组件只负责渲染。 */
@@ -136,19 +135,13 @@ export function useMyReservations() {
   )
 
   async function loadCounts(): Promise<void> {
-    const filters = activeFilters()
-    const pages = await Promise.all(
-      COUNT_STATUSES.map((value) =>
-        listMyReservations({ status: value, page: 1, page_size: 1, ...filters }),
-      ),
-    )
-    const next: Record<string, number> = { all: 0 }
-    COUNT_STATUSES.forEach((value, index) => {
-      next[value] = pages[index].total
-      next.all += pages[index].total
-    })
-  counts.value = next
-}
+    try {
+      const result = await getMyReservationStatusCounts(activeFilters())
+      counts.value = { ...result.counts, all: result.total }
+    } catch {
+      // 角标失败不阻塞列表：保留上一次结果，避免把 0 当成真实计数
+    }
+  }
 
 async function load(): Promise<void> {
   loading.value = true

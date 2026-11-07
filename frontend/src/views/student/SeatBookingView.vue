@@ -51,6 +51,8 @@ const {
   submitState,
   failure,
   success,
+  autoNotice,
+  dismissAutoNotice,
   query,
   resetFilters,
   applyRoomChange,
@@ -107,6 +109,17 @@ watch(() => filters.reserveDate, applyDateChange)
     <PageHeader title="预约座位" />
 
     <div class="booking-layout">
+      <!-- 自动切日期 / 顺延时段改页面内联提示，不再连续弹 toast -->
+      <el-alert
+        v-if="autoNotice"
+        class="auto-notice"
+        type="info"
+        show-icon
+        :closable="true"
+        :title="autoNotice"
+        @close="dismissAutoNotice"
+      />
+
       <BookingFilter
         :filters="filters"
         :rooms="rooms"
@@ -183,5 +196,9 @@ watch(() => filters.reserveDate, applyDateChange)
 .booking-page {
   /* 抽屉为非模态，右侧留出 8px 视觉呼吸位；窄屏由抽屉自身宽度兜底 */
   padding-bottom: 8px;
+}
+
+.auto-notice {
+  margin: 0;
 }
 </style>

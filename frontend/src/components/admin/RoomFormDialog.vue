@@ -7,9 +7,10 @@
  * - 闭馆时间必须晚于开放时间（跨字段校验，两条时间都改动时即时提示）；
  * - 「变更说明」为审计事由（NFR-009），必填。
  *
- * 口径提示：本对话框的「启用状态」只改自习室**自身**的启用标记（FR-001 用停用代替删除）。
- * 停用后该馆不再出现在可预约范围内（后端取数与下单都会校验 `room.enabled`）；
- * 若只想关掉某个时段或某个分区，仍走「临时关闭」（FR-016 / BR-022）。
+ * 口径提示：本对话框的「场地状态」是整馆的长期开关（FR-001 用停用代替删除）。
+ * 停用后该馆及其座位不再出现在可预约范围内（后端取数与下单都会校验 `room.enabled`）；
+ * 若只想关掉某个时段，仍走「临时关闭」：它按时间窗生效，不会改写座位资源状态
+ * （FR-016 / BR-022）。
  */
 import { computed, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -146,11 +147,11 @@ function close(): void {
         <span class="ssr-text-muted hint">座位数由「座位管理」维护，此处为自习室的公示容量</span>
       </el-form-item>
 
-      <el-form-item v-if="props.room !== null" label="启用状态">
+      <el-form-item v-if="props.room !== null" label="场地状态">
         <el-switch v-model="form.enabled" active-text="启用" inactive-text="停用" />
         <p class="ssr-text-muted hint">
-          停用仅改变自习室自身的启用标记，不影响座位是否可被预约；若要立即阻止其座位被预约，
-          请改用列表中的「临时关闭」，该操作会把范围内座位置为「停用」并列出受影响预约。
+          「停用」是整馆的长期开关：停用后该馆及其座位都不再可预约，历史预约与统计保留。
+          只想关闭某个时段时，请改用列表中的「临时关闭」：它按时间窗生效，不会改写座位资源状态。
         </p>
       </el-form-item>
 

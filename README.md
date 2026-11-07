@@ -24,6 +24,10 @@
 
 演示账户：`student / student123`、`admin / admin123`。
 
+> 开发服务器（`npm run dev`）的登录页会展示演示账号；生产构建默认隐藏，如需在生产预览中演示，构建前设置 `VITE_SHOW_DEMO_ACCOUNTS=true`。
+>
+> 学生自助注册默认开放；可在 `backend/.env` 用 `REGISTRATION_ENABLED=false` 关闭自助注册，或用 `REGISTRATION_WHITELIST=学号1,学号2` 启用学号白名单（留空表示不限制）。
+
 重复运行 `start.bat` 是安全的：已存在的数据库、账号、迁移和演示数据会被跳过。停止时运行根目录的 `stop.bat`（MySQL 服务会保留运行）。只想启动、不打开浏览器时使用 `start.bat --no-browser`。
 
 > 第一次运行需要联网安装前后端依赖。若数据库连接串不可用或 JWT 密钥仍是占位符，脚本会自动修复，并把原 `backend/.env` 备份为 `backend/.env.bak`。
@@ -68,7 +72,7 @@
 | `backend/` | FastAPI · Pydantic 2 · SQLAlchemy 2 · Alembic · MySQL 8.4 · JWT · APScheduler · Pytest | 见 [`backend/README.md`](backend/README.md) |
 | `frontend/` | Vue 3 · TypeScript · Vite · Element Plus · Pinia · ECharts | 见 [`frontend/README.md`](frontend/README.md) |
 
-后端已实现登录、M1 资源、M2 预约、M3 签到与违约、M4 查询、M5 治理、M6 看板与 M7 站内通知；数据库表结构通过单链 Alembic 迁移建立，自动违约/自动结束任务已落地。前端学生端 7 页、管理端 8 页、登录与 404 均可演示，`.env.development` 默认直连后端。模块划分与功能需求编号的对应关系见 `backend/README.md`。
+后端已实现登录、M1 资源、M2 预约、M3 签到与违约、M4 查询、M5 治理、M6 看板与 M7 站内通知；数据库表结构通过单链 Alembic 迁移建立，自动违约/自动结束任务已落地。前端学生端 7 页、管理端 11 页、登录与 404 均可演示，`.env.development` 默认直连后端。模块划分与功能需求编号的对应关系见 `backend/README.md`。
 
 三周交付安排、P0 基座冻结、任务分工与 VS 验收矩阵见 [`docs/项目开发计划-三周冲刺版.md`](docs/项目开发计划-三周冲刺版.md)。
 

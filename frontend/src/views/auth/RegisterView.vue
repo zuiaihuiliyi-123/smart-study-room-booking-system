@@ -24,6 +24,8 @@ const auth = useAuthStore()
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+/** 开发 / 演示环境提示：生产部署不展示这句话 */
+const isDev = import.meta.env.DEV
 
 const form = reactive({
   name: '',
@@ -97,6 +99,11 @@ async function submit() {
     <h2 class="reg__title">学生注册</h2>
     <p class="reg__hint">注册后即可预约座位；管理员账号由信息中心分配</p>
 
+    <el-alert class="reg__notice" type="info" :closable="false" show-icon title="注册说明">
+      <p>请使用学校分配的学号注册；若提示「不在可注册名单内」，请联系管理员开户。</p>
+      <p v-if="isDev">当前为开发 / 演示环境，请勿使用真实密码。</p>
+    </el-alert>
+
     <el-form
       ref="formRef"
       :model="form"
@@ -143,10 +150,13 @@ async function submit() {
       <el-form-item label="联系方式（选填）" prop="contact">
         <el-input
           v-model="form.contact"
-          placeholder="手机号或邮箱，用于接收预约提醒"
+          placeholder="手机号或邮箱，仅用于必要联系"
           :prefix-icon="Message"
           @keyup.enter="submit"
         />
+        <p class="reg__field-note">
+          本期通知只走站内消息，不会发送短信或邮件；联系方式仅用于管理员必要时联系你。
+        </p>
       </el-form-item>
 
       <el-button type="primary" class="reg__submit" :loading="loading" @click="submit">
@@ -175,8 +185,29 @@ async function submit() {
   font-size: var(--ssr-font-note);
 }
 
+.reg__notice {
+  margin-bottom: 18px;
+}
+
+.reg__notice p {
+  margin: 0 0 4px;
+  line-height: 1.6;
+}
+
+.reg__notice p:last-child {
+  margin-bottom: 0;
+}
+
 .reg__submit {
   width: 100%;
+}
+
+.reg__field-note {
+  flex: 1 1 100%;
+  margin: 4px 0 0;
+  color: var(--ssr-muted-ink);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .reg__foot {

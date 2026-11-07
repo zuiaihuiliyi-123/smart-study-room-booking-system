@@ -26,15 +26,14 @@ function sortForList(records: readonly ReservationRecord[]): ReservationRecord[]
 
 /**
  * 管理端列表的筛选口径（FR-030 管理端口径 / FR-031 / FR-032）：
- * 状态、预约日期区间、自习室、座位、学号。
- * 后端 `GET /reservations` 目前只有 `status / page / page_size`，其余为待补参数
- * （见交付说明的接口缺口清单）；mock 先按最终口径实现，便于界面联调。
+ * 状态、预约日期区间、自习室、座位、学号；后端 `GET /reservations` 与
+ * `GET /reservations/me` 已支持同一组参数，mock 按相同口径实现，便于界面联调。
  */
-function listResponse(
+function filterReservations(
   db: MockDb,
   records: readonly ReservationRecord[],
   query: URLSearchParams,
-): Response {
+): ReservationRecord[] {
   const status = strParam(query, 'status')
   const dateFrom = strParam(query, 'reserve_date_from')
   const dateTo = strParam(query, 'reserve_date_to')
@@ -50,7 +49,7 @@ function listResponse(
     ? null
     : new Set(db.users.filter((user) => user.student_no === studentNo).map((user) => user.id))
 
-  const filtered = records.filter((item) => {
+  return records.filter((item) => {
     if (status !== '' && item.status !== status) return false
     if (dateFrom !== '' && item.reserve_date < dateFrom) return false
     if (dateTo !== '' && item.reserve_date > dateTo) return false
@@ -59,10 +58,41 @@ function listResponse(
     if (userIds !== null && !userIds.has(item.user_id)) return false
     return true
   })
-return json(pageOf(sortForList(filtered).map(publicReservation), query))
 }
 
+function listResponse(
+  db: MockDb,
+  records: readonly ReservationRecord[],
+  query: URLSearchParams,
+): Response {
+  const filtered = filterReservations(db, records, query)
+  return json(pageOf(sortForList(filtered).map(publicReservation), query))
+}
+
+/** 与后端 `/reservations/me/status-counts` 对齐：一次返回全部状态的计数。 */
+const COUNT_STATUSES: readonly ReservationRecord['status'][] = [
+  '待使用',
+  '使用中',
+  '已完成',
+  '已取消',
+  '已违约',
+]
+
 export const reservationHandlers = [
+  http.get('/api/v1/reservations/me/status-counts', ({ request }) =>
+    safe(() => {
+      const user = requireUser(request)
+      const query = new URL(request.url).searchParams
+      const db = getDb()
+      const mine = db.reservations.filter((item) => item.user_id === user.id)
+      const filtered = filterReservations(db, mine, query)
+      const counts: Record<string, number> = {}
+      for (const status of COUNT_STATUSES) counts[status] = 0
+      for (const item of filtered) counts[item.status] = (counts[item.status] ?? 0) + 1
+      return json({ counts, total: filtered.length })
+    }),
+  ),
+
   http.get('/api/v1/reservations/me', ({ request }) =>
       safe(() => {
       const user = requireUser(request)

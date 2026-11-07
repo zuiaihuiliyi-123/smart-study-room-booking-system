@@ -3,6 +3,7 @@
 from app.models.audit_log import AuditLog
 from app.models.blacklist import BlacklistEntry
 from app.models.complaint import Complaint
+from app.models.login_attempt import LoginAttempt
 from app.models.message import StationMessage
 from app.models.reservation import Reservation
 from app.models.reservation_slot import ReservationSlot
@@ -17,6 +18,7 @@ __all__ = [
     "AuditLog",
     "BlacklistEntry",
     "Complaint",
+    "LoginAttempt",
     "Reservation",
     "ReservationSlot",
     "Review",

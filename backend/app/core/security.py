@@ -16,11 +16,13 @@ def verify_password(password: str, hashed: str) -> bool:
     return password_hash.verify(password, hashed)
 
 
-def create_access_token(subject: str, role: str) -> str:
+def create_access_token(subject: str, role: str, token_version: int = 0) -> str:
+    """签发 JWT；``ver`` 与用户当前 token_version 绑定，用于改密后使旧令牌失效。"""
     now = datetime.now(timezone.utc)
     payload = {
         "sub": subject,
         "role": role,
+        "ver": token_version,
         "iat": now,
         "exp": now + timedelta(minutes=settings.access_token_expire_minutes),
     }

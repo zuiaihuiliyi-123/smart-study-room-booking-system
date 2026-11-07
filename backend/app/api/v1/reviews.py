@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
@@ -38,9 +40,19 @@ def list_my_reviews(
 
 @router.get("", response_model=PageResult[ReviewRead], summary="评价列表（管理员）")
 def list_all_reviews(
+    score: int | None = Query(default=None, ge=1, le=5, description="评分精确筛选"),
+    created_from: date | None = Query(default=None, description="提交日期起（含）"),
+    created_to: date | None = Query(default=None, description="提交日期止（含）"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> PageResult[ReviewRead]:
-    return review_service.list_all_reviews(db, page, page_size)
+    return review_service.list_all_reviews(
+        db,
+        page,
+        page_size,
+        score=score,
+        created_from=created_from,
+        created_to=created_to,
+    )

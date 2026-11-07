@@ -103,6 +103,17 @@ const currentKey = ref('')
 const submitState = ref<SubmitState>('idle')
 const failure = ref<BookingFailure | null>(null)
 const success = ref<SubmitSuccess | null>(null)
+/** 自动切换日期 / 时段的内联提示；不用 toast，避免连续弹窗打扰 */
+const autoNotice = ref('')
+
+function setAutoNotice(text: string): void {
+  autoNotice.value = text
+}
+
+function dismissAutoNotice(): void {
+  autoNotice.value = ''
+}
+
 /** 本次会话已成功的提交，按意图键缓存，重新打开同一意图时仍显示「已提交」 */
 const submitted = ref(new Map<string, SubmitSuccess>())
 const intentKeys = new Map<string, string>()
@@ -445,19 +456,21 @@ async function bootstrap() {
     loading.value = false
     return
   }
-  if (applyDefaults()) ElMessage.info('今天已无可预约时段，已自动切到明天')
+  autoNotice.value = ''
+  if (applyDefaults()) setAutoNotice('今天已无可预约时段，已自动切到明天')
   await query()
   // 首屏默认时段若与本人既有有效预约重叠（C4），自动顺延到冲突结束之后，
   // 否则用户一进页面就只看到「该时段不可预约」而看不到座位矩阵。
   if (userBlock.value === 'C4') {
     await findAlternative()
-    ElMessage.info('默认时段已被占用，已自动改选到下一个可用时段')
+    setAutoNotice('默认时段已被占用，已自动改选到下一个可用时段')
   }
   autoReady = true
 }
 
 function resetFilters() {
-  if (applyDefaults()) ElMessage.info('今天已无可预约时段，已自动切到明天')
+  autoNotice.value = ''
+  if (applyDefaults()) setAutoNotice('今天已无可预约时段，已自动切到明天')
   void query()
 }
 
@@ -470,6 +483,7 @@ function resetFilters() {
  * 3. 立即按新自习室重新取数，用户不必再点一次「查询」才看到新馆的座位矩阵。
  */
 function applyRoomChange() {
+  autoNotice.value = ''
   const shifted = shiftDateIfTodayOver()
   const open = parseTimeToMinutes(openTime.value) ?? 8 * 60
   const close = parseTimeToMinutes(closeTime.value) ?? 22 * 60
@@ -482,16 +496,17 @@ function applyRoomChange() {
   }
   selectedSeatId.value = null
   drawerVisible.value = false
-  if (shifted) ElMessage.info('今天已无可预约时段，已自动切到明天')
+  if (shifted) setAutoNotice('今天已无可预约时段，已自动切到明天')
   void query()
 }
 
 /** 换回今天时若原时段已过，自动收敛到下一个可预约时段。 */
 function applyDateChange() {
+  autoNotice.value = ''
   if (filters.reserveDate !== todayKey.value) return
   // 今天已经过了最后一个可选的开始时间：顺延到明天，而不是留一个必然失败的时段
   if (applyDefaultSlot()) {
-    ElMessage.info('今天已无可预约时段，已自动切到明天')
+    setAutoNotice('今天已无可预约时段，已自动切到明天')
     return
   }
   const now = clock.value
@@ -637,6 +652,8 @@ return {
   submitState,
   failure,
   success,
+  autoNotice,
+  dismissAutoNotice,
   // 行为
   query,
   resetFilters,

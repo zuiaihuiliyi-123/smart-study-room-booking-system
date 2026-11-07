@@ -36,6 +36,13 @@ def get_current_user(
     user = db.get(User, user_id)
     if user is None:
         raise unauthorized
+    # 改密后 token_version 递增：此前签发的令牌立即失效（旧会话需重新登录）
+    if payload.get("ver", 0) != (user.token_version or 0):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="登录状态已失效，请重新登录",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if user.account_status == AccountStatus.DISABLED.value:
         # 与 login 的口径保持一致：停用是「权限/资格」问题而非「登录过期」，
         # 返回 403 可避免前端把它误当成 token 失效而反复跳转登录页。

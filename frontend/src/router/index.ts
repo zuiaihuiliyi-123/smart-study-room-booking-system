@@ -88,6 +88,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '系统管理员', roles: ['自习室管理员', '系统管理员'] },
       },
       {
+        path: 'profile',
+        name: 'admin-profile',
+        component: () => import('@/views/admin/AdminProfileView.vue'),
+        meta: { title: '个人资料', roles: ['自习室管理员', '系统管理员'] },
+      },
+      {
         path: 'dashboard',
         name: 'admin-dashboard',
         component: () => import('@/views/admin/DashboardView.vue'),
@@ -124,6 +130,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '投诉处理', roles: ['自习室管理员'] },
       },
       {
+        path: 'reviews',
+        name: 'admin-reviews',
+        component: () => import('@/views/admin/ReviewManageView.vue'),
+        meta: { title: '评价管理', roles: ['自习室管理员'] },
+      },
+      {
         path: 'users',
         name: 'admin-users',
         component: () => import('@/views/admin/UserManageView.vue'),
@@ -134,6 +146,12 @@ const routes: RouteRecordRaw[] = [
         name: 'admin-blacklist',
         component: () => import('@/views/admin/BlacklistManageView.vue'),
         meta: { title: '黑名单管理', roles: ['自习室管理员'] },
+      },
+      {
+        path: 'audit',
+        name: 'admin-audit',
+        component: () => import('@/views/admin/AuditLogView.vue'),
+        meta: { title: '审计日志', roles: ['自习室管理员'] },
       },
     ],
   },

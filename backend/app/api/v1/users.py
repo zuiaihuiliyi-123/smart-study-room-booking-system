@@ -4,9 +4,15 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_admin
 from app.models.user import User
+from app.schemas.auth import TokenResponse
 from app.schemas.common import PageResult
-from app.schemas.user import AccountStatusUpdate, UserRead, UserUpdate
-from app.services import user_service
+from app.schemas.user import (
+    AccountStatusUpdate,
+    PasswordChangeRequest,
+    UserRead,
+    UserUpdate,
+)
+from app.services import auth_service, user_service
 
 router = APIRouter(prefix="/users", tags=["用户管理"])
 
@@ -27,6 +33,20 @@ def update_my_profile(
 ) -> UserRead:
     updated = user_service.update_my_profile(db, current_user, payload)
     return user_service.to_user_read(db, updated)
+
+
+@router.patch(
+    "/me/password",
+    response_model=TokenResponse,
+    summary="修改本人密码",
+)
+def change_my_password(
+    payload: PasswordChangeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TokenResponse:
+    """B1：校验旧密码后更新密码，并返回新令牌（旧令牌立即失效）。"""
+    return auth_service.change_password(db, current_user, payload)
 
 
 @router.get("", response_model=PageResult[UserRead], summary="用户列表（管理员）")

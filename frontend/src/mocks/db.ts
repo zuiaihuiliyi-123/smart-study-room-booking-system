@@ -5,6 +5,7 @@
  */
 import type {
   Area,
+  AuditLog,
   BlacklistEntry,
   Complaint,
   CurrentUser,
@@ -64,6 +65,7 @@ export interface MockDb {
   complaints: Complaint[]
   blacklist: BlacklistEntry[]
   messages: MessageRecord[]
+  audit_logs: AuditLog[]
   sessions: Map<string, SessionRecord>
   attempts: RaceAttempt[]
   armed_conflicts: number

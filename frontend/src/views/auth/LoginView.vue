@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Lock, User } from '@element-plus/icons-vue'
@@ -17,6 +17,16 @@ const auth = useAuthStore()
 const loading = ref(false)
 const remembering = ref(false)
 const showDemo = ref(false)
+
+/**
+ * 演示账号只在开发期或显式开启时展示：
+ * - `npm run dev`：默认展示，方便课程演示与本地联调；
+ * - 生产构建：默认隐藏，避免把可用账号暴露在真实部署页面上；
+ * - 需要在生产预览中演示时，构建前设置 `VITE_SHOW_DEMO_ACCOUNTS=true`。
+ */
+const showDemoAccounts = computed(
+  () => import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_ACCOUNTS === 'true',
+)
 
 const form = reactive({
   student_no: '',
@@ -96,6 +106,10 @@ async function submit() {
             <span class="ssr-text-muted">忘记密码请联系信息中心</span>
           </div>
 
+          <p class="login__lock-hint ssr-text-muted">
+            连续登录失败会临时锁定，请确认密码后再试。
+          </p>
+
           <el-button type="primary" class="login__submit" :loading="loading" @click="submit">
             登录
           </el-button>
@@ -106,7 +120,7 @@ async function submit() {
           <router-link class="login__link" to="/register">注册账号</router-link>
         </p>
 
-        <div class="login__demo">
+        <div v-if="showDemoAccounts" class="login__demo">
           <button
             class="login__demo-toggle"
             type="button"
@@ -177,6 +191,12 @@ async function submit() {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+}
+
+.login__lock-hint {
+  margin: -6px 0 14px;
+  font-size: var(--ssr-font-note);
+  line-height: 1.6;
 }
 
 .login__submit {

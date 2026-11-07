@@ -7,7 +7,18 @@ import { http } from 'msw'
 import type { Review } from '@/types'
 
 import { getDb, nextId } from '../db'
-import { abort, fromError, json, pageOf, readBody, requireAdmin, requireUser, safe } from '../http'
+import {
+  abort,
+  fromError,
+  intParam,
+  json,
+  pageOf,
+  readBody,
+  requireAdmin,
+  requireUser,
+  safe,
+  strParam,
+} from '../http'
 import { validateReview } from '../rules'
 import { formatDateTime, serverNow } from '../time'
 
@@ -64,7 +75,17 @@ http.get('/api/v1/reviews', ({ request }) =>
     safe(() => {
     requireAdmin(request)
     const query = new URL(request.url).searchParams
-    return json(pageOf(sortByCreatedDesc(getDb().reviews), query))
+    const score = intParam(query, 'score', Number.NaN)
+    const from = strParam(query, 'created_from')
+    const to = strParam(query, 'created_to')
+    const filtered = getDb().reviews.filter((item) => {
+      if (Number.isFinite(score) && item.score !== score) return false
+      const day = item.created_at.slice(0, 10)
+      if (from !== '' && day < from) return false
+      if (to !== '' && day > to) return false
+      return true
+    })
+    return json(pageOf(sortByCreatedDesc(filtered), query))
   }),
 ),
 ]

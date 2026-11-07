@@ -2,6 +2,7 @@
  * mock 处理集合：每个文件对应一个业务模块，路径与 src/api/*.ts 中的写法逐字一致。
  */
 import { attendanceHandlers } from './attendance'
+import { auditHandlers } from './audit'
 import { authHandlers } from './auth'
 import { blacklistHandlers } from './blacklist'
 import { complaintHandlers } from './complaints'
@@ -25,6 +26,7 @@ export const handlers = [
   ...reviewHandlers,
   ...complaintHandlers,
   ...blacklistHandlers,
+  ...auditHandlers,
   ...dashboardHandlers,
   ...messageHandlers,
 ]

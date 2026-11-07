@@ -1,7 +1,12 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { getMe, login as loginApi, register as registerApi } from '@/api/auth'
+import {
+  changePassword as changePasswordApi,
+  getMe,
+  login as loginApi,
+  register as registerApi,
+} from '@/api/auth'
 import type { CurrentUser, LoginRequest, RegisterRequest } from '@/types'
 
 const TOKEN_KEY = 'ssr_token'
@@ -80,11 +85,36 @@ export const useAuthStore = defineStore('auth', () => {
     persist(USER_KEY, JSON.stringify(user.value))
   }
 
+  /**
+   * B1：修改本人密码。
+   * 后端会递增 token 版本，旧令牌立即失效；这里用新令牌覆盖当前存储，
+   * 使当前设备保持登录，其他设备/标签页需重新登录。
+   */
+  async function changePassword(payload: {
+    old_password: string
+    new_password: string
+  }) {
+    const data = await changePasswordApi(payload)
+    token.value = data.access_token
+    persist(TOKEN_KEY, data.access_token)
+  }
+
   function logout() {
     token.value = ''
     user.value = null
     clearCredentials()
   }
 
-  return { token, user, isLoggedIn, isAdmin, isSystemAdmin, login, register, fetchMe, logout }
+  return {
+    token,
+    user,
+    isLoggedIn,
+    isAdmin,
+    isSystemAdmin,
+    login,
+    register,
+    fetchMe,
+    changePassword,
+    logout,
+  }
 })

@@ -17,7 +17,7 @@ import DashboardStatusBar from '@/components/admin/DashboardStatusBar.vue'
 import StatCard from '@/components/StatCard.vue'
 import { chartHeight } from '@/utils/chartTheme'
 import { formatTimeSecond, isAfterToday } from '@/utils/format'
-import { REFRESH_INTERVAL_MS, TOP_N, VIOLATION_AGGREGATE_LIMIT, useDashboard } from '@/utils/useDashboard'
+import { REFRESH_INTERVAL_MS, TOP_N, useDashboard } from '@/utils/useDashboard'
 import { useDashboardCharts } from '@/utils/dashboardCharts'
 
 const {
@@ -29,8 +29,7 @@ const {
   seatUsage,
   trend,
   topViolators,
-  violationSample,
-  violationsTruncated,
+  violationTotal,
   loading,
   inFlight,
   errorMessage,
@@ -66,11 +65,8 @@ function disabledDate(value: Date): boolean {
 }
 
 const topSourceText = computed(() => {
-  if (violationSample.value === 0) return '所选区间内没有违约记录'
-  const extra = violationsTruncated.value
-    ? `（超过聚合上限，仅统计前 ${VIOLATION_AGGREGATE_LIMIT} 条）`
-    : ''
-  return `数据来源：违约记录汇总（所选区间共 ${violationSample.value} 条，取前 ${TOP_N} 名）${extra}；该统计覆盖全站，不受上方「自习室」筛选影响`
+  if (violationTotal.value === 0) return '所选区间内没有违约记录'
+  return `数据来源：后端按用户聚合（所选区间共 ${violationTotal.value} 条违约记录，取前 ${TOP_N} 名）；该统计覆盖全站，不受上方「自习室」筛选影响`
 })
 
 /* ---------- 图表的读屏描述（canvas 对读屏不可读，用一句话交代「图在讲什么」） ---------- */
@@ -84,7 +80,7 @@ const trendLabel = computed(
 )
 const topViolatorsLabel = computed(
   () =>
-    `横向条形图：用户违约次数前 ${TOP_N} 名（${violationSample.value} 条违约记录聚合），数据截至 ${updatedText.value}。`,
+    `横向条形图：用户违约次数前 ${TOP_N} 名（所选区间共 ${violationTotal.value} 条违约记录，后端聚合），数据截至 ${updatedText.value}。`,
 )
 </script>
 

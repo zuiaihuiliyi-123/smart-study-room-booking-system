@@ -1,3 +1,5 @@
+from datetime import date, datetime, time, timedelta
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -36,15 +38,33 @@ def list_logs(
     *,
     action_type: str | None,
     operator_id: int | None,
+    target_type: str | None = None,
+    created_from: date | None = None,
+    created_to: date | None = None,
     page: int,
     page_size: int,
 ) -> PageResult[AuditLogRead]:
-    """NFR-009：管理员查询审计日志（只读）。"""
+    """NFR-009：管理员查询审计日志（只读）。
+
+    支持操作类型、操作人、目标类型与时间区间筛选；时间区间含起止自然日。
+    不提供修改 / 删除 / 导出（FR-033 已排除）。
+    """
     conditions = []
     if action_type:
         conditions.append(AuditLog.action_type == action_type)
     if operator_id is not None:
         conditions.append(AuditLog.operator_id == operator_id)
+    if target_type:
+        conditions.append(AuditLog.target_type == target_type)
+    if created_from is not None:
+        conditions.append(
+            AuditLog.created_at >= datetime.combine(created_from, time.min)
+        )
+    if created_to is not None:
+        conditions.append(
+            AuditLog.created_at
+            < datetime.combine(created_to + timedelta(days=1), time.min)
+        )
 
     total = (
         db.scalar(

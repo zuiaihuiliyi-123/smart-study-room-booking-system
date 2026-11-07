@@ -12,7 +12,14 @@ from app.models.room import Room
 from app.models.seat import Seat
 from app.models.user import User
 from app.models.violation import ViolationRecord
-from app.schemas.dashboard import ChartItem, SeatUsageSlotRow, StatOverview, TrendPoint
+from app.schemas.dashboard import (
+    ChartItem,
+    SeatUsageSlotRow,
+    StatOverview,
+    TrendPoint,
+    ViolationTopItem,
+    ViolationTopResponse,
+)
 from app.utils import time_utils
 
 #: 图 1 的时段桶（左闭右开，与原型 UC-14 的 08-10 / 10-12 … 对齐）
@@ -223,6 +230,66 @@ def get_seat_usage_by_slot(
                 )
             )
     return rows
+
+
+def get_violation_top(
+    db: Session,
+    start_date: date,
+    end_date: date,
+    limit: int = 8,
+) -> ViolationTopResponse:
+    """图 3：按用户聚合违约次数 Top N（全站口径）。
+
+    - 统计区间按违约记录的 ``created_at`` 自然日，含起止两端；
+    - 一次 ``GROUP BY user_id`` 取回排行，不再让前端拉取明细后聚合；
+    - 同时返回区间内违约记录总数，供页面标注样本量；
+    - 排行榜覆盖全站，不受看板「自习室」筛选影响（与前端原有口径一致）。
+    """
+    period_start = datetime.combine(start_date, time.min)
+    period_end = datetime.combine(end_date + timedelta(days=1), time.min)
+    conditions = [
+        ViolationRecord.created_at >= period_start,
+        ViolationRecord.created_at < period_end,
+    ]
+
+    total_records = (
+        db.scalar(
+            select(func.count())
+            .select_from(ViolationRecord)
+            .where(*conditions)
+        )
+        or 0
+    )
+
+    count_column = func.count(ViolationRecord.id).label("violation_count")
+    rows = db.execute(
+        select(
+            ViolationRecord.user_id,
+            User.name,
+            User.student_no,
+            count_column,
+        )
+        .join(User, User.id == ViolationRecord.user_id)
+        .where(*conditions)
+        .group_by(
+            ViolationRecord.user_id,
+            User.name,
+            User.student_no,
+        )
+        .order_by(count_column.desc(), ViolationRecord.user_id.asc())
+        .limit(limit)
+    ).all()
+
+    items = [
+        ViolationTopItem(
+            user_id=row.user_id,
+            name=row.name,
+            student_no=row.student_no,
+            count=int(row.violation_count),
+        )
+        for row in rows
+    ]
+    return ViolationTopResponse(items=items, total_records=int(total_records))
 
 
 def get_trend(

@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -19,6 +21,9 @@ router = APIRouter(prefix="/audit-logs", tags=["M5 审计日志"])
 def list_audit_logs(
     action_type: str | None = None,
     operator_id: int | None = None,
+    target_type: str | None = None,
+    created_from: date | None = Query(default=None, description="操作日期起（含）"),
+    created_to: date | None = Query(default=None, description="操作日期止（含）"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -29,6 +34,9 @@ def list_audit_logs(
         db,
         action_type=action_type,
         operator_id=operator_id,
+        target_type=target_type,
+        created_from=created_from,
+        created_to=created_to,
         page=page,
         page_size=page_size,
     )

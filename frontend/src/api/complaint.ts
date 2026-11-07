@@ -1,4 +1,4 @@
-import { http } from './request'
+import { http, type RequestOptions } from './request'
 import type { Complaint, PageResult } from '@/types'
 
 /** 管理端投诉队列查询（FR-043）：状态 / 对象类型 / 提交时间区间 / 提交人 / 内容关键词。 */
@@ -25,8 +25,8 @@ export const createComplaint = (data: {
 export const listMyComplaints = (params: { page?: number; page_size?: number }) =>
     http.get<PageResult<Complaint>>('/complaints/me', params)
 
-  export const listAllComplaints = (params: ComplaintQuery) =>
-      http.get<PageResult<Complaint>>('/complaints', params)
+  export const listAllComplaints = (params: ComplaintQuery, options?: RequestOptions) =>
+      http.get<PageResult<Complaint>>('/complaints', params, options)
 
     /** FR-043：处理投诉。`handle_note` 为处理说明，必填（后端 min_length=1）。 */
     export const handleComplaint = (

@@ -84,7 +84,7 @@ onMounted(() => {
         />
       </label>
       <label class="filter-field">
-        <span class="filter-field__label">启用状态</span>
+        <span class="filter-field__label">场地状态</span>
         <el-select v-model="enabledFilter" class="w-120">
           <el-option label="全部" value="全部" />
           <el-option label="启用" value="启用" />
@@ -156,7 +156,7 @@ onMounted(() => {
               </template>
             </el-table-column>
 
-            <el-table-column label="启用状态" width="100">
+            <el-table-column label="场地状态" width="100">
               <template #default="{ row }">
                 <StatusTag kind="room" :value="row.enabled ? '启用' : '停用'" />
               </template>
@@ -213,11 +213,12 @@ onMounted(() => {
       title="停用、临时关闭与删除"
     >
       <p>
-        「停用」后该自习室不再出现在可预约范围，历史预约与统计保留；「启用」随时可恢复。
+        「停用」是整馆的长期开关：停用后该馆及其座位不再出现在可预约范围，
+        历史预约与统计保留；「启用」随时可恢复。
       </p>
       <p>
-        「临时关闭」会先列出受影响的预约，再把相关座位置为「停用」；
-        如果同时取消这些预约，取消不会记为违约。
+        「临时关闭」只作用于指定时间窗：关闭时段内相关座位不可预约，时段结束后自动恢复，
+        <b>不会改写座位资源状态</b>。如果同时取消受影响的预约，取消不会记为违约。
       </p>
       <p>
         只有从未产生过预约的自习室才能「删除」；有预约历史的会被拒绝，请改用停用。

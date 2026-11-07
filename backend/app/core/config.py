@@ -42,6 +42,18 @@ class Settings(BaseSettings):
     dashboard_refresh_seconds: int = 10
     # ST-063：已处理投诉超过该天数未关闭则自动关闭（候选 7 天，BR-014 相关，待确认）
     complaint_close_days: int = 7
+    # ---- 注册策略（A2） ----
+    #: 是否开放学生自助注册；关闭后由管理员批量开户（课程演示默认开放）。
+    registration_enabled: bool = True
+    #: 可选学籍白名单：逗号 / 分号分隔的学号；留空表示不限制。
+    registration_whitelist: str = ""
+    # ---- 登录失败锁定（B5） ----
+    #: 窗口内允许的连续失败次数，达到即锁定。
+    login_max_failures: int = 5
+    #: 失败计数窗口（分钟）；窗口外的失败重新计数。
+    login_failure_window_minutes: int = 15
+    #: 锁定时长（分钟）。
+    login_lock_minutes: int = 15
     # 测试环境通过环境变量关闭定时任务，避免后台任务连接真实数据库
     scheduler_enabled: bool = True
 

@@ -5,11 +5,14 @@ import {
   ChatDotRound,
   CircleClose,
   DataLine,
+  Document,
   Grid,
   HomeFilled,
   OfficeBuilding,
+  Star,
   Tickets,
   User,
+  UserFilled,
   Warning,
 } from '@element-plus/icons-vue'
 
@@ -52,8 +55,11 @@ export const adminMenus: MenuItem[] = [
   { path: '/admin/reservations', title: '预约管理', icon: Tickets, group: '业务管理' },
   { path: '/admin/violations', title: '违约管理', icon: Warning, group: '业务管理' },
   { path: '/admin/complaints', title: '投诉处理', icon: ChatDotRound, group: '业务管理' },
+  { path: '/admin/reviews', title: '评价管理', icon: Star, group: '业务管理' },
   { path: '/admin/users', title: '用户管理', icon: User, group: '用户与风控' },
   { path: '/admin/blacklist', title: '黑名单管理', icon: CircleClose, group: '用户与风控' },
+  { path: '/admin/audit', title: '审计日志', icon: Document, group: '用户与风控' },
+  { path: '/admin/profile', title: '个人资料', icon: UserFilled, group: '账户' },
 ]
 
 /**

@@ -14,10 +14,8 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
-import { getOverview, getSeatUsageBySlot, getTrend } from '@/api/dashboard'
-import { listAllViolations } from '@/api/violation'
+import { getOverview, getSeatUsageBySlot, getTrend, getViolationTop } from '@/api/dashboard'
 import type { SeatUsageSlotRow, StatOverview, TrendPoint, ViolationTopEntry } from '@/types'
-import { loadAdminDirectory, type AdminDirectory } from '@/utils/adminData'
 import { toBookingFailure } from '@/utils/bookingData'
 import { recentRange } from '@/utils/format'
 import { useAdminScope } from '@/utils/useAdminScope'
@@ -27,17 +25,11 @@ export const REFRESH_INTERVAL_MS = 10_000
 const COUNTDOWN_SECONDS = REFRESH_INTERVAL_MS / 1000
 /** 图 3 取前 N 名 */
 export const TOP_N = 8
-/** 后端 `GET /violations` 的 `page_size` 上限是 100（`le=100`），超过会被判 422 */
-const VIOLATION_PAGE_SIZE = 100
-const MAX_VIOLATION_PAGES = 5
-/** 图 3 违约聚合的最大样本量：超出后排行只统计前 N 条，页面须如实标注 */
-export const VIOLATION_AGGREGATE_LIMIT = VIOLATION_PAGE_SIZE * MAX_VIOLATION_PAGES
 
 export type RefreshSource = 'initial' | 'auto' | 'manual' | 'resume'
 
 export function useDashboard() {
   const scope = useAdminScope()
-  const directory = ref<AdminDirectory | null>(null)
 
   /* ---------- 筛选（IR-004 输入：统计周期 + 自习室） ---------- */
   /** 默认近 7 天（含今天） */
@@ -55,8 +47,8 @@ const overview = ref<StatOverview | null>(null)
 const seatUsage = ref<SeatUsageSlotRow[]>([])
 const trend = ref<TrendPoint[]>([])
 const topViolators = ref<ViolationTopEntry[]>([])
-const violationSample = ref(0)
-const violationsTruncated = ref(false)
+/** 所选区间内违约记录总数（后端返回，用于图注的样本量说明） */
+const violationTotal = ref(0)
 
 /* ---------- 刷新状态 ---------- */
 const loading = ref(true)
@@ -135,46 +127,6 @@ let requestSeq = 0
  */
 let pendingRefresh: RefreshSource | null = null
 
-/**
- * 图 3 的数据源：后端没有"用户违约次数 Top N"接口，因此从 `/violations` 明细聚合。
- * 说明写进页面（本轮任务要求标注数据来源），并记录样本量，避免让人误以为是后端聚合值。
- */
-async function loadTopViolators(
-  params: { start_date: string; end_date: string },
-  dir: AdminDirectory | null,
-): Promise<{ items: ViolationTopEntry[]; sample: number; truncated: boolean }> {
-  const counters = new Map<number, number>()
-  let sample = 0
-  let truncated = false
-
-  for (let page = 1; page <= MAX_VIOLATION_PAGES; page += 1) {
-    const result = await listAllViolations({
-      created_from: params.start_date,
-      created_to: params.end_date,
-      page,
-      page_size: VIOLATION_PAGE_SIZE,
-    })
-    sample = result.total
-    for (const record of result.items) {
-      counters.set(record.user_id, (counters.get(record.user_id) ?? 0) + 1)
-    }
-    if (page * VIOLATION_PAGE_SIZE >= result.total) break
-    if (page === MAX_VIOLATION_PAGES) truncated = true
-  }
-
-  const items = [...counters.entries()]
-    .map(([userId, count]) => ({
-      user_id: userId,
-      name: dir?.usersById.get(userId)?.name ?? `用户 #${userId}`,
-      student_no: dir?.usersById.get(userId)?.student_no ?? `#${userId}`,
-      count,
-    }))
-    .sort((left, right) => right.count - left.count || left.user_id - right.user_id)
-    .slice(0, TOP_N)
-
-  return { items, sample, truncated }
-}
-
 async function refresh(source: RefreshSource = 'manual'): Promise<void> {
   // 防重入：上一次还没回来就跳过本次（任务要求），不叠加请求
   if (inFlight.value) {
@@ -190,24 +142,25 @@ async function refresh(source: RefreshSource = 'manual'): Promise<void> {
   }
 
   try {
-    const [dir, nextOverview, nextUsage, nextTrend] = await Promise.all([
-      loadAdminDirectory().catch(() => null),
+    const [nextOverview, nextUsage, nextTrend, nextTop] = await Promise.all([
       getOverview(params, { silent: true }),
       getSeatUsageBySlot(params, { silent: true }),
       getTrend(params, { silent: true }),
+      // 图 3 由后端一次聚合；不传 room_id，保持「全站口径」与原页面说明一致
+      getViolationTop(
+        { start_date: params.start_date, end_date: params.end_date, limit: TOP_N },
+        { silent: true },
+      ),
     ])
-  const nextTop = await loadTopViolators(params, dir)
 
   // 等待期间用户改了筛选 → 丢弃这次结果，避免旧范围覆盖新范围
   if (seq !== requestSeq) return
 
-  directory.value = dir
   overview.value = nextOverview
   seatUsage.value = nextUsage
   trend.value = nextTrend
   topViolators.value = nextTop.items
-  violationSample.value = nextTop.sample
-  violationsTruncated.value = nextTop.truncated
+  violationTotal.value = nextTop.total_records
   lastUpdatedAt.value = new Date()
   lastFailedAt.value = null
   errorMessage.value = ''
@@ -312,9 +265,7 @@ return {
   seatUsage,
   trend,
   topViolators,
-  violationSample,
-  violationsTruncated,
-  directory,
+  violationTotal,
   loading,
   inFlight,
   errorMessage,

@@ -82,7 +82,7 @@ export function seatDisplayName(
 /* ------------------------------------------------------------------ 本人预约 */
 
 /**
- * 取本人全部预约（`/reservations/me` 无日期过滤、`page_size` 上限 100）。
+ * 取本人全部预约（这里不按日期过滤，`page_size` 上限 100）。
  * 首页与预约页都需要按日期筛选当日记录，分页截断会让「今日预约」漏数据，故此处翻页取全量。
  */
 export async function fetchAllMyReservations(pageSize = 100, maxPages = 10): Promise<Reservation[]> {

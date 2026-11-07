@@ -39,4 +39,8 @@ class User(Base):
         Integer, default=0, comment="有效违约次数，须与违约记录一致"
     )
     contact: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    #: 令牌版本：修改密码后递增，使此前签发的 JWT 立即失效（旧会话需重新登录）。
+    token_version: Mapped[int] = mapped_column(
+        Integer, default=0, nullable=False, comment="令牌版本；改密后递增"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

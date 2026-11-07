@@ -16,10 +16,16 @@
  */
 import { http } from 'msw'
 
-import type { ChartItem, SeatUsageSlotRow, StatOverview, TrendPoint } from '@/types'
+import type {
+  ChartItem,
+  SeatUsageSlotRow,
+  StatOverview,
+  TrendPoint,
+  ViolationTopResponse,
+} from '@/types'
 
 import { getDb, seatLabel, type MockDb } from '../db'
-import { abort, json, requireAdmin, safe, strParam } from '../http'
+import { abort, intParam, json, requireAdmin, safe, strParam } from '../http'
 import {
   addDays,
   dayDiff,
@@ -188,6 +194,34 @@ function trendOf(db: MockDb, range: Range): TrendPoint[] {
 return points
 }
 
+/** 图 3：按用户聚合违约次数（全站口径，与后端 `/dashboard/violation-top` 对齐） */
+function violationTopOf(db: MockDb, range: Range, limit: number): ViolationTopResponse {
+  const filtered = db.violations.filter((record) => {
+    const day = createdAtDay(record.created_at)
+    return day >= range.startDate && day <= range.endDate
+  })
+
+  const counters = new Map<number, number>()
+  for (const record of filtered) {
+    counters.set(record.user_id, (counters.get(record.user_id) ?? 0) + 1)
+  }
+
+  const items = [...counters.entries()]
+    .map(([userId, count]) => {
+      const user = db.users.find((item) => item.id === userId)
+      return {
+        user_id: userId,
+        name: user?.name ?? `用户 #${userId}`,
+        student_no: user?.student_no ?? `#${userId}`,
+        count,
+      }
+    })
+    .sort((left, right) => right.count - left.count || left.user_id - right.user_id)
+    .slice(0, limit)
+
+  return { items, total_records: filtered.length }
+}
+
 type ParsedRange = { ok: true; range: Range } | { ok: false; message: string }
 
 /** 解析查询参数；非法参数返回错误文案（前端据此验证失败态） */
@@ -250,6 +284,25 @@ http.get('/api/v1/dashboard/seat-usage', ({ request }) =>
         return json(slotOccupancyOf(getDb(), parsed.range))
       }
       return json(seatUsageOf(getDb(), parsed.range))
+    }),
+  ),
+
+  http.get('/api/v1/dashboard/violation-top', ({ request }) =>
+    safe(() => {
+      requireAdmin(request)
+      const query = new URL(request.url).searchParams
+      const parsed = readRange(query)
+      if (!parsed.ok) return abort(400, 'INVALID_ARGUMENT', parsed.message)
+      if (roomMissing(parsed.range)) return abort(404, 'ROOM_NOT_FOUND', '自习室不存在')
+      if (tooLong(parsed.range)) {
+        return abort(400, 'INVALID_ARGUMENT', `统计区间不能超过 ${MAX_TREND_DAYS} 天`)
+      }
+      const limitRaw = strParam(query, 'limit')
+      const limit = limitRaw === '' ? 8 : intParam(query, 'limit', Number.NaN)
+      if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+        return abort(400, 'INVALID_ARGUMENT', 'limit 必须为 1～50 的整数')
+      }
+      return json(violationTopOf(getDb(), parsed.range, limit))
     }),
   ),
 

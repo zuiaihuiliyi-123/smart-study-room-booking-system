@@ -20,6 +20,7 @@ from app.schemas.reservation import (
     ForceCancelRequest,
     ReservationCreate,
     ReservationRead,
+    ReservationStatusCounts,
 )
 from app.services import audit_service, availability_service, notification_service
 from app.utils import time_utils
@@ -353,6 +354,44 @@ def list_my_reservations(
         ),
     ]
     return _page(db, conditions, page, page_size)
+
+
+def count_my_reservations(
+    db: Session,
+    user_id: int,
+    *,
+    reserve_date_from: date | None = None,
+    reserve_date_to: date | None = None,
+    room_id: int | None = None,
+    seat_id: int | None = None,
+) -> ReservationStatusCounts:
+    """M4 / FR-030：本人预约按状态分组计数。
+
+    与 ``list_my_reservations`` 共用用户范围与筛选条件，保证页签角标与列表口径一致；
+    一次 ``GROUP BY`` 取回全部状态，避免前端为每个页签各发一次 ``page_size=1`` 查询。
+    """
+    conditions = [
+        Reservation.user_id == user_id,
+        *_list_conditions(
+            status=None,
+            reserve_date_from=reserve_date_from,
+            reserve_date_to=reserve_date_to,
+            room_id=room_id,
+            seat_id=seat_id,
+            student_no=None,
+        ),
+    ]
+    rows = db.execute(
+        select(Reservation.status, func.count())
+        .where(*conditions)
+        .group_by(Reservation.status)
+    ).all()
+
+    # 固定返回全部状态（没有记录的状态补 0），前端无需自行推断缺省值
+    counts = {item.value: 0 for item in ReservationStatus}
+    for status_value, total in rows:
+        counts[status_value] = int(total)
+    return ReservationStatusCounts(counts=counts, total=sum(counts.values()))
 
 
 def list_all_reservations(

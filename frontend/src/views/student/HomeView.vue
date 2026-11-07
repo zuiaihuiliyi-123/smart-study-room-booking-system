@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Calendar, Tickets, Warning } from '@element-plus/icons-vue'
 
 import { checkIn, checkOut } from '@/api/reservation'
+import FirstUseGuide from '@/components/home/FirstUseGuide.vue'
 import MessageDigest from '@/components/home/MessageDigest.vue'
 import TodayReservationCard from '@/components/home/TodayReservationCard.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -33,6 +34,42 @@ const error = ref<BookingFailure | null>(null)
 
 const today = computed(() => todayIso(clock.value))
 const greetingDate = computed(() => todayText(clock.value))
+
+/** 首次使用引导：按学号记忆关闭状态，换用户登录仍会各自出现一次 */
+const GUIDE_DISMISS_PREFIX = 'ssr_first_use_guide_dismissed'
+const guideDismissed = ref(false)
+const guideKey = computed(
+  () => `${GUIDE_DISMISS_PREFIX}:${auth.user?.student_no ?? 'anonymous'}`,
+)
+
+function syncGuideDismissed(): void {
+  try {
+    guideDismissed.value = localStorage.getItem(guideKey.value) === '1'
+  } catch {
+    // 隐私模式 / 禁用存储时按「未关闭」处理，不阻塞页面
+    guideDismissed.value = false
+  }
+}
+
+watch(guideKey, syncGuideDismissed, { immediate: true })
+
+const showGuide = computed(
+  () =>
+    Boolean(auth.user) &&
+    !loading.value &&
+    !error.value &&
+    myReservations.value.length === 0 &&
+    !guideDismissed.value,
+)
+
+function dismissGuide(): void {
+  try {
+    localStorage.setItem(guideKey.value, '1')
+  } catch {
+    // 存储不可用时仅在当前会话隐藏
+  }
+  guideDismissed.value = true
+}
 
 /** 今日有效预约（待使用 / 使用中），按开始时间升序 */
 const todayReservations = computed(() =>
@@ -131,6 +168,12 @@ onMounted(() => {
         </div>
         <el-button type="primary" @click="router.push('/student/booking')">预约座位</el-button>
       </section>
+
+      <FirstUseGuide
+        v-if="showGuide"
+        @dismiss="dismissGuide"
+        @booking="router.push('/student/booking')"
+      />
 
       <div class="home-grid">
         <div class="home-col">
