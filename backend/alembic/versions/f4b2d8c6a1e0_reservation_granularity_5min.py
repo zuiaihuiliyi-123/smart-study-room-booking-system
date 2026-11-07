@@ -1,7 +1,7 @@
 """rebuild reservation slots for 5-minute granularity
 
 Revision ID: f4b2d8c6a1e0
-Revises: b860458bfa51
+Revises: f2a3b4c5d6e7
 Create Date: 2026-11-07 20:40:00.000000
 
 业务变更：BR-001 预约粒度由 30 分钟调整为 5 分钟。
@@ -17,7 +17,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = "f4b2d8c6a1e0"
-down_revision: str | None = "b860458bfa51"
+down_revision: str | None = "f2a3b4c5d6e7"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
