@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>预约座位 · 静园自习室 A-201</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+
+    <div class="app">
+      <header class="topbar">
+        <a class="brand" href="#main" aria-label="静园自习室预约首页">
+          <span class="brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M7 10.5c0-2.5 2-4.5 4.5-4.5h9C23 6 25 8 25 10.5v11c0 2.5-2 4.5-4.5 4.5h-9C9 26 7 24 7 21.5v-11Z" stroke="currentColor" stroke-width="1.6" />
+              <path d="M11.5 12.5h9M11.5 17h5.5M11.5 21.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              <circle cx="21" cy="17" r="1.6" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand__text"><strong>静园</strong><span>自习室预约</span></span>
+        </a>
+
+        <div class="demo-switch" role="group" aria-label="演示端切换">
+          <button class="demo-switch__btn is-active" type="button" data-mode="student">学生端</button>
+          <button class="demo-switch__btn" type="button" data-mode="admin">管理端</button>
+        </div>
+
+        <div class="topbar__actions">
+          <button class="icon-btn" id="themeToggle" type="button" aria-label="切换深色模式" title="切换深色模式">
+            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3.6" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <svg class="icon-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.1 14.4A8.2 8.2 0 0 1 9.6 3.9 8.3 8.3 0 1 0 20.1 14.4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          </button>
+          <a class="text-btn" href="#rules">预约规则</a>
+          <div class="avatar" aria-label="当前用户：林小满">林</div>
+        </div>
+      </header>
+
+      <main id="main">
+        <!-- ============================================================ 学生端 -->
+        <div class="view view--student" id="studentView">
+          <section class="page-head">
+            <div class="page-head__copy">
+              <p class="eyebrow"><span class="eyebrow__rule" aria-hidden="true"></span> ROOM A-201 · EAST WING</p>
+              <h1>预约座位<span class="h1-dot">。</span></h1>
+              <p class="page-head__sub">选一段时间，挑一个坐得住的位置。</p>
+            </div>
+
+            <div class="room-card">
+              <div class="room-card__top">
+                <span class="open-pill"><span class="open-pill__dot"></span>开放中</span>
+                <span class="room-card__floor">2F · 东侧</span>
+              </div>
+              <div class="room-card__name">静园自习室 <span>A-201</span></div>
+              <div class="room-card__meta"><span>28 座</span><span>08:00–22:00</span><span>自然采光</span></div>
+              <button class="room-card__switch" type="button" id="switchRoomBtn">
+                换一间
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m6 3 5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </section>
+
+          <section class="date-strip" aria-label="选择日期">
+            <div class="strip-label"><span>日期</span><small>最多提前 7 天</small></div>
+            <div class="date-rail" id="dateRail"></div>
+          </section>
+
+          <section class="time-strip" aria-label="选择时间段">
+            <div class="strip-label"><span>时间</span><small>30 分钟起约</small></div>
+            <div class="time-rail-wrap">
+              <div class="time-rail" id="timeRail" role="group" aria-label="时间段选择"></div>
+              <div class="time-drag-tip" id="timeDragTip" hidden></div>
+              <div class="time-rail__legend" aria-hidden="true">
+                <span><i class="dot dot--available"></i>可约</span>
+                <span><i class="dot dot--tight"></i>紧张</span>
+                <span><i class="dot dot--past"></i>已过</span>
+              </div>
+            </div>
+            <div class="time-summary" id="timeSummary"></div>
+          </section>
+
+          <section class="toolbar-row">
+            <div class="filters" id="filters" role="group" aria-label="座位筛选"></div>
+            <div class="toolbar-row__right">
+              <button class="quiet-btn" type="button" id="scrollSeatBtn">
+                <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                找空位
+              </button>
+              <button class="quiet-btn" type="button" data-action="view-rules" aria-label="查看预约规则">
+                <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6.3" stroke="currentColor" stroke-width="1.4"/><path d="M9 8v4M9 5.2v.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                规则
+              </button>
+              <div class="view-switch" role="group" aria-label="切换地图或列表视图">
+                <button class="view-switch__btn is-active" type="button" data-view="map" aria-pressed="true">地图</button>
+                <button class="view-switch__btn" type="button" data-view="list" aria-pressed="false">列表</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="student-grid">
+            <aside class="insight-panel" aria-label="预约提示">
+              <div class="insight-panel__index">01</div>
+              <h3>先选时间，再选座</h3>
+              <p>座位会按你选择的时间段实时刷新；灰色斜纹代表这个时段不可用。</p>
+              <div class="insight-rule"></div>
+              <div class="insight-panel__index">02</div>
+              <h3>签到窗口 15 分钟</h3>
+              <p>开始前 15 分钟到开始后 15 分钟内签到。超时未签到会自动释放座位。</p>
+              <div class="insight-rule"></div>
+              <dl class="insight-list">
+                <div><dt>单次最长</dt><dd>4 小时</dd></div>
+                <div><dt>每日上限</dt><dd>2 条</dd></div>
+                <div><dt>费用</dt><dd>免费</dd></div>
+              </dl>
+              <p class="insight-foot">需要帮助？<a href="#rules">查看完整规则</a></p>
+            </aside>
+
+            <section class="map-card" aria-labelledby="mapTitle">
+              <header class="card-head">
+                <div>
+                  <h2 id="mapTitle">A-201 平面图</h2>
+                  <p id="mapMeta">窗边静区 · 中央开放区 · 电源长桌 · 无障碍位</p>
+                </div>
+                <div class="card-head__right">
+                  <span class="live-dot" aria-hidden="true"></span>
+                  <span>本时段</span>
+                  <strong id="freeCount">17</strong>
+                  <span>个空位</span>
+                </div>
+              </header>
+
+              <div class="map-shell" id="studentMapShell">
+                <div class="map-viewport" id="studentMapViewport" tabindex="0" aria-label="A-201 自习室平面图。可拖拽平移、滚轮或双指缩放。也可切换到列表视图。">
+                  <div class="map-stage" id="studentMapStage"></div>
+                  <div class="map-state" id="studentMapState" hidden></div>
+                </div>
+
+                <div class="map-toolbar" role="toolbar" aria-label="地图缩放与视图控制">
+                  <button type="button" class="map-btn" data-map-action="zoom-in" data-map="student" aria-label="放大">+</button>
+                  <button type="button" class="map-btn" data-map-action="zoom-out" data-map="student" aria-label="缩小">−</button>
+                  <span class="map-toolbar__rule" aria-hidden="true"></span>
+                  <button type="button" class="map-btn map-btn--wide" data-map-action="fit" data-map="student" aria-label="适配全图">适配</button>
+                  <button type="button" class="map-btn map-btn--wide" data-map-action="reset" data-map="student" aria-label="复位到 100%">复位</button>
+                </div>
+
+                <div class="map-zoom" id="studentZoom" aria-live="off">100%</div>
+
+                <details class="legend" id="legend">
+                  <summary>
+                    <span class="legend-mini" aria-hidden="true">
+                      <i class="legend-mini__dot legend-mini__dot--free"></i>
+                      <i class="legend-mini__dot legend-mini__dot--taken"></i>
+                      <i class="legend-mini__dot legend-mini__dot--mine"></i>
+                    </span>
+                    <span class="legend-title">图例</span>
+                    <span>6</span>
+                  </summary>
+                  <div class="legend__body">
+                    <div><i class="swatch swatch--free"></i><span>空闲</span><em>可选</em></div>
+                    <div><i class="swatch swatch--taken"></i><span>已预约</span><em>他人</em></div>
+                    <div><i class="swatch swatch--mine"></i><span>我的预约</span><em>已占</em></div>
+                    <div><i class="swatch swatch--held"></i><span>临时保留</span><em>暂不可选</em></div>
+                    <div><i class="swatch swatch--locked"></i><span>未开放</span><em>锁定</em></div>
+                    <div><i class="swatch swatch--fix"></i><span>维修中</span><em>报修</em></div>
+                  </div>
+                </details>
+
+                <div class="map-hint" id="mapHint">
+                  <span><kbd>拖拽</kbd> 平移</span><span><kbd>滚轮</kbd> 缩放</span><span><kbd>Tab</kbd> 浏览座位</span>
+                </div>
+              </div>
+
+              <div class="map-footer">
+                <p><span class="footer-key">北</span> 窗带 · 自然光 &nbsp; <span class="footer-key">南</span> 主入口 &nbsp; 主通道宽 1.2m</p>
+                <p class="map-footer__scale"><span></span> 0 — 1m</p>
+              </div>
+
+              <div class="list-view" id="studentListView" hidden>
+                <div class="list-view__head">
+                  <p>按区域浏览座位。列表与地图状态同步，适合键盘与读屏使用。</p>
+                  <button class="quiet-btn" type="button" id="listBackToMap">回到地图</button>
+                </div>
+                <div id="studentListBody"></div>
+              </div>
+            </section>
+
+            <aside class="booking-card" id="bookingCard" aria-label="预约摘要" aria-live="polite"></aside>
+          </div>
+
+          <div class="mobile-bar" id="mobileBar"></div>
+        </div>
+
+        <!-- ============================================================ 管理端 -->
+        <div class="view view--admin" id="adminView" hidden>
+          <section class="admin-head">
+            <div class="admin-head__copy">
+              <p class="eyebrow"><span class="eyebrow__rule" aria-hidden="true"></span> OPERATIONS / A-201</p>
+              <h1>座位运营台<span class="h1-dot">。</span></h1>
+              <p class="page-head__sub">监控占用、维护布局，并把每一次改动写进日志。</p>
+            </div>
+            <div class="admin-head__controls">
+              <label class="field">
+                <span>自习室</span>
+                <select id="adminRoom" aria-label="选择自习室">
+                  <option>静园自习室 A-201</option>
+                  <option>静园自习室 A-202</option>
+                  <option>北馆自习室 B-103</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>权限</span>
+                <select id="adminRole" aria-label="切换管理员权限">
+                  <option value="manager">自习室管理员</option>
+                  <option value="system">系统管理员（只读）</option>
+                </select>
+              </label>
+              <div class="live-pill" id="adminLive"><span class="live-dot"></span><span>实时 · 10s</span><strong>10:24:03</strong></div>
+            </div>
+          </section>
+
+          <div class="admin-banner" id="adminBanner" hidden>
+            <span class="admin-banner__icon">i</span>
+            <p>系统管理员当前为只读视图。座位维护、锁定和冲突处理需要「自习室管理员」权限；所有高风险操作仍会在服务端二次校验。</p>
+          </div>
+
+          <section class="admin-kpis" id="adminKpis" aria-label="实时概览"></section>
+
+          <nav class="admin-tabs" aria-label="管理视图">
+            <button class="admin-tab is-active" type="button" data-admin-tab="monitor">占用监控</button>
+            <button class="admin-tab" type="button" data-admin-tab="layout">布局编辑</button>
+            <button class="admin-tab" type="button" data-admin-tab="ops">运营与日志</button>
+            <div class="admin-tabs__spacer"></div>
+            <span class="admin-tabs__stamp" id="adminStamp">最后同步 10:24:03</span>
+          </nav>
+
+          <div class="admin-grid">
+            <aside class="admin-tools" id="adminTools" aria-label="地图工具"></aside>
+
+            <section class="admin-map-card" aria-labelledby="adminMapTitle">
+              <header class="card-head">
+                <div>
+                  <h2 id="adminMapTitle">A-201 · 座位图</h2>
+                  <p id="adminMapMeta">28 座 · 17 空闲 · 6 已约 · 2 维修 · 1 锁定 · 1 保留</p>
+                </div>
+                <div class="card-head__right">
+                  <span class="admin-mode-pill" id="adminModePill">监控模式</span>
+                  <button class="quiet-btn" type="button" id="adminRefreshBtn">
+                    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M14.5 6.5A6 6 0 1 0 15 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M14.5 3v3.5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    刷新
+                  </button>
+                </div>
+              </header>
+
+              <div class="map-shell map-shell--admin" id="adminMapShell">
+                <div class="map-viewport" id="adminMapViewport" tabindex="0" aria-label="A-201 管理座位图。可选择座位、框选多个座位并执行批量操作。">
+                  <div class="map-stage" id="adminMapStage"></div>
+                </div>
+                <div class="map-toolbar" role="toolbar" aria-label="地图缩放与编辑控制">
+                  <button type="button" class="map-btn" data-map-action="zoom-in" data-map="admin" aria-label="放大">+</button>
+                  <button type="button" class="map-btn" data-map-action="zoom-out" data-map="admin" aria-label="缩小">−</button>
+                  <span class="map-toolbar__rule" aria-hidden="true"></span>
+                  <button type="button" class="map-btn map-btn--wide" data-map-action="fit" data-map="admin" aria-label="适配全图">适配</button>
+                  <button type="button" class="map-btn map-btn--wide" data-map-action="reset" data-map="admin" aria-label="复位">复位</button>
+                </div>
+                <div class="map-zoom" id="adminZoom">100%</div>
+                <div class="editor-grid-hint" id="editorGridHint" hidden>网格 10px · 吸附开启</div>
+              </div>
+
+              <div class="map-footer">
+                <p><span class="footer-key">选择</span> 单击椅子，<kbd>Shift</kbd> 加选 &nbsp; <span class="footer-key">编辑</span> 拖桌 / 拖椅，<kbd>R</kbd> 旋转，<kbd>⌘Z</kbd> 撤销</p>
+                <p class="map-footer__scale"><span></span> 0 — 1m</p>
+              </div>
+            </section>
+
+            <aside class="admin-inspector" id="adminInspector" aria-label="检查器"></aside>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- 底部抽屉 / 浮层 -->
+    <div class="overlay" id="overlay" hidden></div>
+    <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+      <div class="sheet__grab" aria-hidden="true"></div>
+      <header class="sheet__head">
+        <div>
+          <p class="sheet__eyebrow" id="sheetEyebrow">BOOKING SUMMARY</p>
+          <h2 id="sheetTitle">确认预约</h2>
+        </div>
+        <button class="icon-btn" type="button" id="sheetClose" aria-label="关闭">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+      <div class="sheet__body" id="sheetBody"></div>
+    </section>
+
+    <div class="toast-region" id="toasts" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div class="confirm-layer" id="confirmLayer" hidden>
+      <div class="confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmBody">
+        <p class="confirm__eyebrow" id="confirmEyebrow">HIGH RISK ACTION</p>
+        <h2 id="confirmTitle">确认操作</h2>
+        <div id="confirmBody"></div>
+        <div class="confirm__actions" id="confirmActions"></div>
+      </div>
+    </div>
+
+    <script src="app-base.js"></script>
+    <script src="app.js"></script>
+    <script src="app-admin.js"></script>
+    <script src="app-map.js"></script>
+    <script src="app-actions.js"></script>
+    <script src="app-init.js"></script>
+  </body>
+</html>
