@@ -35,7 +35,7 @@ import {
 
 const OPEN = 8 * 60
 const CLOSE = 22 * 60
-const STEP = 30
+const STEP = 5
 
 interface AreaSpec {
   prefix: string
@@ -647,7 +647,7 @@ return {
 }
 
 /**
- * 演示用目标时段：下一个对齐 30 分钟的时段；若距闭馆不足 2 小时则顺延到次日 08:00。
+ * 演示用目标时段：下一个对齐 5 分钟的时段；若距闭馆不足 2 小时则顺延到次日 08:00。
  * 「A-01 已占用 [t, t+2h)，可预约 [t+2h, t+4h)」的相邻时段验证依赖该值。
  */
 function demoTarget(now: Date, today: Date): { day: Date; start: number } {

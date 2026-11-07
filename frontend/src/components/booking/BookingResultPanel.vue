@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import SeatMatrix from '@/components/booking/SeatMatrix.vue'
+import SeatMapCanvas from '@/components/booking/SeatMapCanvas.vue'
 import type { BookingFailure, MatrixCell, MatrixGroup } from '@/components/booking/types'
 import EmptyState from '@/components/EmptyState.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
+import type { Area } from '@/types'
 import { restrictUntilText } from '@/utils/bookingRules'
 
 const props = defineProps<{
@@ -22,6 +23,10 @@ const props = defineProps<{
   roomEmpty?: boolean
   /** 系统里还没有任何可预约的自习室 */
   noRoom?: boolean
+  /** 当前自习室的分区名称；只读展示用，接口失败时地图用座位号前缀兜底 */
+  areas?: readonly Area[]
+  /** 所选时段已经开始：地图仍显示占用，但不能提交 */
+  slotStarted?: boolean
 }>()
 
 const restrictText = computed(() =>
@@ -90,7 +95,17 @@ const emit = defineEmits<{
 
     <template v-else>
       <el-alert
-        v-if="props.freeCount === 0"
+        v-if="props.slotStarted"
+        class="booking-result__notice"
+        type="info"
+        :closable="false"
+        show-icon
+        title="该时段已开始，当前为只读查看"
+        description="地图仍显示这个时段的座位占用；要提交预约，请选择尚未开始的时段。"
+      />
+
+      <el-alert
+        v-else-if="props.freeCount === 0"
         class="booking-result__notice"
         type="warning"
         :closable="false"
@@ -99,10 +114,11 @@ const emit = defineEmits<{
         :description="`已列出 ${props.visibleCount} 个座位，可改选其它时段。`"
       />
 
-      <SeatMatrix
+      <SeatMapCanvas
         :groups="props.groups"
         :selected-seat-id="props.selectedSeatId"
         :mine-ids="props.mineIds"
+        :areas="props.areas"
         @select="emit('select', $event)"
       />
     </template>

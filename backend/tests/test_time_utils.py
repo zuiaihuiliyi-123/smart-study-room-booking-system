@@ -17,8 +17,11 @@ def test_partial_overlap_is_detected() -> None:
 
 
 def test_granularity_alignment() -> None:
-    assert is_aligned(time(14, 0), 30)
-    assert is_aligned(time(14, 30), 30)
+    # 当前业务粒度为 5 分钟；30 分钟边界也是合法的 5 分钟边界。
+    assert is_aligned(time(14, 0), 5)
+    assert is_aligned(time(14, 5), 5)
+    assert is_aligned(time(14, 30), 5)
+    assert not is_aligned(time(14, 1), 5)
     assert not is_aligned(time(14, 15), 30)
 
 

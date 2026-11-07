@@ -23,7 +23,7 @@ import {
 
 /** 与 backend/app/core/config.py 的业务参数保持一致。 */
 export const RULES = {
-  granularity: 30,
+  granularity: 5,
   advanceDays: 7,
   maxHours: 4,
   dailyLimit: 2,
@@ -198,7 +198,7 @@ export function parseSlot(input: SlotInput): Result<Slot> {
     return fail(
       400,
       'TIME_NOT_ALIGNED',
-      `预约时间须以 ${RULES.granularity} 分钟为粒度，开始与结束时间必须对齐整点或半点`,
+      `预约时间须以 ${RULES.granularity} 分钟为粒度，开始与结束时间必须落在 ${RULES.granularity} 分钟刻度上`,
           { rule: 'BR-001' },
         )
       }

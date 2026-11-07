@@ -21,7 +21,7 @@ const props = defineProps<{
   seatTypes: string[]
   openTime: string
   closeTime: string
-  /** 今天的最早可选开始时间（已过时刻不可选） */
+  /** 时间选择下限；当前为开放时间，允许回看已开始的只读时段 */
   minStartTime: string
   loading: boolean
 }>()
@@ -111,7 +111,7 @@ function pickRoom(id: number) {
           :start="props.openTime"
           :end="props.closeTime"
           :min-time="props.minStartTime"
-          step="00:30"
+          step="00:05"
           :editable="false"
           :clearable="false"
           placeholder="开始"
@@ -125,7 +125,7 @@ function pickRoom(id: number) {
           :end="props.closeTime"
           :min-time="props.filters.startTime || props.openTime"
           :max-time="maxEndTime"
-          step="00:30"
+          step="00:05"
           :editable="false"
           :clearable="false"
           placeholder="结束"

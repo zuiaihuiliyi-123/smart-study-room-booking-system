@@ -11,7 +11,7 @@ def now() -> datetime:
 
 
 def is_aligned(value: time, granularity_minutes: int) -> bool:
-    """判断时间是否对齐预约粒度（BR-001，默认 30 分钟）。"""
+    """判断时间是否对齐预约粒度（BR-001，当前默认 5 分钟）。"""
     minutes = value.hour * 60 + value.minute
     return (
         value.second == 0

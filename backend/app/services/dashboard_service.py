@@ -159,7 +159,7 @@ def get_seat_usage(
     for record in db.scalars(stmt):
         count = (
             _minutes(record.end_time) - _minutes(record.start_time)
-        ) // settings.reservation_granularity_minutes
+        ) // settings.dashboard_block_minutes
         if count > 0:
             slots[record.seat_id] = slots.get(record.seat_id, 0) + count
 
@@ -206,16 +206,19 @@ def get_seat_usage_by_slot(
         ) if seat_ids else []
 
         for label, bucket_start, bucket_end in SLOT_BUCKETS:
-            occupied = 0
+            occupied_minutes = 0
             for record in records:
                 record_start = _minutes(record.start_time)
                 record_end = _minutes(record.end_time)
                 overlap = min(record_end, bucket_end) - max(record_start, bucket_start)
                 if overlap > 0:
-                    occupied += overlap // settings.reservation_granularity_minutes
+                    # 5 分钟粒度下，单条预约可能不足一个 30 分钟统计块；
+                    # 先累计分钟数，最后折算为统计块，避免整数除法把短预约计成 0。
+                    occupied_minutes += overlap
+            occupied = round(occupied_minutes / settings.dashboard_block_minutes, 2)
             capacity = (
                 len(seats)
-                * ((bucket_end - bucket_start) // settings.reservation_granularity_minutes)
+                * ((bucket_end - bucket_start) // settings.dashboard_block_minutes)
                 * days
             )
             rate = round(occupied / capacity, 4) if capacity > 0 else 0.0

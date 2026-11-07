@@ -9,7 +9,7 @@ from app.core.database import Base
 class ReservationSlot(Base):
     """预约占用槽位（实现层辅助表，NFR-011 / BR-005 / BR-006）。
 
-    每 30 分钟一行，把预约区间 [s, e) 物化为可被数据库唯一约束检查的行：
+    每 5 分钟一行，把预约区间 [s, e) 物化为可被数据库唯一约束检查的行：
 
     - ``(seat_id, slot_start)``：同一座位同一时段至多一条有效预约（BR-006）
     - ``(user_id, slot_start)``：同一用户同一时段至多一条有效预约（BR-005）

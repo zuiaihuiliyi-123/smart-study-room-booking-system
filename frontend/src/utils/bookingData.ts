@@ -10,9 +10,9 @@
 import { isAxiosError } from 'axios'
 
 import { listAvailableSeats, listMyReservations } from '@/api/reservation'
-import { listRoomClosures, listRooms } from '@/api/room'
+import { listAreas, listRoomClosures, listRooms } from '@/api/room'
 import { listSeats } from '@/api/seat'
-import type { Reservation, Room, Seat } from '@/types'
+import type { Area, Reservation, Room, Seat } from '@/types'
 import {
   ceilToStep,
   mapBookingFailure,
@@ -106,6 +106,8 @@ export interface SlotAvailability {
   closedIds: Set<number>
   /** 本人全部预约，用于 C4 / C6 与首页「今日预约」 */
   myReservations: Reservation[]
+  /** 分区名称（只读展示用；接口失败时为空，地图使用座位号前缀兜底） */
+  areas: Area[]
 }
 
 /** 把 `YYYY-MM-DD` + `HH:MM[:SS]` 拼成可与关闭记录比较的时刻串。 */
@@ -119,7 +121,7 @@ export async function loadSlotAvailability(
   startTime: string,
   endTime: string,
 ): Promise<SlotAvailability> {
-  const [seats, available, myReservations, closures] = await Promise.all([
+  const [seats, available, myReservations, closures, areas] = await Promise.all([
     listSeats(roomId),
     listAvailableSeats({
       room_id: roomId,
@@ -131,6 +133,8 @@ export async function loadSlotAvailability(
     }),
     fetchAllMyReservations(),
     listRoomClosures(roomId).catch(() => []),
+    // 只读分区名称；失败不阻塞预约主流程，地图用座位号前缀兜底
+    listAreas(roomId).catch(() => []),
   ])
   const slotStart = momentKey(reserveDate, startTime)
   const slotEnd = momentKey(reserveDate, endTime)
@@ -151,6 +155,7 @@ export async function loadSlotAvailability(
     availableIds: new Set(available.map((seat) => seat.id)),
     closedIds,
     myReservations,
+    areas: areas as Area[],
   }
 }
 
@@ -211,7 +216,7 @@ export function defaultBookingSlot(
   const open = parseTimeToMinutes(room?.open_time) ?? 8 * 60
   const close = parseTimeToMinutes(room?.close_time) ?? 22 * 60
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  /* +1 分钟：正好落在半点/整点时，那个时刻其实已经过去了，需要取下一个刻度 */
+  /* +1 分钟：正好落在 5 分钟刻度时，那个时刻其实已经过去了，需要取下一个刻度 */
   const aligned = ceilToStep(Math.max(open, nowMinutes + 1))
   const start = Math.min(Math.max(aligned, open), Math.max(open, close - 60))
   const end = Math.min(start + 120, close)

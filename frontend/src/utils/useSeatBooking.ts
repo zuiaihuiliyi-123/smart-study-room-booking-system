@@ -15,7 +15,7 @@ import { createReservation } from '@/api/reservation'
 import { listRooms } from '@/api/room'
 import type { BookingFilters, MatrixGroup, SubmitState, SubmitSuccess } from '@/components/booking/types'
 import { useAuthStore } from '@/stores/auth'
-import type { Reservation, Room, Seat } from '@/types'
+import type { Area, Reservation, Room, Seat } from '@/types'
 import {
   defaultSlotForDate,
   groupSeatsByArea,
@@ -63,6 +63,7 @@ export function useSeatBooking() {
 
   const rooms = ref<Room[]>([])
   const seats = ref<Seat[]>([])
+  const areas = ref<Area[]>([])
   const myReservations = ref<Reservation[]>([])
   const availableIds = ref<ReadonlySet<number> | null>(null)
   /** 该时段被场地临时关闭覆盖的座位（窗口结束后自动恢复） */
@@ -128,15 +129,21 @@ const openTime = computed(() => shortTime(room.value?.open_time) || '08:00')
 const closeTime = computed(() => shortTime(room.value?.close_time) || '22:00')
 const seatTypes = computed(() => [...new Set(seats.value.map((seat) => seat.seat_type))])
 
-/** 今天的最早可选开始时间；已过去的时刻不可选（服务端同样拒绝，见 TIME_STARTED）。 */
+/**
+ * 时间选择器允许回看今天已经开始的时段（只读查看占用），因此不把当前时刻作为
+ * 选择下限；真正提交时 C6 仍会拦截已开始时段。默认时段仍取下一个可预约刻度。
+ */
 const minStartTime = computed(() => {
   void minuteTick.value
-  const open = parseTimeToMinutes(openTime.value) ?? 8 * 60
-  const close = parseTimeToMinutes(closeTime.value) ?? 22 * 60
-  if (filters.reserveDate !== todayKey.value) return minutesToTimeText(open)
-  const now = clock.value
-  const aligned = ceilToStep(Math.max(open, now.getHours() * 60 + now.getMinutes()))
-  return minutesToTimeText(Math.min(aligned, close))
+  return minutesToTimeText(parseTimeToMinutes(openTime.value) ?? 8 * 60)
+})
+
+/** 今天所选时段是否已经开始：开始后地图仍可查看，但不能再提交预约。 */
+const slotStarted = computed(() => {
+  if (filters.reserveDate !== todayKey.value) return false
+  const start = parseTimeToMinutes(filters.startTime)
+  if (start === null) return false
+  return start <= clock.value.getHours() * 60 + clock.value.getMinutes()
 })
 
 const usage = computed(() =>
@@ -223,6 +230,7 @@ const judgements = computed<JudgementItem[]>(() => {
       failure.value?.restrictUntil || auth.user?.restrict_until || '',
     ),
     dayOffset: dayOffsetFromToday(clock.value, filters.reserveDate),
+    now: clock.value,
   })
 })
 
@@ -244,6 +252,7 @@ const summary = computed(() => {
 
 const hint = computed(() => {
   if (loadError.value) return ''
+  if (slotStarted.value) return '该时段已开始 · 仅供查看占用'
   if (userBlock.value) return ''
   return `可约 ${freeCount.value} / ${visibleSeats.value.length} 座`
 })
@@ -296,13 +305,13 @@ function nextIsoDate(iso: string): string {
 /**
  * 今天是否还剩可预约时段：把「当前时刻向上取整到粒度」当作最早可选的开始时间，
  * 它再放一个最小粒度仍不超过闭馆时间，今天才算还可约。
- * 例：闭馆 22:00、粒度 30 分钟时，21:30 是今天最后一个可选的开始时间。
+ * 例：闭馆 22:00、粒度 5 分钟时，21:55 是今天最后一个可选的开始时间。
  */
 function todayHasSlotLeft(): boolean {
   const open = parseTimeToMinutes(openTime.value) ?? 8 * 60
   const close = parseTimeToMinutes(closeTime.value) ?? 22 * 60
   const now = clock.value
-  /* +1 分钟：正好在半点/整点时，这个时刻已经开始，可选的起点要往后一格 */
+  /* +1 分钟：正好落在 5 分钟刻度时，这个时刻已经开始，可选的起点要往后一格 */
   const aligned = ceilToStep(Math.max(open, now.getHours() * 60 + now.getMinutes() + 1))
   return aligned + BOOKING_RULES.granularity <= close
 }
@@ -349,19 +358,17 @@ function validationError(): string | null {
     return `单次预约时长不能超过 ${BOOKING_RULES.maxHours} 小时`
   }
   if (start % BOOKING_RULES.granularity !== 0 || end % BOOKING_RULES.granularity !== 0) {
-    return `预约时间须以 ${BOOKING_RULES.granularity} 分钟为粒度，须对齐整点或半点`
+    return `预约时间须以 ${BOOKING_RULES.granularity} 分钟为粒度，须落在 ${BOOKING_RULES.granularity} 分钟刻度上`
   }
   const offset = dayOffsetFromToday(clock.value, filters.reserveDate)
   if (offset < 0) return '不能预约已经过去的日期'
   if (offset > BOOKING_RULES.advanceDays) {
     return `最多只能提前 ${BOOKING_RULES.advanceDays} 天预约`
   }
-  if (offset === 0) {
-    const now = clock.value
-    if (start <= now.getHours() * 60 + now.getMinutes()) {
-      return '该时段已经开始，不能预约，请改选后面的时段'
-    }
-  }
+  /*
+   * 已开始的时段不在这里拦截：查询接口可以只读返回该时段的占用情况，
+   * 让用户仍能看到地图。C6 会把「已开始」判为不可提交，见 buildJudgements。
+   */
   return null
 }
 
@@ -434,6 +441,7 @@ async function query() {
     // 期间用户又换了自习室 / 时段：本次结果已过期，丢弃，避免旧馆座位盖住新馆
     if (seq !== querySeq) return
     seats.value = data.seats
+    areas.value = data.areas
     availableIds.value = data.availableIds
     closedIds.value = data.closedIds
     myReservations.value = data.myReservations
@@ -584,6 +592,13 @@ async function submit() {
 
 /** 只要「本人时段占用 / 每日次数」这类用户级条件成立，界面就不再显示座位矩阵。 */
 async function findAlternative() {
+  if (slotStarted.value) {
+    const slot = defaultSlotAvoidingSelf()
+    filters.startTime = slot.startTime
+    filters.endTime = slot.endTime
+    await query()
+    return
+  }
   const conflict = usage.value.conflict
   if (userBlock.value === 'C4' && conflict) {
     const close = parseTimeToMinutes(closeTime.value) ?? 22 * 60
@@ -622,6 +637,7 @@ return {
   // 数据
   rooms,
   seats,
+  areas,
   filters,
   loading,
   loadError,
@@ -639,6 +655,7 @@ return {
   blockedHint,
   summary,
   hint,
+  slotStarted,
   occupancyKnown,
   mySeatIds,
   // 抽屉

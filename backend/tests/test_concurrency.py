@@ -153,7 +153,7 @@ def test_concurrent_same_seat_same_slot_only_one_succeeds(concurrent_db) -> None
     # 其余全部被拒
     assert len(conflicts) == len(user_ids) - 1
 
-    # 数据层：该座位该日只有 1 条有效预约，槽位恰好 4 条（14:00-16:00，每 30 分钟）
+    # 数据层：该座位该日只有 1 条有效预约，槽位恰好 24 条（14:00-16:00，每 5 分钟）
     active = session.query(Reservation).filter(
         Reservation.seat_id == seat_id,
         Reservation.reserve_date == day,
@@ -163,7 +163,7 @@ def test_concurrent_same_seat_same_slot_only_one_succeeds(concurrent_db) -> None
     slots = session.query(ReservationSlot).filter(
         ReservationSlot.seat_id == seat_id
     ).all()
-    assert len(slots) == 4
+    assert len(slots) == 24
 
 
 def test_concurrent_same_user_same_slot_idempotent(concurrent_db) -> None:

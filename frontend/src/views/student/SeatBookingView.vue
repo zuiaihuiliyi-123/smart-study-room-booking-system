@@ -28,6 +28,7 @@ const {
   dateOptions,
   room,
   seats,
+  areas,
   openTime,
   closeTime,
   seatTypes,
@@ -39,6 +40,7 @@ const {
   blockedHint,
   summary,
   hint,
+  slotStarted,
   occupancyKnown,
   mySeatIds,
   drawerVisible,
@@ -139,10 +141,12 @@ watch(() => filters.reserveDate, applyDateChange)
         :loading="loading"
         :error="loadError"
         :groups="groups"
+        :areas="areas"
         :selected-seat-id="selectedSeatId"
         :mine-ids="mySeatIds"
         :summary="summary"
         :hint="hint"
+        :slot-started="slotStarted"
         :free-count="freeCount"
         :visible-count="visibleCount"
         :room-empty="roomEmpty"
@@ -158,8 +162,8 @@ watch(() => filters.reserveDate, applyDateChange)
         :date-text="dateText"
         :time-text="timeText"
         :state-text="seatStateText"
-        :blocked="userBlock !== null"
-        :blocked-text="blockedHint"
+        :blocked="userBlock !== null || slotStarted"
+        :blocked-text="slotStarted ? '该时段已开始，仅供查看占用；请改选后面的时段。' : blockedHint"
         @confirm="confirmPick"
         @alternative="findAlternative"
       />

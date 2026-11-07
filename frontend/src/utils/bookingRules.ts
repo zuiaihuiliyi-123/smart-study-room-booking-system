@@ -3,7 +3,7 @@
  *
  * 依据：
  * - 需求规格说明书（课程结构版）第 4.3 节时间边界判定表、第 4.4.2 节可预约性判定项 C1～C6
- * - AGENTS.md §4：左闭右开 `[s, e)`、粒度 30 分钟、提前上限 7 天、单次上限 4 小时、
+ * - 左闭右开 `[s, e)`、粒度 5 分钟、提前上限 7 天、单次上限 4 小时、
  *   每人每日 2 条有效预约、签到窗口「开始前 15 分钟至开始后 15 分钟」
  *
  * 边界说明：本文件只做**界面渲染 + 提交前的本地预估**。权威判定在服务端
@@ -16,8 +16,8 @@ import type { Reservation, Room, Seat } from '@/types'
 
 /** 参数基线：与 AGENTS.md §4 及 backend/app/core/config.py 保持一致，改动须同步核对。 */
 export const BOOKING_RULES = {
-  /** BR-001 预约粒度（分钟） */
-  granularity: 30,
+  /** BR-001 预约粒度（分钟）：2026-11-07 业务确认由 30 调整为 5 */
+  granularity: 5,
   /** BR-002 最多提前预约天数 */
   advanceDays: 7,
   /** BR-003 单次预约时长上限（小时） */
@@ -342,6 +342,8 @@ export interface JudgementContext {
   /** 受限账户的预计解除时间（来自服务端 403 响应体） */
   restrictUntil: string
   dayOffset: number
+  /** 当前时间；仅用于判断今天所选时段是否已经开始（开始后仍可只读查看地图） */
+  now: Date
 }
 
 export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
@@ -368,7 +370,9 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
   const advanceOk = ctx.dayOffset >= 0 && ctx.dayOffset <= BOOKING_RULES.advanceDays
   const durationOk = minutes > 0 && minutes <= BOOKING_RULES.maxHours * 60
   const dailyOk = usage.dailyCount < BOOKING_RULES.dailyLimit
-  const c6Pass = aligned && advanceOk && durationOk && dailyOk
+  const nowMinutes = ctx.now.getHours() * 60 + ctx.now.getMinutes()
+  const started = ctx.dayOffset === 0 && start <= nowMinutes
+  const c6Pass = aligned && advanceOk && durationOk && dailyOk && !started
 
   return [
     {
@@ -435,12 +439,13 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
     {
       id: 'C6',
       title: '时段与次数限制',
-      condition: '时段、天数、时长与每日次数都在允许范围内',
+      condition: '时段、天数、时长、每日次数都在允许范围内，且所选时段尚未开始',
       rules: [],
       state: c6Pass ? 'pass' : 'fail',
-      detail: c6Pass ? '下面四条约定的条件都满足' : '有项目超出允许范围，见下方逐条说明',
+      detail: c6Pass ? '下面五条约定的条件都满足' : '有项目超出允许范围，见下方逐条说明',
       bullets: [
         `开始与结束时间按整 ${BOOKING_RULES.granularity} 分钟选择 —— ${aligned ? '已对齐' : `需要调整（当前 ${range}）`}`,
+        `开始时间须晚于当前时间 —— ${started ? '该时段已开始，仅供查看占用，不能提交' : '尚未开始'}`,
         `最多可提前 ${BOOKING_RULES.advanceDays} 天预约 —— ${advanceOk ? '在可选范围内' : '超出可选范围'}`,
         `单次最长 ${BOOKING_RULES.maxHours} 小时 —— 本次 ${durationText(minutes)}`,
         `每人每天最多 ${BOOKING_RULES.dailyLimit} 条预约 —— 当天已有 ${usage.dailyCount} 条`,

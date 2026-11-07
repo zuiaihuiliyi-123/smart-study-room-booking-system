@@ -28,7 +28,8 @@ class SeatUsageSlotRow(BaseModel):
     room_id: int
     room_name: str
     slot: str
-    occupied: int
+    #: 折算成 30 分钟统计块的占用数；5 分钟预约会产生 .5 等小数
+    occupied: float
     capacity: int
     rate: float
 

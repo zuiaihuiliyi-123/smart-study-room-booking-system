@@ -30,7 +30,10 @@ class Settings(BaseSettings):
     ]
 
     # ---- 业务参数（需求规格说明书 BR-001～BR-009，均待业务确认） ----
-    reservation_granularity_minutes: int = 30
+    # 2026-11-07 业务确认：预约粒度由 30 分钟调整为 5 分钟。
+    reservation_granularity_minutes: int = 5
+    # 看板占用率仍按 30 分钟统计块展示，与预约粒度解耦，避免改变既有统计口径。
+    dashboard_block_minutes: int = 30
     advance_booking_days: int = 7
     max_reservation_hours: int = 4
     daily_reservation_limit: int = 2

@@ -69,7 +69,53 @@ def test_create_reservation_is_idempotent_and_materializes_slots(
         .select_from(ReservationSlot)
         .where(ReservationSlot.reservation_id == first.id)
     )
-    assert slots == 4  # 14:00-16:00，每 30 分钟一个槽位
+    assert slots == 24  # 14:00-16:00，每 5 分钟一个槽位（120 / 5）
+
+
+def test_create_reservation_accepts_5_minute_granularity(
+    db, make_user, make_room, make_seat, monkeypatch
+) -> None:
+    """BR-001：业务确认后，5 分钟边界合法，1 分钟边界拒绝。"""
+    now = datetime(2026, 11, 2, 10, 0)
+    monkeypatch.setattr(time_utils, "now", lambda: now)
+    user = make_user()
+    room = make_room()
+    seat = make_seat(room.id)
+    day = now.date() + timedelta(days=1)
+
+    created = reservation_service.create_reservation(
+        db,
+        user,
+        ReservationCreate(
+            seat_id=seat.id,
+            reserve_date=day,
+            start_time=time(14, 5),
+            end_time=time(14, 35),
+            idempotency_key="idem-5min-0001",
+        ),
+    )
+    assert created.start_time == time(14, 5)
+    assert created.end_time == time(14, 35)
+    slots = db.scalar(
+        select(func.count())
+        .select_from(ReservationSlot)
+        .where(ReservationSlot.reservation_id == created.id)
+    )
+    assert slots == 6  # 30 分钟 / 5 分钟
+
+    with pytest.raises(BusinessError) as error:
+        reservation_service.create_reservation(
+            db,
+            user,
+            ReservationCreate(
+                seat_id=seat.id,
+                reserve_date=day,
+                start_time=time(14, 6),
+                end_time=time(14, 36),
+                idempotency_key="idem-5min-0002",
+            ),
+        )
+    assert error.value.code == "C6_BR-001"
 
 
 def test_available_seats_excludes_occupied_seat(

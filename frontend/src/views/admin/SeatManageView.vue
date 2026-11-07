@@ -152,9 +152,9 @@ onMounted(() => {
 
       <label class="filter-field">
         <span class="filter-field__label">时段</span>
-        <el-time-select v-model="startTime" class="w-120" start="06:00" step="00:30" end="23:30" placeholder="开始" />
+        <el-time-select v-model="startTime" class="w-120" start="06:00" step="00:05" end="23:30" placeholder="开始" />
         <span class="ssr-text-muted">至</span>
-        <el-time-select v-model="endTime" class="w-120" start="06:30" step="00:30" end="23:30" placeholder="结束" />
+        <el-time-select v-model="endTime" class="w-120" start="06:05" step="00:05" end="23:30" placeholder="结束" />
       </label>
     </FilterBar>
 
