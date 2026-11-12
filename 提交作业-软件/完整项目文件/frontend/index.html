@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234c56c4'/%3E%3Cpath d='M9 11h14v3H9zm0 7h9v3H9z' fill='%23ffffff'/%3E%3C/svg%3E"
+    />
+    <title>智慧自习室预约与管理系统</title>
+    <script>
+      /* 首屏定主题：必须在样式与脚本加载前执行，否则会闪一下另一套配色。
+         与 src/utils/useTheme.ts 共用存储键 ssr_theme；未保存过时默认浅色。 */
+      (function () {
+        var theme = 'light'
+        try {
+          var stored = localStorage.getItem('ssr_theme')
+          if (stored === 'dark' || stored === 'light') theme = stored
+        } catch (error) {
+          theme = 'light'
+        }
+        var root = document.documentElement
+        root.dataset.theme = theme
+        root.classList.toggle('dark', theme === 'dark')
+        root.style.colorScheme = theme
+      })()
+    </script>
+    <style>
+      /* 样式文件加载完成前也不闪白（浅色米底 / 暗色近黑，避免对比强烈的白闪） */
+      html[data-theme='light'],
+      html[data-theme='light'] body {
+        background: #f7f6f3;
+      }
+
+      html[data-theme='dark'],
+      html[data-theme='dark'] body {
+        background: #0a0a0b;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

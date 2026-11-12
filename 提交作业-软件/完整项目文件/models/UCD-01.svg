@@ -1,0 +1,285 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1380" width="1600" height="1380"
+     font-family="'Microsoft YaHei','PingFang SC','Helvetica Neue',Arial,sans-serif"
+     role="img" aria-label="智慧自习室预约与管理系统角色用例图">
+
+  <!-- ================= 整体背景 ================= -->
+  <rect x="0" y="0" width="1600" height="1380" fill="#FFFFFF"/>
+
+  <!-- ================= 页面标题 ================= -->
+  <text x="800" y="40" text-anchor="middle" font-size="22" font-weight="800"
+        fill="#1E293B" letter-spacing=".5">智慧自习室预约与管理系统 · 角色用例图</text>
+  <text x="800" y="62" text-anchor="middle" font-size="13"
+        fill="#94A3B8">UCD-01 · 依据需求规格说明书 V0.3 第 3 / 4.3 / 5 节生成 · 全部内容未经走查与验证</text>
+
+  <!-- ================= 图形主体（整体下移 70） ================= -->
+  <g transform="translate(0,70)">
+
+    <!-- ================= 系统边界 ================= -->
+    <rect x="230" y="65" width="1140" height="810" rx="12"
+          fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.6"/>
+    <text x="800" y="98" text-anchor="middle"
+          font-size="15" font-weight="800" fill="#334155"
+          letter-spacing=".5">智慧自习室预约与管理系统</text>
+    <line x1="252" y1="112" x2="1348" y2="112" stroke="#E2E8F0" stroke-width="1.2"/>
+
+    <!-- ================= 列背景 ================= -->
+    <rect x="250" y="126" width="380" height="730" rx="10"
+          fill="#F8FBFF" stroke="#DBEAFE" stroke-width="1.2"/>
+    <rect x="640" y="126" width="320" height="730" rx="10"
+          fill="#FCFAFF" stroke="#EDE9FE" stroke-width="1.2"/>
+    <rect x="970" y="126" width="380" height="730" rx="10"
+          fill="#FFFCF7" stroke="#FED7AA" stroke-width="1.2"/>
+
+    <text x="440" y="156" text-anchor="middle" font-size="13.5" font-weight="800"
+          fill="#1D4ED8" letter-spacing=".8">学 生 端</text>
+    <text x="800" y="156" text-anchor="middle" font-size="13.5" font-weight="800"
+          fill="#6D28D9" letter-spacing=".8">共 享 / 系 统 内 部</text>
+    <text x="1160" y="156" text-anchor="middle" font-size="13.5" font-weight="800"
+          fill="#C2410C" letter-spacing=".8">管 理 员 端</text>
+
+    <!-- ================= 学生端椭圆 ================= -->
+
+    <!-- UC-01 -->
+    <ellipse cx="440" cy="195" rx="140" ry="30" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+    <text x="440" y="191" text-anchor="middle" font-size="10" fill="#60A5FA" font-weight="700" letter-spacing=".6">UC-01</text>
+    <text x="440" y="210" text-anchor="middle" font-size="13" fill="#1E3A8A" font-weight="800">预约座位</text>
+
+    <!-- UC-02 -->
+    <ellipse cx="440" cy="280" rx="140" ry="30" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+    <text x="440" y="276" text-anchor="middle" font-size="10" fill="#60A5FA" font-weight="700" letter-spacing=".6">UC-02</text>
+    <text x="440" y="295" text-anchor="middle" font-size="13" fill="#1E3A8A" font-weight="800">取消预约</text>
+
+    <!-- UC-03 -->
+    <ellipse cx="440" cy="365" rx="140" ry="30" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+    <text x="440" y="361" text-anchor="middle" font-size="10" fill="#60A5FA" font-weight="700" letter-spacing=".6">UC-03</text>
+    <text x="440" y="380" text-anchor="middle" font-size="13" fill="#1E3A8A" font-weight="800">签到</text>
+
+    <!-- UC-04 -->
+    <ellipse cx="440" cy="450" rx="140" ry="30" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+    <text x="440" y="446" text-anchor="middle" font-size="10" fill="#60A5FA" font-weight="700" letter-spacing=".6">UC-04</text>
+    <text x="440" y="465" text-anchor="middle" font-size="13" fill="#1E3A8A" font-weight="800">签退</text>
+
+    <!-- UC-05 -->
+    <ellipse cx="440" cy="535" rx="140" ry="30" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+    <text x="440" y="531" text-anchor="middle" font-size="10" fill="#60A5FA" font-weight="700" letter-spacing=".6">UC-05</text>
+    <text x="440" y="550" text-anchor="middle" font-size="13" fill="#1E3A8A" font-weight="800">查询预约记录</text>
+
+    <!-- UC-06 -->
+    <ellipse cx="440" cy="620" rx="140" ry="30" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+    <text x="440" y="616" text-anchor="middle" font-size="10" fill="#60A5FA" font-weight="700" letter-spacing=".6">UC-06</text>
+    <text x="440" y="635" text-anchor="middle" font-size="12.5" fill="#1E3A8A" font-weight="800">查询座位实时状态</text>
+
+    <!-- UC-07 -->
+    <ellipse cx="440" cy="705" rx="140" ry="30" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.6"/>
+    <text x="440" y="701" text-anchor="middle" font-size="10" fill="#60A5FA" font-weight="700" letter-spacing=".6">UC-07</text>
+    <text x="440" y="720" text-anchor="middle" font-size="13" fill="#1E3A8A" font-weight="800">查询违规记录</text>
+
+    <!-- ================= 共享 / 系统椭圆 ================= -->
+
+    <!-- UC-10 -->
+    <ellipse cx="800" cy="220" rx="140" ry="30" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="1.6"/>
+    <text x="800" y="216" text-anchor="middle" font-size="10" fill="#A78BFA" font-weight="700" letter-spacing=".6">UC-10</text>
+    <text x="800" y="235" text-anchor="middle" font-size="12.5" fill="#4C1D95" font-weight="800">投诉提交与处理</text>
+
+    <!-- UC-00 -->
+    <ellipse cx="800" cy="470" rx="140" ry="30" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="1.6" stroke-dasharray="6 4"/>
+    <text x="800" y="466" text-anchor="middle" font-size="10" fill="#A78BFA" font-weight="700" letter-spacing=".6">UC-00 · 未编号</text>
+    <text x="800" y="485" text-anchor="middle" font-size="12.5" fill="#4C1D95" font-weight="800">身份认证与登录</text>
+
+    <!-- 自动违约判定 -->
+    <ellipse cx="800" cy="700" rx="140" ry="30" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.6" stroke-dasharray="6 4"/>
+    <text x="800" y="696" text-anchor="middle" font-size="10" fill="#94A3B8" font-weight="700" letter-spacing=".6">系统自动</text>
+    <text x="800" y="715" text-anchor="middle" font-size="12.5" fill="#334155" font-weight="800">自动违约判定</text>
+
+    <!-- ================= 管理员端椭圆 ================= -->
+
+    <!-- UC-08 -->
+    <ellipse cx="1160" cy="195" rx="140" ry="30" fill="#FFF7ED" stroke="#F97316" stroke-width="1.6"/>
+    <text x="1160" y="191" text-anchor="middle" font-size="10" fill="#FB923C" font-weight="700" letter-spacing=".6">UC-08</text>
+    <text x="1160" y="210" text-anchor="middle" font-size="13" fill="#9A3412" font-weight="800">管理座位资源</text>
+
+    <!-- UC-09 -->
+    <ellipse cx="1160" cy="340" rx="140" ry="30" fill="#FFF7ED" stroke="#F97316" stroke-width="1.6"/>
+    <text x="1160" y="336" text-anchor="middle" font-size="10" fill="#FB923C" font-weight="700" letter-spacing=".6">UC-09</text>
+    <text x="1160" y="355" text-anchor="middle" font-size="13" fill="#9A3412" font-weight="800">手动违约登记</text>
+
+    <!-- UC-11 -->
+    <ellipse cx="1160" cy="485" rx="140" ry="30" fill="#FFF7ED" stroke="#F97316" stroke-width="1.6"/>
+    <text x="1160" y="481" text-anchor="middle" font-size="10" fill="#FB923C" font-weight="700" letter-spacing=".6">UC-11</text>
+    <text x="1160" y="500" text-anchor="middle" font-size="12.5" fill="#9A3412" font-weight="800">用户与黑名单管理</text>
+
+    <!-- UC-12 -->
+    <ellipse cx="1160" cy="630" rx="140" ry="30" fill="#FFF7ED" stroke="#F97316" stroke-width="1.6"/>
+    <text x="1160" y="626" text-anchor="middle" font-size="10" fill="#FB923C" font-weight="700" letter-spacing=".6">UC-12</text>
+    <text x="1160" y="645" text-anchor="middle" font-size="13" fill="#9A3412" font-weight="800">查看数据看板</text>
+
+    <!-- ================= 连线：学生 R-01 ================= -->
+    <g stroke="#3B82F6" stroke-width="1.3" fill="none" opacity=".85">
+      <path d="M 135,435 L 280,435"/>
+      <path d="M 280,195 L 280,705"/>
+      <path d="M 280,195 L 300,195"/>
+      <path d="M 280,280 L 300,280"/>
+      <path d="M 280,365 L 300,365"/>
+      <path d="M 280,450 L 300,450"/>
+      <path d="M 280,535 L 300,535"/>
+      <path d="M 280,620 L 300,620"/>
+      <path d="M 280,705 L 300,705"/>
+      <!-- 学生 → UC-10（共享列，绕行） -->
+      <path d="M 280,435 L 280,220 L 660,220"/>
+    </g>
+
+    <!-- ================= 连线：管理员 R-02 ================= -->
+    <g stroke="#F97316" stroke-width="1.3" fill="none" opacity=".85">
+      <path d="M 1465,435 L 1320,435"/>
+      <path d="M 1320,195 L 1320,630"/>
+      <path d="M 1320,195 L 1300,195"/>
+      <path d="M 1320,340 L 1300,340"/>
+      <path d="M 1320,485 L 1300,485"/>
+      <path d="M 1320,630 L 1300,630"/>
+      <!-- 管理员 → UC-10（共享列，绕行） -->
+      <path d="M 1320,435 L 1320,220 L 940,220"/>
+    </g>
+
+    <!-- ================= 连线：教师 R-03（待确认） ================= -->
+    <g stroke="#8B5CF6" stroke-width="1.3" fill="none" stroke-dasharray="7 5" opacity=".85">
+      <path d="M 135,715 L 200,715 L 200,195 L 300,195"/>
+    </g>
+
+    <!-- ================= 连线：系统管理员 R-04（假设） ================= -->
+    <g stroke="#0D9488" stroke-width="1.3" fill="none" stroke-dasharray="7 5" opacity=".85">
+      <path d="M 1465,715 L 1400,715 L 1400,630 L 1300,630"/>
+      <path d="M 1400,485 L 1300,485"/>
+    </g>
+
+    <!-- ================= 连线：外部系统 ================= -->
+    <g stroke="#B45309" stroke-width="1.2" fill="none" stroke-dasharray="5 4" opacity=".8">
+      <path d="M 280,435 L 280,900 L 460,900"/>
+      <path d="M 1320,435 L 1320,900 L 1140,900"/>
+    </g>
+
+    <!-- ================= 参与者：学生 R-01 ================= -->
+    <g>
+      <circle cx="110" cy="405" r="14" fill="#FFFFFF" stroke="#1E40AF" stroke-width="2.2"/>
+      <line x1="110" y1="419" x2="110" y2="452" stroke="#1E40AF" stroke-width="2.2"/>
+      <line x1="92"  y1="431" x2="128" y2="431" stroke="#1E40AF" stroke-width="2.2"/>
+      <line x1="110" y1="452" x2="94"  y2="478" stroke="#1E40AF" stroke-width="2.2"/>
+      <line x1="110" y1="452" x2="126" y2="478" stroke="#1E40AF" stroke-width="2.2"/>
+      <text x="110" y="502" text-anchor="middle" font-size="14" font-weight="800" fill="#1E3A8A">学生用户</text>
+      <text x="110" y="519" text-anchor="middle" font-size="11" fill="#64748B" font-weight="600">R-01</text>
+    </g>
+
+    <!-- ================= 参与者：教师 R-03 ================= -->
+    <g opacity=".85">
+      <circle cx="110" cy="685" r="14" fill="#F8FAFC" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="5 3"/>
+      <line x1="110" y1="699" x2="110" y2="732" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="5 3"/>
+      <line x1="92"  y1="711" x2="128" y2="711" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="5 3"/>
+      <line x1="110" y1="732" x2="94"  y2="758" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="5 3"/>
+      <line x1="110" y1="732" x2="126" y2="758" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="5 3"/>
+      <text x="110" y="782" text-anchor="middle" font-size="14" font-weight="800" fill="#6D28D9">教师用户</text>
+      <text x="110" y="799" text-anchor="middle" font-size="11" fill="#94A3B8" font-weight="600">R-03 · 待确认</text>
+    </g>
+
+    <!-- ================= 参与者：管理员 R-02 ================= -->
+    <g>
+      <circle cx="1490" cy="405" r="14" fill="#FFFFFF" stroke="#C2410C" stroke-width="2.2"/>
+      <line x1="1490" y1="419" x2="1490" y2="452" stroke="#C2410C" stroke-width="2.2"/>
+      <line x1="1472" y1="431" x2="1508" y2="431" stroke="#C2410C" stroke-width="2.2"/>
+      <line x1="1490" y1="452" x2="1474" y2="478" stroke="#C2410C" stroke-width="2.2"/>
+      <line x1="1490" y1="452" x2="1506" y2="478" stroke="#C2410C" stroke-width="2.2"/>
+      <text x="1490" y="502" text-anchor="middle" font-size="14" font-weight="800" fill="#9A3412">自习室管理员</text>
+      <text x="1490" y="519" text-anchor="middle" font-size="11" fill="#64748B" font-weight="600">R-02</text>
+    </g>
+
+    <!-- ================= 参与者：系统管理员 R-04 ================= -->
+    <g opacity=".85">
+      <circle cx="1490" cy="685" r="14" fill="#F8FAFC" stroke="#0D9488" stroke-width="2" stroke-dasharray="5 3"/>
+      <line x1="1490" y1="699" x2="1490" y2="732" stroke="#0D9488" stroke-width="2" stroke-dasharray="5 3"/>
+      <line x1="1472" y1="711" x2="1508" y2="711" stroke="#0D9488" stroke-width="2" stroke-dasharray="5 3"/>
+      <line x1="1490" y1="732" x2="1474" y2="758" stroke="#0D9488" stroke-width="2" stroke-dasharray="5 3"/>
+      <line x1="1490" y1="732" x2="1506" y2="758" stroke="#0D9488" stroke-width="2" stroke-dasharray="5 3"/>
+      <text x="1490" y="782" text-anchor="middle" font-size="14" font-weight="800" fill="#0F766E">系统管理员</text>
+      <text x="1490" y="799" text-anchor="middle" font-size="11" fill="#94A3B8" font-weight="600">R-04 · 假设</text>
+    </g>
+
+    <!-- ================= 外部系统 ================= -->
+    <g>
+      <rect x="380" y="912" width="200" height="62" rx="12"
+            fill="#FFFDF5" stroke="#E7CF8C" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <text x="480" y="938" text-anchor="middle" font-size="12" font-weight="800" fill="#8A6D1B">统一身份认证系统</text>
+      <text x="480" y="958" text-anchor="middle" font-size="10.5" fill="#A08030">E1 · 假设 · IR-001 / IR-002</text>
+    </g>
+    <g>
+      <rect x="1020" y="912" width="200" height="62" rx="12"
+            fill="#FFFDF5" stroke="#E7CF8C" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <text x="1120" y="938" text-anchor="middle" font-size="12" font-weight="800" fill="#8A6D1B">消息通知通道</text>
+      <text x="1120" y="958" text-anchor="middle" font-size="10.5" fill="#A08030">E2 · 假设 · IR-003 / FR-060</text>
+    </g>
+
+    <!-- ================= 图例 ================= -->
+    <g transform="translate(1385, 90)">
+      <rect x="0" y="0" width="200" height="196" rx="12"
+            fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.4"/>
+      <text x="100" y="24" text-anchor="middle" font-size="12.5" font-weight="800" fill="#334155">图例</text>
+
+      <line x1="16" y1="46" x2="46" y2="46" stroke="#3B82F6" stroke-width="1.6"/>
+      <text x="56" y="50" font-size="11" fill="#475569">学生用户关联</text>
+
+      <line x1="16" y1="68" x2="46" y2="68" stroke="#F97316" stroke-width="1.6"/>
+      <text x="56" y="72" font-size="11" fill="#475569">管理员关联</text>
+
+      <line x1="16" y1="90" x2="46" y2="90" stroke="#8B5CF6" stroke-width="1.6" stroke-dasharray="6 4"/>
+      <text x="56" y="94" font-size="11" fill="#475569">待确认角色</text>
+
+      <line x1="16" y1="112" x2="46" y2="112" stroke="#0D9488" stroke-width="1.6" stroke-dasharray="6 4"/>
+      <text x="56" y="116" font-size="11" fill="#475569">假设角色</text>
+
+      <line x1="16" y1="134" x2="46" y2="134" stroke="#B45309" stroke-width="1.4" stroke-dasharray="5 4"/>
+      <text x="56" y="138" font-size="11" fill="#475569">外部系统（假设）</text>
+
+      <ellipse cx="30" cy="162" rx="14" ry="7" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.2"/>
+      <text x="56" y="166" font-size="11" fill="#475569">用例（按端着色）</text>
+
+      <ellipse cx="30" cy="182" rx="14" ry="7" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <text x="56" y="186" font-size="11" fill="#475569">未编号 / 系统内部</text>
+    </g>
+
+  </g><!-- /图形主体 -->
+
+  <!-- ================= 底部说明 ================= -->
+  <g>
+    <rect x="20" y="1105" width="1560" height="240" rx="14"
+          fill="#FFFDF0" stroke="#FDE68A" stroke-width="1.2"/>
+
+    <text x="44" y="1140" font-size="12.5" fill="#78350F">
+      <tspan font-weight="800" fill="#92400E">统一声明：</tspan>本图与需求规格说明书 V0.3 保持同一确认状态 —— 除 REF-01 明确给出的功能存在性外，
+    </text>
+    <text x="44" y="1166" font-size="12.5" fill="#78350F">
+      全部内容为【AI 候选】或【分析推导】，确认状态「待确认」。
+    </text>
+
+    <line x1="44" y1="1190" x2="1556" y2="1190" stroke="#FDE68A" stroke-width="1"/>
+
+    <text x="44" y="1214" font-size="12.5" fill="#78350F">
+      本图 <tspan font-weight="800" fill="#92400E">未经过</tspan> 任何业务方确认、教学模拟确认、场景走查、原型走查或功能测试。图中所有“预期行为”均为设计意图，
+    </text>
+    <text x="44" y="1240" font-size="12.5" fill="#78350F">
+      <tspan font-weight="800" fill="#92400E">不代表已执行或已验证</tspan>。
+    </text>
+
+    <line x1="44" y1="1264" x2="1556" y2="1264" stroke="#FDE68A" stroke-width="1"/>
+
+    <text x="44" y="1288" font-size="12.5" fill="#78350F">
+      <tspan font-weight="800" fill="#92400E">未纳入本图的项：</tspan>FR-014 / FR-015（内部一致性要求，不单独设用例）；FR-022（系统自动执行，无直接参与者）；
+    </text>
+    <text x="44" y="1314" font-size="12.5" fill="#78350F">
+      FR-024 / FR-033 / FR-060（范围未定）；FR-053（属 UC-12 的内部行为）。
+    </text>
+
+    <line x1="44" y1="1338" x2="1556" y2="1338" stroke="#FDE68A" stroke-width="1"/>
+
+    <text x="44" y="1362" font-size="12.5" fill="#78350F">
+      <tspan font-weight="800" fill="#92400E">关键待确认：</tspan>UC-08 含 FR-016 场地临时关闭，规则本身待确认（Q-026）；UC-06 的“实时”仅指系统记录的预约占用（TM-13）；FR-050～FR-052 统计口径未定义（Q-009）；管理员是否分级未定义（CF-02 / Q-021）。
+    </text>
+  </g>
+
+</svg>

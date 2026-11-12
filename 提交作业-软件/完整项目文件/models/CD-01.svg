@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1700 1620" width="1700" height="1620"
+     font-family="'Microsoft YaHei','PingFang SC','Helvetica Neue',Arial,sans-serif"
+     role="img" aria-label="智慧自习室预约与管理系统领域类图">
+
+  <defs>
+    <style>
+      .box       { fill:#FFFFFF; stroke:#475569; stroke-width:1.5; }
+      .hdr       { fill:#F1F5F9; }
+      .enum-box  { fill:#FFF7ED; stroke:#F97316; stroke-width:1.5; }
+      .enum-hdr  { fill:#FFEDD5; }
+      .name      { font-size:13.5px; font-weight:800; fill:#1E293B; }
+      .stereo    { font-size:10px;   fill:#64748B; font-weight:600; }
+      .cl        { font-size:11px;   font-weight:800; fill:#7C3AED; }
+      .attr      { font-size:11.5px; fill:#334155; }
+      .pk        { font-weight:700; fill:#1D4ED8; }
+      .method    { font-size:11.5px; fill:#6D28D9; }
+      .enum-name { font-size:12px;   font-weight:800; fill:#9A3412; }
+      .enum-val  { font-size:11px;   fill:#7C2D12; }
+      .rel       { stroke:#64748B; stroke-width:1.4; fill:none; }
+      .rel-dash  { stroke:#64748B; stroke-width:1.2; fill:none; stroke-dasharray:5 3; }
+      .rel-lbl   { font-size:10.5px; fill:#475569; font-weight:600; }
+      .note-box  { fill:#FFFDF0; stroke:#FDE68A; stroke-width:1.2; }
+      .note-txt  { font-size:10.5px; fill:#78350F; }
+      .title     { font-size:20px; font-weight:800; fill:#1E293B; }
+      .subtitle  { font-size:12px; fill:#94A3B8; }
+    </style>
+    <marker id="diamond" viewBox="0 0 14 10" refX="0" refY="5"
+            markerWidth="14" markerHeight="10" orient="auto">
+      <path d="M0,5 L4,1 L8,5 L4,9 Z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1700" height="1620" fill="#FFFFFF"/>
+
+  <text x="850" y="30" text-anchor="middle" class="title">智慧自习室预约与管理系统 · 领域类图</text>
+  <text x="850" y="50" text-anchor="middle" class="subtitle">依据需求规格说明书 V0.3 第 4.7.1 节 · 全部内容未经走查与验证</text>
+
+  <!-- 枚举：SeatStatus -->
+  <g>
+    <rect x="200" y="70" width="200" height="110" rx="8" class="enum-box"/>
+    <path d="M200,70 h200 v44 h-200 z" class="enum-hdr" stroke="#F97316" stroke-width="1.5"/>
+    <text x="216" y="92" class="enum-name">SeatStatus</text>
+    <text x="216" y="108" class="enum-name">座位资源状态</text>
+    <line x1="200" y1="114" x2="400" y2="114" stroke="#F97316" stroke-width="0.8"/>
+    <text x="216" y="132" class="enum-val">• 可用</text>
+    <text x="216" y="149" class="enum-val">• 维修中</text>
+    <text x="216" y="166" class="enum-val">• 停用</text>
+  </g>
+
+  <!-- 枚举：ReservationStatus -->
+  <g>
+    <rect x="420" y="70" width="200" height="140" rx="8" class="enum-box"/>
+    <path d="M420,70 h200 v44 h-200 z" class="enum-hdr" stroke="#F97316" stroke-width="1.5"/>
+    <text x="436" y="92" class="enum-name">ReservationStatus</text>
+    <text x="436" y="108" class="enum-name">预约状态</text>
+    <line x1="420" y1="114" x2="620" y2="114" stroke="#F97316" stroke-width="0.8"/>
+    <text x="436" y="132" class="enum-val">• 待使用</text>
+    <text x="436" y="149" class="enum-val">• 使用中</text>
+    <text x="436" y="166" class="enum-val">• 已完成</text>
+    <text x="436" y="183" class="enum-val">• 已取消</text>
+    <text x="436" y="200" class="enum-val">• 已违约</text>
+  </g>
+
+  <!-- 枚举：AccountStatus -->
+  <g>
+    <rect x="640" y="70" width="200" height="110" rx="8" class="enum-box"/>
+    <path d="M640,70 h200 v44 h-200 z" class="enum-hdr" stroke="#F97316" stroke-width="1.5"/>
+    <text x="656" y="92" class="enum-name">AccountStatus</text>
+    <text x="656" y="108" class="enum-name">账户状态</text>
+    <line x1="640" y1="114" x2="840" y2="114" stroke="#F97316" stroke-width="0.8"/>
+    <text x="656" y="132" class="enum-val">• 正常</text>
+    <text x="656" y="149" class="enum-val">• 受限</text>
+    <text x="656" y="166" class="enum-val">• 停用</text>
+  </g>
+
+  <!-- 枚举：ComplaintStatus -->
+  <g>
+    <rect x="860" y="70" width="200" height="140" rx="8" class="enum-box"/>
+    <path d="M860,70 h200 v44 h-200 z" class="enum-hdr" stroke="#F97316" stroke-width="1.5"/>
+    <text x="876" y="92" class="enum-name">ComplaintStatus</text>
+    <text x="876" y="108" class="enum-name">投诉状态</text>
+    <line x1="860" y1="114" x2="1060" y2="114" stroke="#F97316" stroke-width="0.8"/>
+    <text x="876" y="132" class="enum-val">• 待处理</text>
+    <text x="876" y="149" class="enum-val">• 处理中</text>
+    <text x="876" y="166" class="enum-val">• 已处理</text>
+    <text x="876" y="183" class="enum-val">• 已驳回</text>
+    <text x="876" y="200" class="enum-val">• 已关闭</text>
+  </g>
+
+  <!-- 枚举：Role -->
+  <g>
+    <rect x="1080" y="70" width="200" height="140" rx="8" class="enum-box"/>
+    <path d="M1080,70 h200 v44 h-200 z" class="enum-hdr" stroke="#F97316" stroke-width="1.5"/>
+    <text x="1096" y="92" class="enum-name">Role</text>
+    <text x="1096" y="108" class="enum-name">用户角色</text>
+    <line x1="1080" y1="114" x2="1280" y2="114" stroke="#F97316" stroke-width="0.8"/>
+    <text x="1096" y="132" class="enum-val">• R-01 学生用户</text>
+    <text x="1096" y="149" class="enum-val">• R-02 自习室管理员</text>
+    <text x="1096" y="166" class="enum-val">• R-03 教师用户</text>
+    <text x="1096" y="183" class="enum-val">• R-04 系统管理员</text>
+  </g>
+
+  <!-- 枚举：ViolationType -->
+  <g>
+    <rect x="1300" y="70" width="200" height="110" rx="8" class="enum-box"/>
+    <path d="M1300,70 h200 v44 h-200 z" class="enum-hdr" stroke="#F97316" stroke-width="1.5"/>
+    <text x="1316" y="92" class="enum-name">ViolationType</text>
+    <text x="1316" y="108" class="enum-name">违约类型</text>
+    <line x1="1300" y1="114" x2="1500" y2="114" stroke="#F97316" stroke-width="0.8"/>
+    <text x="1316" y="132" class="enum-val">• 自动违约</text>
+    <text x="1316" y="149" class="enum-val">• 手动违约登记</text>
+  </g>
+
+  <!-- 类：Room CL-02 -->
+  <g>
+    <rect x="30" y="260" width="320" height="180" rx="8" class="box"/>
+    <path d="M30,260 h320 v44 h-320 z" class="hdr" stroke="#475569" stroke-width="1.5"/>
+    <text x="46" y="282" class="stereo">&lt;&lt;DR-002&gt;&gt;</text>
+    <text x="340" y="286" text-anchor="end" class="cl">CL-02</text>
+    <text x="46" y="300" class="name">Room 自习室</text>
+    <line x1="30" y1="304" x2="350" y2="304" stroke="#475569" stroke-width="0.8"/>
+    <text x="46" y="322" class="attr">- roomId : String <tspan class="pk">{PK}</tspan></text>
+    <text x="46" y="339" class="attr">- name : String</text>
+    <text x="46" y="356" class="attr">- location : String</text>
+    <text x="46" y="373" class="attr">- openTime : String</text>
+    <text x="46" y="390" class="attr">- capacity : Integer</text>
+    <text x="46" y="407" class="attr">- enabled : Boolean</text>
+    <text x="46" y="428" class="method">+ maintain() : FR-001</text>
+  </g>
+
+  <!-- 类：Area CL-03 -->
+  <g>
+    <rect x="30" y="490" width="310" height="115" rx="8" class="box"/>
+    <path d="M30,490 h310 v44 h-310 z" class="hdr" stroke="#475569" stroke-width="1.5"/>
+    <text x="46" y="512" class="stereo">&lt;&lt;DR-003 / AS-05&gt;&gt;</text>
+    <text x="330" y="516" text-anchor="end" class="cl">CL-03</text>
+    <text x="46" y="530" class="name">Area 分区</text>
+    <line x1="30" y1="534" x2="340" y2="534" stroke="#475569" stroke-width="0.8"/>
+    <text x="46" y="552" class="attr">- areaId : String <tspan class="pk">{PK}</tspan></text>
+    <text x="46" y="569" class="attr">- name : String</text>
+    <text x="46" y="586" class="attr">- note : String</text>
+  </g>
+
+  <!-- 类：Seat CL-04 -->
+  <g>
+    <rect x="30" y="650" width="380" height="200" rx="8" class="box"/>
+    <path d="M30,650 h380 v44 h-380 z" class="hdr" stroke="#475569" stroke-width="1.5"/>
+    <text x="46" y="672" class="stereo">&lt;&lt;DR-003&gt;&gt;</text>
+    <text x="400" y="676" text-anchor="end" class="cl">CL-04</text>
+    <text x="46" y="690" class="name">Seat 座位</text>
+    <line x1="30" y1="694" x2="410" y2="694" stroke="#475569" stroke-width="0.8"/>
+    <text x="46" y="712" class="attr">- seatId : String <tspan class="pk">{PK}</tspan></text>
+    <text x="46" y="729" class="attr">- seatNo : String（自习室内唯一）</text>
+    <text x="46" y="746" class="attr">- seatType : String</text>
+    <text x="46" y="763" class="attr">- hasPower : Boolean</text>
+    <text x="46" y="780" class="attr">- status : SeatStatus</text>
+    <text x="46" y="802" class="method">+ changeStatus() : FR-004</text>
+    <text x="46" y="822" class="method">（无“占用”字段，可否预约由 C1~C6 实时计算）</text>
+  </g>
+
+  <!-- 类：Reservation CL-05 -->
+  <g>
+    <rect x="30" y="900" width="430" height="290" rx="8" class="box"/>
+    <path d="M30,900 h430 v44 h-430 z" class="hdr" stroke="#475569" stroke-width="1.5"/>
+    <text x="46" y="922" class="stereo">&lt;&lt;DR-004&gt;&gt;</text>
+    <text x="450" y="926" text-anchor="end" class="cl">CL-05</text>
+    <text x="46" y="940" class="name">Reservation 预约单</text>
+    <line x1="30" y1="944" x2="460" y2="944" stroke="#475569" stroke-width="0.8"/>
+    <text x="46" y="962" class="attr">- reservationId : String <tspan class="pk">{PK}</tspan></text>
+    <text x="46" y="979" class="attr">- reserveDate : Date</text>
+    <text x="46" y="996" class="attr">- startTime : Time {s}</text>
+    <text x="46" y="1013" class="attr">- endTime : Time {e}</text>
+    <text x="46" y="1030" class="attr">- status : ReservationStatus</text>
+    <text x="46" y="1047" class="attr">- checkInTime : Time</text>
+    <text x="46" y="1064" class="attr">- checkOutTime : Time</text>
+    <text x="46" y="1081" class="attr">- cancelTime : Time</text>
+    <text x="46" y="1098" class="attr">- cancelReason : String</text>
+    <text x="46" y="1115" class="attr">- idempotencyKey : String</text>
+    <text x="46" y="1137" class="method">+ validateRules() : FR-012</text>
+    <text x="46" y="1154" class="method">+ verifyConflict() : BR-005 / BR-006</text>
+    <text x="46" y="1171" class="method">+ isActive() : TM-18 有效预约</text>
+  </g>
+
+  <!-- 类：User CL-01 -->
+  <g>
+    <rect x="700" y="260" width="350" height="250" rx="8" class="box"/>
+    <path d="M700,260 h350 v44 h-350 z" class="hdr" stroke="#475569" stroke-width="1.5"/>
+    <text x="716" y="282" class="stereo">&lt;&lt;DR-001&gt;&gt;</text>
+    <text x="1040" y="286" text-anchor="end" class="cl">CL-01</text>
+    <text x="716" y="300" class="name">User 用户</text>
+    <line x1="700" y1="304" x2="1050" y2="304" stroke="#475569" stroke-width="0.8"/>
+    <text x="716" y="322" class="attr">- userId : String <tspan class="pk">{PK}</tspan></text>
+    <text x="716" y="339" class="attr">- name : String</text>
+    <text x="716" y="356" class="attr">- studentNo : String <tspan class="pk">{UNIQUE}</tspan></text>
+    <text x="716" y="373" class="attr">- role : Role</text>
+    <text x="716" y="390" class="attr">- accountStatus : AccountStatus</text>
+    <text x="716" y="407" class="attr">- violationCount : Integer</text>
+    <text x="716" y="424" class="attr">- contact : String</text>
+    <text x="716" y="446" class="method">+ createReservation() : FR-010</text>
+    <text x="716" y="463" class="method">+ cancelReservation() : FR-011</text>
+    <text x="716" y="480" class="method">+ checkIn() : FR-020</text>
+    <text x="716" y="497" class="method">+ checkOut() : FR-021</text>
+  </g>
+
+  <!-- 类：Complaint CL-08 -->
+  <g>
+    <rect x="560" y="600" width="340" height="220" rx="8" class="box"/>
+    <path d="M560,600 h340 v44 h-340 z" class="hdr" stroke="#475569" stroke-width="1.5"/>
+    <text x="576" y="622" class="stereo">&lt;&lt;DR-007&gt;&gt;</text>
+    <text x="890" y="626" text-anchor="end" class="cl">CL-08</text>
+    <text x="576" y="640" class="name">Complaint 投诉</text>
+    <line x1="560" y1="644" x2="900" y2="644" stroke="#475569" stroke-width="0.8"/>
+    <text x="576" y="662" class="attr">- complaintId : String <tspan class="pk">{PK}</tspan></text>
+    <text x="576" y="679" class="attr">- targetType : String</text>
+    <text x="576" y="696" class="attr">- targetId : String</text>
+    <text x="576" y="713" class="attr">- content : String</text>
+    <text x="576" y="730" class="attr">- status : ComplaintStatus</text>
+    <text x="576" y="747" class="attr">- handleNote : String</text>
+    <text x="576" y="764" class="attr">- handleTime : Time</text>
+    <text x="576" y="781" class="attr">- operatorId : String</text>
+    <text x="576" y="802" class="method">注：投诉对象类型未定义</text>
+  </g>
+
+  <!-- 类：BlacklistEntry CL-09 -->
+  <g>
+    <rect x="1150" y="260" width="320" height="180" rx="8" class="box"/>
+    <path d="M1150,260 h320 v44 h-320 z" class="hdr" stroke="#475569" stroke-width="1.5"/>
+    <text x="1166" y="282" class="stereo">&lt;&lt;DR-008&gt;&gt;</text>
+    <text x="1460" y="286" text-anchor="end" class="cl">CL-09</text>
+    <text x="1166" y="300" class="name">BlacklistEntry 黑名单记录</text>
+    <line x1="1150" y1="304" x2="1470" y2="304" stroke="#475569" stroke-width="0.8"/>
+    <text x="1166" y="322" class="attr">- entryId : String <tspan class="pk">{PK}</tspan></text>
+    <text x="1166" y="339" class="attr">- joinReason : String</text>
+    <text x="1166" y="356" class="attr">- joinMode : String（自动/手动）</text>
+    <text x="1166" y="373" class="attr">- joinTime : Time</text>
+    <text x="1166" y="390" class="attr">- limitUntil : Time</text>
+    <text x="1166" y="407" class="attr">- releaseTime : Time</text>
+    <text x="1166" y="424" class="attr">- operatorId : String</text>
+  </g>
+
+  <!-- 类：AuditLog CL-10 -->
+  <g>
+    <rect x="1500" y="260" width="180" height="200" rx="8" class="box"/>
+    <path d="M1500,260 h180 v44 h-180 z" class="hdr" stroke="#475569" stroke-width="1.5"/>
+    <text x="1516" y="282" class="stereo">&lt;&lt;DR-009&gt;&gt;</text>
+    <text x="1670" y="286" text-anchor="end" class="cl">CL-10</text>
+    <text x="1516" y="300" class="name">AuditLog 审计日志</text>
+    <line x1="1500" y1="304" x2="1680" y2="304" stroke="#475569" stroke-width="0.8"/>
+    <text x="1516" y="322" class="attr">- logId : String <tspan class="pk">{PK}</tspan></text>
+    <text x="1516" y="339" class="attr">- operatorId : String</text>
+    <text x="1516" y="356" class="attr">- actionType : String</text>
+    <text x="1516" y="373" class="attr">- targetObject : String</text>
+    <text x="1516" y="390" class="attr">- actionTime : Time</text>
+    <text x="1516" y="407" class="attr">- reason : String</text>
+    <text x="1516" y="424" class="attr">- beforeValue : String</text>
+    <text x="1516" y="441" class="attr">- afterValue : String</text>
+  </g>
+
+  <!-- 类：ViolationRecord CL-06 -->
+  <g>
+    <rect x="350" y="1260" width="340" height="150" rx="8" class="box"/>
+    <path d="M350,1260 h340 v44 h-340 z" class="hdr" stroke="#475569" stroke-width="1.5"/>
+    <text x="366" y="1282" class="stereo">&lt;&lt;DR-005&gt;&gt;</text>
+    <text x="680" y="1286" text-anchor="end" class="cl">CL-06</text>
+    <text x="366" y="1300" class="name">ViolationRecord 违约记录</text>
+    <line x1="350" y1="1304" x2="690" y2="1304" stroke="#475569" stroke-width="0.8"/>
+    <text x="366" y="1322" class="attr">- violationId : String <tspan class="pk">{PK}</tspan></text>
+    <text x="366" y="1339" class="attr">- violationType : ViolationType</text>
+    <text x="366" y="1356" class="attr">- violationTime : Time</text>
+    <text x="366" y="1373" class="attr">- reason : String</text>
+    <text x="366" y="1390" class="attr">- operatorId : String</text>
+  </g>
+
+  <!-- 类：Review CL-07 -->
+  <g>
+    <rect x="900" y="1260" width="340" height="150" rx="8" class="box"/>
+    <path d="M900,1260 h340 v44 h-340 z" class="hdr" stroke="#475569" stroke-width="1.5"/>
+    <text x="916" y="1282" class="stereo">&lt;&lt;DR-006&gt;&gt;</text>
+    <text x="1230" y="1286" text-anchor="end" class="cl">CL-07</text>
+    <text x="916" y="1300" class="name">Review 评价</text>
+    <line x1="900" y1="1304" x2="1240" y2="1304" stroke="#475569" stroke-width="0.8"/>
+    <text x="916" y="1322" class="attr">- reviewId : String <tspan class="pk">{PK}</tspan></text>
+    <text x="916" y="1339" class="attr">- score : Integer</text>
+    <text x="916" y="1356" class="attr">- content : String</text>
+    <text x="916" y="1373" class="attr">- submitTime : Time</text>
+    <text x="916" y="1394" class="method">注：评价对象与维度未定义</text>
+  </g>
+
+  <!-- 关系：Room → Area -->
+  <g>
+    <path d="M190,440 L190,490" class="rel" marker-start="url(#diamond)"/>
+    <text x="200" y="470" class="rel-lbl">包含</text>
+    <text x="200" y="455" class="rel-lbl">1</text>
+    <text x="200" y="485" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 关系：Room → Seat -->
+  <g>
+    <path d="M350,370 L540,370 L540,630 L215,630 L215,650" class="rel" marker-start="url(#diamond)"/>
+    <text x="540" y="500" text-anchor="middle" class="rel-lbl">包含</text>
+    <text x="360" y="364" class="rel-lbl">1</text>
+    <text x="224" y="645" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 关系：Area → Seat -->
+  <g>
+    <path d="M185,605 L185,650" class="rel" marker-start="url(#diamond)"/>
+    <text x="195" y="632" class="rel-lbl">包含</text>
+    <text x="195" y="620" class="rel-lbl">1</text>
+    <text x="195" y="646" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 关系：Seat → Reservation -->
+  <g>
+    <path d="M215,850 L215,900" class="rel"/>
+    <text x="225" y="880" class="rel-lbl">被预约</text>
+    <text x="224" y="870" class="rel-lbl">1</text>
+    <text x="224" y="896" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 关系：User → Reservation -->
+  <g>
+    <path d="M700,370 L500,370 L500,870 L245,870 L245,900" class="rel"/>
+    <text x="500" y="620" text-anchor="middle" class="rel-lbl">发起</text>
+    <text x="690" y="364" class="rel-lbl">1</text>
+    <text x="254" y="895" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 关系：Reservation → ViolationRecord -->
+  <g>
+    <path d="M245,1190 L245,1260" class="rel"/>
+    <text x="255" y="1230" class="rel-lbl">产生</text>
+    <text x="254" y="1220" class="rel-lbl">1</text>
+    <text x="254" y="1256" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 关系：User → ViolationRecord -->
+  <g>
+    <path d="M1050,420 L1100,420 L1100,1220 L690,1220 L690,1260" class="rel"/>
+    <text x="1100" y="820" text-anchor="middle" class="rel-lbl">承担</text>
+    <text x="1060" y="414" class="rel-lbl">1</text>
+    <text x="699" y="1255" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 关系：Reservation → Review -->
+  <g>
+    <path d="M460,1190 L700,1190 L700,1245 L1070,1245 L1070,1260" class="rel"/>
+    <text x="700" y="1216" text-anchor="middle" class="rel-lbl">评价</text>
+    <text x="470" y="1184" class="rel-lbl">1</text>
+    <text x="1079" y="1255" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 关系：User → Complaint -->
+  <g>
+    <path d="M875,510 L875,600" class="rel"/>
+    <text x="885" y="560" class="rel-lbl">提交</text>
+    <text x="884" y="550" class="rel-lbl">1</text>
+    <text x="884" y="596" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 关系：User → Complaint（被投诉） -->
+  <g>
+    <path d="M1050,370 L1120,370 L1120,710 L900,710" class="rel-dash"/>
+    <text x="1120" y="560" text-anchor="middle" class="rel-lbl">被投诉</text>
+    <text x="1060" y="364" class="rel-lbl">1</text>
+    <text x="909" y="705" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 关系：User → BlacklistEntry -->
+  <g>
+    <path d="M1050,320 L1150,320" class="rel"/>
+    <text x="1100" y="314" text-anchor="middle" class="rel-lbl">受限</text>
+    <text x="1060" y="310" class="rel-lbl">1</text>
+    <text x="1140" y="310" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 关系：BlacklistEntry → AuditLog -->
+  <g>
+    <path d="M1470,350 L1500,350" class="rel"/>
+    <text x="1485" y="344" text-anchor="middle" class="rel-lbl">产生操作</text>
+    <text x="1476" y="340" class="rel-lbl">*</text>
+    <text x="1492" y="340" class="rel-lbl">*</text>
+  </g>
+
+  <!-- 注释：BR-017 / BR-019 -->
+  <g>
+    <rect x="420" y="490" width="250" height="80" rx="6" class="note-box"/>
+    <text x="434" y="508" class="note-txt"><tspan font-weight="700" fill="#B45309">BR-017</tspan> 资源状态为「维修中」或「停用」</text>
+    <text x="434" y="524" class="note-txt">时不可被预约。</text>
+    <text x="434" y="542" class="note-txt"><tspan font-weight="700" fill="#B45309">BR-019</tspan> 存在未有效预约时设置维修/停用，</text>
+    <text x="434" y="558" class="note-txt">处置方式【未确认】（ST-006 / ST-033）。</text>
+  </g>
+
+  <!-- 注释：关键约束（预约单） -->
+  <g>
+    <rect x="490" y="900" width="320" height="130" rx="6" class="note-box"/>
+    <text x="504" y="918" class="note-txt"><tspan font-weight="700" fill="#B45309">关键约束（AI 候选，待确认）</tspan></text>
+    <text x="504" y="935" class="note-txt"><tspan font-weight="700" fill="#B45309">BR-020</tspan> 占用区间为左闭右开 [s, e)。</text>
+    <text x="504" y="951" class="note-txt"><tspan font-weight="700" fill="#B45309">BR-005</tspan> 同一用户同一时段不得有两条有效预约。</text>
+    <text x="504" y="967" class="note-txt"><tspan font-weight="700" fill="#B45309">BR-006</tspan> 同一座位同一时段不得有两条有效预约。</text>
+    <text x="504" y="983" class="note-txt"><tspan font-weight="700" fill="#B45309">BR-001</tspan> 时段对齐粒度（候选 30 分钟）。</text>
+    <text x="504" y="999" class="note-txt"><tspan font-weight="700" fill="#B45309">BR-002</tspan> 提前预约不超过 N 天（候选 7 天）。</text>
+    <text x="504" y="1015" class="note-txt"><tspan font-weight="700" fill="#B45309">BR-003</tspan> 单次时长不超过 M 小时（候选 4 小时）。</text>
+    <text x="504" y="1031" class="note-txt"><tspan font-weight="700" fill="#B45309">BR-004</tspan> 每日预约次数不超过 K 条（候选 2 条）。</text>
+  </g>
+
+  <!-- 注释：BR-009 / BR-010 -->
+  <g>
+    <rect x="1150" y="470" width="340" height="80" rx="6" class="note-box"/>
+    <text x="1164" y="488" class="note-txt"><tspan font-weight="700" fill="#B45309">BR-009</tspan> 累计违约达 T 次自动受限（候选 3 次）。</text>
+    <text x="1164" y="506" class="note-txt"><tspan font-weight="700" fill="#B45309">BR-010</tspan> 限制期 P 天（候选 7 天）。</text>
+    <text x="1164" y="524" class="note-txt">受限期间不可创建预约（ST-047，状态保持）。</text>
+    <text x="1164" y="542" class="note-txt">【待确认】账户转为受限/停用后，已有关联预约如何处理（ST-049）——未定义。</text>
+  </g>
+
+  <!-- 注释：V0.3 状态模型重建设明 -->
+  <g>
+    <rect x="30" y="1440" width="820" height="150" rx="8" class="note-box"/>
+    <text x="46" y="1462" class="note-txt"><tspan font-weight="700" fill="#B45309">【V0.3 状态模型重建设明】</tspan></text>
+    <text x="46" y="1482" class="note-txt">座位不再有「已预约」「使用中」状态，以下转换已从本模型删除：</text>
+    <text x="46" y="1502" class="note-txt">原 ST-001 座位空闲 → 已预约   原 ST-002 座位已预约 → 使用中</text>
+    <text x="46" y="1522" class="note-txt">原 ST-003 座位已预约 → 空闲   原 ST-004 座位已预约 → 违约（自动违约）</text>
+    <text x="46" y="1542" class="note-txt">原 ST-005 座位使用中 → 空闲   原 ST-006 座位使用中 → 违约</text>
+    <text x="46" y="1564" class="note-txt">原文对应第 10.2.5 节。</text>
+  </g>
+
+  <!-- 注释：未展开的关联 / NFR-009 -->
+  <g>
+    <rect x="880" y="1440" width="790" height="150" rx="8" class="note-box"/>
+    <text x="896" y="1462" class="note-txt"><tspan font-weight="700" fill="#B45309">【未展开的关联】</tspan></text>
+    <text x="896" y="1482" class="note-txt">1. 原 CF-04（座位状态与预约单状态不一致为谁为准）已在 V0.3 澄清：座位不再存储占用状态，</text>
+    <text x="896" y="1502" class="note-txt">   预约单是占用关系的唯一权威数据源（原文第 10.4.2 节）。原表述第 1 条作废。</text>
+    <text x="896" y="1522" class="note-txt">2. 违约记录被撤销（FR-024）后，累计违约次数是否回退，尚未定义。</text>
+    <text x="896" y="1546" class="note-txt"><tspan font-weight="700" fill="#B45309">【NFR-009】</tspan> 管理员关键操作须留痕：座位状态调整、手动违约登记、黑名单变更、投诉处理。</text>
+    <text x="896" y="1568" class="note-txt">日志只允许追加，不可修改或删除。</text>
+  </g>
+
+</svg>

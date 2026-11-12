@@ -1,1 +1,0 @@
-import{A as a,a as n}from"./AppShell-Dr2bfhup.js";import{d as o,u as t,x as m,D as u,k as r}from"./index-CnqPIVIJ.js";const d=o({__name:"AdminLayout",setup(l){const e=t(),s=u(()=>e.isSystemAdmin?[]:n);return(c,p)=>(r(),m(a,{menus:s.value,"role-label":"管理端","show-messages":!1},null,8,["menus"]))}});export{d as default};

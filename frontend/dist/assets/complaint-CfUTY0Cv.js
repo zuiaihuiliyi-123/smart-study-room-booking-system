@@ -1,1 +1,0 @@
-import{Z as o}from"./index-CnqPIVIJ.js";const n=t=>o.post("/complaints",t),l=t=>o.get("/complaints/me",t),p=t=>o.get("/complaints",t),c=(t,s)=>o.patch(`/complaints/${t}`,s),i=t=>o.post(`/complaints/${t}/confirm`);export{n as a,p as b,i as c,c as h,l};

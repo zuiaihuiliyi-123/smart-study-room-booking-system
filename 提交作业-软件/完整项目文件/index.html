@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>智慧自习室预约与管理系统 · 可点击原型 v1.0</title>
+<style>
+  :root{
+    --pri:#2B5F9E; --pri-l:#EAF2FB; --ink:#12304F; --line:#D6E2F0;
+    --ok:#1B7A45; --ok-bg:#E6F4EA; --warn:#A9720B; --warn-bg:#FFF6E5;
+    --err:#B3261E; --err-bg:#FBE0E0; --mut:#6B7A8D; --bg:#F5F8FC;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.6 "Microsoft YaHei","PingFang SC",Segoe UI,sans-serif;color:var(--ink);background:var(--bg)}
+  header{background:var(--pri);color:#fff;padding:12px 20px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  header h1{font-size:16px;margin:0;font-weight:600}
+  header .sp{flex:1}
+  .proto-tag{background:#ffd97a;color:#5a3d00;font-size:12px;padding:2px 8px;border-radius:10px;font-weight:600}
+  header label{font-size:13px;display:flex;align-items:center;gap:6px}
+  select,input,textarea,button{font-family:inherit;font-size:13px}
+  select,input[type=text],input[type=number],textarea{border:1px solid var(--line);border-radius:5px;padding:5px 8px;background:#fff;color:var(--ink)}
+  button{background:var(--pri);color:#fff;border:0;border-radius:5px;padding:6px 13px;cursor:pointer}
+  button:hover{filter:brightness(1.1)}
+  button.ghost{background:#fff;color:var(--pri);border:1px solid var(--pri)}
+  button.danger{background:var(--err)}
+  button.sm{padding:3px 9px;font-size:12px}
+  button:disabled{background:#B9C6D6;cursor:not-allowed}
+  nav{background:#fff;border-bottom:1px solid var(--line);padding:0 20px;display:flex;gap:2px;flex-wrap:wrap}
+  nav button{background:transparent;color:var(--mut);border:0;border-bottom:3px solid transparent;border-radius:0;padding:10px 15px}
+  nav button.on{color:var(--pri);border-bottom-color:var(--pri);font-weight:600}
+  main{padding:18px 20px 60px;max-width:1280px;margin:0 auto}
+  .card{background:#fff;border:1px solid var(--line);border-radius:9px;padding:16px 18px;margin-bottom:16px}
+  .card h2{font-size:15px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .card h3{font-size:13.5px;margin:16px 0 8px;color:var(--pri)}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+  .bar .f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:middle}
+  th{background:var(--pri-l);font-weight:600;white-space:nowrap}
+  tbody tr:nth-child(even){background:#FAFCFE}
+  .tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px;white-space:nowrap}
+  .t-free{background:var(--ok-bg);color:var(--ok)}
+  .t-res{background:var(--warn-bg);color:var(--warn)}
+  .t-use{background:#FDE7D0;color:#96500A}
+  .t-fix{background:#EDEDED;color:#5B5B5B}
+  .t-off{background:#E0E0E0;color:#7A7A7A}
+  .t-pend{background:var(--warn-bg);color:var(--warn)}
+  .t-done{background:var(--ok-bg);color:var(--ok)}
+  .t-can{background:#EDEDED;color:#5B5B5B}
+  .t-vio{background:var(--err-bg);color:var(--err)}
+  .t-blue{background:var(--pri-l);color:var(--pri)}
+  .toast{position:fixed;right:18px;bottom:18px;z-index:99;display:flex;flex-direction:column;gap:8px;max-width:420px}
+  .toast div{padding:10px 14px;border-radius:7px;box-shadow:0 3px 12px rgba(0,0,0,.16);font-size:13px;background:#fff;border-left:4px solid var(--pri)}
+  .toast .ok{background:var(--ok-bg);border-left-color:var(--ok);color:#0E4D2B}
+  .toast .no{background:var(--err-bg);border-left-color:var(--err);color:#7A150F}
+  .toast .wa{background:var(--warn-bg);border-left-color:var(--warn);color:#6B4705}
+  .kpis{display:flex;gap:12px;flex-wrap:wrap}
+  .kpi{flex:1;min-width:140px;background:var(--pri-l);border-radius:8px;padding:12px 14px}
+  .kpi .n{font-size:24px;font-weight:700;color:var(--pri)}
+  .kpi .l{font-size:12px;color:var(--mut)}
+  .note{background:var(--warn-bg);border-left:4px solid var(--warn);padding:9px 13px;border-radius:5px;font-size:12.5px;margin:10px 0}
+  .info{background:var(--pri-l);border-left:4px solid var(--pri);padding:9px 13px;border-radius:5px;font-size:12.5px;margin:10px 0}
+  .modal{position:fixed;inset:0;background:rgba(18,48,79,.45);display:flex;align-items:center;justify-content:center;z-index:100}
+  .modal .box{background:#fff;border-radius:10px;padding:20px 22px;width:460px;max-width:92vw}
+  .modal .box h3{margin:0 0 14px;font-size:15px}
+  .modal .box .row{display:flex;flex-direction:column;gap:4px;margin-bottom:11px}
+  .modal .box .row label{font-size:12px;color:var(--mut)}
+  .modal .acts{display:flex;gap:9px;justify-content:flex-end;margin-top:16px}
+  .muted{color:var(--mut);font-size:12.5px}
+  .stamp{font-size:12.5px;color:var(--mut);display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:6px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>智慧自习室预约与管理系统 · 可点击原型</h1>
+  <span class="proto-tag">前端模拟 · 无后端</span>
+  <span class="sp"></span>
+  <label>当前身份
+    <select id="roleSel">
+      <option value="STU">学生</option>
+      <option value="ADM">管理员</option>
+    </select>
+  </label>
+  <label id="stuWrap">模拟登录学生
+    <select id="stuSel"></select>
+  </label>
+  <label>模拟时间偏移
+    <input type="number" id="offset" value="0" step="5" min="-240" max="240" style="width:76px"> 分钟
+  </label>
+  <button class="ghost" onclick="resetAll()">重置数据</button>
+</header>
+
+<nav id="nav"></nav>
+
+<main>
+  <!-- ===================== 学生端 ===================== -->
+  <section id="p-seat" class="page">
+    <div class="card">
+      <h2>UC-01 / UC-02　座位查询与预约</h2>
+      <div class="note">
+        <b>规则提示：</b>预约时段以 30 分钟为最小粒度，单次上限 4 小时，须落在自习室开放时段内（<b>BR-02</b>，候选值）；
+        同一用户同一时段不可重叠（<b>BR-01</b>）；同一座位同一时段不可被两人预约（<b>BR-03</b>）；
+        黑名单用户不可发起新预约（<b>BR-09</b>）。
+      </div>
+      <div class="bar">
+        <div class="f">自习室<select id="fRoom"></select></div>
+        <div class="f">日期<input type="text" id="fDate" value="" readonly style="width:120px"></div>
+        <div class="f">开始时间<select id="fStart"></select></div>
+        <div class="f">时长
+          <select id="fDur">
+            <option value="60">1 小时</option>
+            <option value="120" selected>2 小时</option>
+            <option value="240">4 小时</option>
+            <option value="300">5 小时（超上限测试）</option>
+          </select>
+        </div>
+        <div class="f">属性
+          <select id="fAttr">
+            <option value="">不限</option>
+            <option value="靠窗">靠窗</option>
+            <option value="带电源">带电源</option>
+            <option value="静音区">静音区</option>
+          </select>
+        </div>
+        <button onclick="renderSeatList()">查询</button>
+      </div>
+      <div id="seatList"></div>
+    </div>
+  </section>
+
+  <section id="p-myres" class="page hidden">
+    <div class="card">
+      <h2>UC-04 / UC-05 / UC-03　我的预约 · 签到 · 签退 · 取消</h2>
+      <div class="note">
+        <b>规则提示：</b>签到窗口为「开始前 15 分钟 ～ 开始后 15 分钟」闭区间（<b>BR-06</b>，候选值），窗口外签到被拒绝（<b>ST-14</b>，状态保持）；
+        预约开始后 15 分钟（严格大于）未签到即自动违约（<b>BR-04 / ST-15</b>）；
+        开始前 ≥30 分钟取消不记违约，&lt;30 分钟取消记 1 次违约，开始后不可自助取消（<b>BR-05 / ST-16 / ST-17 / ST-18</b>）。
+        <br><b>提示：</b>用页头的「模拟时间偏移」把当前时间推到窗口外，即可观察签到被拒绝的行为。
+      </div>
+      <div id="myResList"></div>
+    </div>
+  </section>
+
+  <section id="p-tools" class="page hidden">
+    <div class="card">
+      <h2>UC-09　我的违约记录</h2>
+      <div class="note"><b>BR-13：</b>违约记录不可物理删除，误判只能由管理员「撤销」标注，原始记录保留。因此本页<b>不提供删除入口</b>。</div>
+      <div id="myVioList"></div>
+    </div>
+    <div class="card">
+      <h2>UC-10　对已完成的预约提交评价</h2>
+      <div class="note"><b>BR-11：</b>同一预约只能评价 1 次。<b>Q-09 / V-08（待确认）：</b>「已违约」的预约当前按<b>不允许评价</b>处理。</div>
+      <div id="reviewBox"></div>
+    </div>
+    <div class="card">
+      <h2>UC-11　提交投诉</h2>
+      <div class="note"><b>BR-10（候选）：</b>投诉须在 3 个工作日内完成首次反馈。超时未反馈的投诉在管理端标记为逾期。</div>
+      <div class="row-form bar">
+        <div class="f">投诉类型
+          <select id="cType">
+            <option>设施损坏</option><option>环境卫生</option><option>他人占座</option><option>管理行为</option><option>其他</option>
+          </select>
+        </div>
+        <div class="f">涉及座位（可留空）<input type="text" id="cSeat" placeholder="如 A-019" style="width:130px"></div>
+        <div class="f" style="flex:1;min-width:260px">投诉描述<textarea id="cText" rows="2" style="width:100%" placeholder="请描述问题"></textarea></div>
+        <button onclick="submitComplaint()">提交投诉</button>
+      </div>
+      <h3>我的投诉与反馈</h3>
+      <div id="myComplaints"></div>
+    </div>
+  </section>
+
+  <!-- ===================== 管理端 ===================== -->
+  <section id="p-adm-seat" class="page hidden">
+    <div class="card">
+      <h2>UC-08　实时座位管理 · 手动违约登记</h2>
+      <div class="note">
+        <b>BR-15：</b>座位处于「使用中」且存在有效预约时，不得被直接置为「空闲」或「维修」（<b>ST-11</b> 为拒绝型转换，状态保持），须先处置其预约记录。
+        <b>BR-12：</b>本页操作仅管理员可执行，且权限校验必须在服务端完成。
+        <b>FR-11 / V-07：</b>手动违约登记优先从该座位的有效预约中选取关联用户与预约；确无有效预约时可留空，但必须填写座位与事由；此类记录仅计入违约累计，<b>不改变任何预约状态、不释放座位</b>。
+      </div>
+      <h3>实时座位状态</h3>
+      <div id="admSeatList"></div>
+      <h3>手动违约登记记录（source = MANUAL）</h3>
+      <div id="admManualVio"></div>
+    </div>
+  </section>
+
+  <section id="p-adm-res" class="page hidden">
+    <div class="card">
+      <h2>UC-09 / FR-12　座位使用预约记录查询</h2>
+      <div class="bar">
+        <div class="f">按座位筛选
+          <select id="qSeat"><option value="">全部座位</option></select>
+        </div>
+        <div class="f">按用户筛选
+          <select id="qUser"><option value="">全部用户</option></select>
+        </div>
+        <button onclick="renderAdmRes()">查询</button>
+      </div>
+      <div id="admResList"></div>
+      <div class="info"><b>ST-19 / BR-17：</b>管理员强制取消（座位故障、资源停用、账号停用等非用户责任情形）<b>不记该用户违约</b>，但必须填写原因并写入操作日志。</div>
+    </div>
+  </section>
+
+  <section id="p-adm-comp" class="page hidden">
+    <div class="card">
+      <h2>UC-12　投诉处理与反馈</h2>
+      <div class="note">
+        <b>BR-18（候选）：</b>投诉「已回复」后 7 个自然日内投诉人无操作，系统自动归档为「已关闭」。
+        <b>BR-10（候选）：</b>首次反馈时限 3 个工作日；<b>逾期仅标记提示，不自动改变状态</b>。
+      </div>
+      <div id="admComplaints"></div>
+    </div>
+  </section>
+
+  <section id="p-adm-bl" class="page hidden">
+    <div class="card">
+      <h2>UC-13　用户管理 · 黑名单管理</h2>
+      <div class="note">
+        <b>BR-08（候选）：</b>一个自然月内累计 3 次违约，系统自动加入黑名单。
+        <b>BR-09（候选 / V-03）：</b>黑名单有效期 7 天，期间<b>仅限制发起新预约</b>；黑名单生效前已存在的有效预约<b>予以保留</b>，仍可签到签退。
+        <b>BR-12：</b>手动加入/移出黑名单必须填写原因并留痕。
+      </div>
+      <h3>用户列表</h3>
+      <div id="admUsers"></div>
+      <h3>黑名单记录</h3>
+      <div id="admBlacklist"></div>
+      <h3>管理员操作日志</h3>
+      <div id="admLogs"></div>
+    </div>
+  </section>
+
+  <section id="p-adm-dash" class="page hidden">
+    <div class="card">
+      <h2>UC-14　数据分析看板（每 10 秒自动刷新）</h2>
+      <div class="note">
+        <b>BR-14（原始资料）：</b>看板数据每 10 秒重新读取一次。
+        <b>NFR-03 / V-05：</b>「10 秒」是<b>数据读取周期</b>，与「违约判定扫描周期 ≤ 1 分钟」含义不同；
+        因此看板须标注「数据截至时间」，避免把 10 秒前读取到的、1 分钟前计算出的数据误认为实时数据。
+      </div>
+      <div class="stamp">
+        <span>数据截至时间：<b id="dashStamp">--</b></span>
+        <span>自动刷新：<b id="dashTick">0</b> 次</span>
+        <span>下次刷新倒计时：<b id="dashCd">10</b> s</span>
+        <span class="muted">（刷新为增量更新，页面不闪烁、滚动位置不丢失）</span>
+      </div>
+      <h3>总揽指标</h3>
+      <div class="kpis" id="dashKpi"></div>
+      <h3>图 1　各自习室各时段座位占用率（柱状图）</h3>
+      <div id="dashBar"></div>
+      <div class="legend"><span><i style="background:#2B5F9E"></i>占用率（占用座位数 / 总座位数）</span></div>
+      <h3>图 2　近 7 天预约量与违约量趋势（折线图）</h3>
+      <div id="dashLine"></div>
+      <div class="legend">
+        <span><i style="background:#2B5F9E"></i>预约量（笔）</span>
+        <span><i style="background:#B3261E"></i>违约量（笔）</span>
+      </div>
+      <h3>图 3　用户违约次数 Top N（柱状图）</h3>
+      <div id="dashTop"></div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   智慧自习室预约与管理系统 · 可点击原型
+   说明：纯前端模拟。所有数据存于内存，刷新页面即复位；
+        不包含后端业务规则的持久化执行（无定时任务、无数据库约束）。
+   ============================================================ */
+
+const T0 = Date.now();                 // 数据播种基准时间
+const MIN = 60000;
+const DEF_OFFSET = 0;
+let offsetMin = DEF_OFFSET;
+const nowMs = () => Date.now() + offsetMin * MIN;
+
+/* ---------- 内存数据 ---------- */
+let S;
+
+function seed() {
+  S = {
+    offsetMin: 0,
+    role: 'STU',
+    me: 'U1',
+    users: [
+      { id:'U1', name:'李明',   no:'2024001', role:'STU', status:'正常', count:1, blackUntil:null, phone:'138****0001' },
+      { id:'U2', name:'张伟',   no:'2024002', role:'STU', status:'正常', count:1, blackUntil:null, phone:'138****0002' },
+      { id:'U3', name:'刘婷',   no:'2024003', role:'STU', status:'正常', count:0, blackUntil:null, phone:'138****0003' },
+      { id:'U4', name:'陈昊',   no:'2024004', role:'STU', status:'正常', count:3, blackUntil:T0 + 6*24*60*MIN, phone:'138****0004' },
+      { id:'A1', name:'王管理员', no:'ADM0001', role:'ADM', status:'正常', count:0, blackUntil:null, phone:'139****0001' },
+    ],
+    rooms: [
+      { id:'R1', name:'图书馆3F-A区', loc:'图书馆 3 楼', open:'08:00', close:'22:00', status:'开放', total:8 },
+      { id:'R2', name:'教学楼B201',   loc:'教学楼 B 座 2 楼', open:'08:00', close:'22:00', status:'开放', total:4 },
+    ],
+    seats: [
+      { id:'A-011', room:'R1', attr:['靠窗','带电源'], status:'空闲' },
+      { id:'A-012', room:'R1', attr:['靠窗','带电源'], status:'已预约' },
+      { id:'A-013', room:'R1', attr:['普通'],          status:'已预约' },
+      { id:'A-014', room:'R1', attr:['带电源'],        status:'使用中' },
+      { id:'A-015', room:'R1', attr:['靠窗'],          status:'空闲' },
+      { id:'A-016', room:'R1', attr:['静音区'],        status:'使用中' },
+      { id:'A-017', room:'R1', attr:['带电源'],        status:'已预约' },
+      { id:'A-018', room:'R1', attr:['靠窗','带电源'], status:'已预约' },
+      { id:'A-019', room:'R1', attr:['普通'],          status:'维修' },
+      { id:'A-020', room:'R2', attr:['靠窗'],          status:'停用' },
+      { id:'B-201', room:'R2', attr:['普通'],          status:'空闲' },
+      { id:'B-202', room:'R2', attr:['带电源'],        status:'空闲' },
+      { id:'B-203', room:'R2', attr:['静音区'],        status:'空闲' },
+      { id:'B-204', room:'R2', attr:['靠窗','带电源'], status:'空闲' },
+    ],
+    /* 时间均相对 T0；状态与座位保持一致的初始播种 */
+    reservations: [
+      { id:'R-2001', uid:'U1', seat:'A-011', s:T0+ 10*MIN, e:T0+130*MIN, status:'待开始', ci:null, co:null, ct:null, auto:false },
+      { id:'R-2002', uid:'U1', seat:'A-016', s:T0- 60*MIN, e:T0+ 60*MIN, status:'使用中', ci:T0-55*MIN, co:null, ct:null, auto:false },
+      { id:'R-2003', uid:'U1', seat:'A-017', s:T0+ 20*MIN, e:T0+ 80*MIN, status:'待开始', ci:null, co:null, ct:null, auto:false },
+      { id:'R-2004', uid:'U1', seat:'A-018', s:T0+ 90*MIN, e:T0+150*MIN, status:'待开始', ci:null, co:null, ct:null, auto:false },
+      { id:'R-1001', uid:'U2', seat:'A-012', s:T0+ 30*MIN, e:T0+150*MIN, status:'待开始', ci:null, co:null, ct:null, auto:false },
+      { id:'R-1002', uid:'U3', seat:'A-014', s:T0- 60*MIN, e:T0+ 60*MIN, status:'使用中', ci:T0-50*MIN, co:null, ct:null, auto:false },
+      { id:'R-1003', uid:'U4', seat:'A-013', s:T0+ 45*MIN, e:T0+105*MIN, status:'待开始', ci:null, co:null, ct:null, auto:false },
+      { id:'R-1004', uid:'U1', seat:'A-011', s:T0-150*MIN, e:T0- 30*MIN, status:'已完成', ci:T0-148*MIN, co:T0-32*MIN, ct:null, auto:false },
+      { id:'R-1005', uid:'U2', seat:'A-015', s:T0-140*MIN, e:T0- 20*MIN, status:'已违约', ci:null, co:null, ct:null, auto:false },
+    ],
+    violations: [
+      { id:'VIO-0001', uid:'U2', rid:'R-1005', seat:'A-015', type:'未签到',   src:'AUTO',   at:T0-125*MIN, reason:'', operator:'', revoked:false },
+      { id:'VIO-0002', uid:'U1', rid:'R-1009', seat:'A-011', type:'未签退',   src:'AUTO',   at:T0- 3*24*60*MIN, reason:'', operator:'', revoked:false },
+      { id:'VIO-0003', uid:'U4', rid:'R-1010', seat:'A-013', type:'未签到',   src:'AUTO',   at:T0- 5*24*60*MIN, reason:'', operator:'', revoked:false },
+      { id:'VIO-0004', uid:'U4', rid:'R-1011', seat:'B-201', type:'未签退',   src:'AUTO',   at:T0- 4*24*60*MIN, reason:'', operator:'', revoked:false },
+      { id:'VIO-0005', uid:'U4', rid:'R-1012', seat:'B-202', type:'超时取消', src:'AUTO',   at:T0- 2*24*60*MIN, reason:'', operator:'', revoked:false },
+    ],
+    reviews: [
+      { id:'RV-0001', uid:'U1', rid:'R-1004', seat:'A-011', score:5, text:'靠窗位置采光很好，插座也够用。', visible:true, at:T0-25*MIN },
+    ],
+    complaints: [
+      { id:'C-3001', uid:'U1', type:'设施损坏', seat:'A-019', text:'A-019 桌面有一道裂缝，放书会翘。', status:'待处理', at:T0-20*60*MIN, handler:'', fb:'', fbat:null },
+      { id:'C-3002', uid:'U2', type:'环境卫生', seat:'',       text:'3 楼 A 区垃圾桶满了没人清理。', status:'已回复', at:T0-30*60*MIN, handler:'王管理员', fb:'已通知后勤，当日 14:00 前清理完毕。', fbat:T0-26*60*MIN },
+    ],
+    blacklist: [
+      { id:'BL-0001', uid:'U4', reason:'当月违约累计达 3 次（自动加入）', s:T0-1*24*60*MIN, e:T0+6*24*60*MIN, by:'系统自动', active:true },
+    ],
+    logs: [],
+    myReviews: {},
+  };
+}
+
+/* ---------- 通用工具 ---------- */
+const pad = n => String(n).padStart(2,'0');
+const fmtT = ms => { const d=new Date(ms); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+const fmtD = ms => { const d=new Date(ms); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+const fmtDT = ms => fmtD(ms)+' '+fmtT(ms);
+const u = id => S.users.find(x=>x.id===id);
+const seat = id => S.seats.find(x=>x.id===id);
+const room = id => S.rooms.find(x=>x.id===id);
+const dur = r => Math.round((r.e - r.s)/MIN);
+
+function toast(msg, kind) {
+  const d = document.createElement('div');
+  d.className = kind || '';
+  d.innerHTML = msg;
+  document.getElementById('toast').appendChild(d);
+  setTimeout(()=>{ d.style.transition='opacity .4s'; d.style.opacity='0'; setTimeout(()=>d.remove(),400); }, 5200);
+}
+const seatTag = st => `<span class="tag ${{'空闲':'t-free','已预约':'t-res','使用中':'t-use','维修':'t-fix','停用':'t-off'}[st]}">${st}</span>`;
+const resTag = st => `<span class="tag ${{'待开始':'t-pend','使用中':'t-use','已完成':'t-done','已取消':'t-can','已违约':'t-vio'}[st]}">${st}</span>`;
+
+/* ---------- 权限（BR-12：真实校验须在服务端，此处仅前端演示） ---------- */
+const isAdm = () => S.role === 'ADM';
+
+/* 由界面操作触发的管理动作：身份不符时给出明确拒绝提示（对应 ST-11 / ST-18 / ST-22 一类拒绝型转换） */
+function needAdmin(fnName) {
+  if (!isAdm()) {
+    toast(`<b>权限拒绝（BR-12）</b><br>当前身份为学生，无权执行「${fnName}」。<br>
+      <span class="muted">数据未发生任何变更。真实系统中该判定必须在服务端完成，前端隐藏按钮不构成权限控制。</span>`,'no');
+    return false;
+  }
+  return true;
+}
+
+/* 管理端各视图的渲染入口统一在函数开头判断身份：
+   非管理员身份直接跳过渲染，避免学生侧联动刷新时误报权限提示。
+   界面级操作权限仍由 needAdmin() 在动作入口处单独判定。 */
+
+/* ============================================================
+   学生端 · 座位查询与预约
+   ============================================================ */
+function fillFilters() {
+  const rs = document.getElementById('fRoom');
+  rs.innerHTML = S.rooms.map(r=>`<option value="${r.id}">${r.name}（${r.open}–${r.close}）</option>`).join('');
+  const st = document.getElementById('fStart');
+  const opts = [];
+  for (let h=8; h<=21; h++) for (const m of [0,30]) opts.push(pad(h)+':'+pad(m));
+  st.innerHTML = opts.map(t=>`<option ${t==='09:00'?'selected':''}>${t}</option>`).join('');
+  document.getElementById('fDate').value = fmtD(nowMs());
+}
+
+function slotMs() {
+  const [h,m] = document.getElementById('fStart').value.split(':').map(Number);
+  const d = new Date(nowMs()); d.setHours(h, m, 0, 0);
+  const s = d.getTime();
+  return { s, e: s + Number(document.getElementById('fDur').value) * MIN };
+}
+
+function conflictsOf(uid, s, e, excludeId) {
+  return S.reservations.filter(r => r.uid===uid && r.id!==excludeId
+    && ['待开始','使用中'].includes(r.status) && r.s < e && r.e > s);
+}
+
+function renderSeatList() {
+  const rm = document.getElementById('fRoom').value;
+  const attr = document.getElementById('fAttr').value;
+  const { s, e } = slotMs();
+  let list = S.seats.filter(x => x.room===rm);
+  if (attr) list = list.filter(x => x.attr.includes(attr));
+
+  const rooms = room(rm);
+  const rows = list.map(x => {
+    const busy = S.reservations.find(r=>r.seat===x.id && ['待开始','使用中'].includes(r.status) && r.s < e && r.e > s);
+    const st = busy ? (busy.status==='使用中' ? '使用中' : '已预约') : x.status;
+    let act = '';
+    if (['空闲','维修','停用'].includes(st)) {
+      act = st==='空闲'
+        ? `<button class="sm" onclick="doReserve('${x.id}')">预约</button>`
+        : `<span class="muted">不可预约</span>`;
+    } else {
+      act = `<span class="muted">该时段已被占用</span>`;
+    }
+    return `<tr><td><b>${x.id}</b></td><td>${x.attr.join('、')}</td><td>${seatTag(st)}</td><td>${act}</td></tr>`;
+  }).join('');
+  document.getElementById('seatList').innerHTML = `
+    <div class="muted" style="margin-bottom:8px">
+      查询条件：${rooms.name} · ${fmtD(s)} · ${fmtT(s)}–${fmtT(e)}（${dur({s,e})} 分钟）
+      ${attr ? ' · 属性：'+attr : ''}　共 ${list.length} 个座位
+    </div>
+    <table><thead><tr><th>座位编号</th><th>属性</th><th>该时段状态</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* UC-02 预约：五项校验（ST-12） */
+function doReserve(seatId) {
+  const me = u(S.me);
+  const { s, e } = slotMs();
+  const rm = room(seat(seatId).room);
+
+  // ① 账号状态（BR-16）
+  if (me.status !== '正常') { reject('① 账号状态校验','账号已被停用，不可预约（BR-16）'); return; }
+  // ② 黑名单（BR-09 / ST-22）
+  if (me.blackUntil && me.blackUntil > nowMs()) {
+    reject('② 黑名单校验（BR-09 / ST-22）',
+      `用户「${me.name}」在黑名单有效期内，不可发起新预约。<br>解除时间：<b>${fmtDT(me.blackUntil)}</b><br>
+       <span class="muted">本次为拒绝型转换 ST-22：<b>状态保持</b>，不生成预约记录，座位状态不变。</span>`);
+    return;
+  }
+  // ③ 时段合法性（BR-02）
+  const cnt = dur({s,e});
+  if (cnt > 240) { reject('③ 时段合法性校验（BR-02）',`单次预约时长上限为 240 分钟，本次 ${cnt} 分钟已超上限。<span class="muted">（BR-02 为候选值）</span>`); return; }
+  const [oh,om] = rm.open.split(':').map(Number), [ch,cm] = rm.close.split(':').map(Number);
+  const sm = new Date(s); const open = new Date(s); open.setHours(oh,om,0,0);
+  const close = new Date(s); close.setHours(ch,cm,0,0);
+  if (s < open.getTime() || e > close.getTime()) { reject('③ 时段合法性校验（BR-02）',`预约须落在开放时段 ${rm.open}–${rm.close} 内。`); return; }
+  // ④ 本人时段冲突（BR-01）
+  const mine = conflictsOf(S.me, s, e);
+  if (mine.length) { reject('④ 本人时段冲突校验（BR-01）',`与本人已有预约冲突：<b>${mine[0].id}</b>（${fmtT(mine[0].s)}–${fmtT(mine[0].e)}，座位 ${mine[0].seat}）。<br><span class="muted">同一用户同一时段只能存在 1 个有效预约。</span>`); return; }
+  // ⑤ 座位时段冲突（BR-03）
+  const other = S.reservations.find(r=>r.seat===seatId && ['待开始','使用中'].includes(r.status) && r.s < e && r.e > s);
+  if (other) { reject('⑤ 座位时段冲突校验（BR-03）',`座位 ${seatId} 在 ${fmtT(s)}–${fmtT(e)} 已被预约。<br><span class="muted">并发抢占场景在真实系统中由数据库唯一约束保证，本原型未有并发控制。</span>`); return; }
+
+  const id = 'R-' + (2100 + S.reservations.length);
+  S.reservations.push({ id, uid:S.me, seat:seatId, s, e, status:'待开始', ci:null, co:null, ct:null, auto:false });
+  const x = seat(seatId);
+  if (x.status === '空闲') x.status = '已预约';
+  toast(`<b>预约成功</b><br>预约编号：${id}<br>座位：${seatId}（${rm.name}）<br>时段：${fmtD(s)} ${fmtT(s)}–${fmtT(e)}<br>
+    <span class="muted">预约状态「待开始」（ST-12）；座位该时段置「已预约」（ST-01）。<br>
+    签到窗口：${fmtT(s-15*MIN)}–${fmtT(s+15*MIN)}（BR-06，候选值）</span>`,'ok');
+  renderSeatList(); renderMyRes(); renderAdmSeat();
+}
+
+function reject(step, msg) {
+  toast(`<b>预约被拒绝 —— ${step}</b><br>${msg}`,'no');
+}
+
+/* ============================================================
+   学生端 · 我的预约 / 签到 / 签退 / 取消
+   ============================================================ */
+const inCheckWindow = r => { const n = nowMs(); return n >= r.s - 15*MIN && n <= r.s + 15*MIN; };
+
+function renderMyRes() {
+  const mine = S.reservations.filter(r=>r.uid===S.me).sort((a,b)=>b.s-a.s);
+  if (!mine.length) { document.getElementById('myResList').innerHTML = '<div class="muted">暂无预约记录。</div>'; return; }
+  const rows = mine.map(r=>{
+    const n = nowMs(); let act = '<span class="muted">无可用操作</span>';
+    if (r.status === '待开始') {
+      const win = inCheckWindow(r)
+        ? `<span class="tag t-free">在签到窗口内</span>`
+        : (n < r.s - 15*MIN ? `<span class="tag t-pend">未到签到时间</span>` : `<span class="tag t-vio">已过签到窗口</span>`);
+      const mis = Math.round((r.s - n)/MIN);
+      act = `${win}
+        <button class="sm" onclick="doCheckIn('${r.id}')">签到</button>
+        <button class="sm ghost" onclick="askCancel('${r.id}')">取消预约</button>
+        <div class="muted">距开始 ${mis} 分钟</div>`;
+    } else if (r.status === '使用中') {
+      act = `<button class="sm" onclick="doCheckOut('${r.id}')">签退</button>`;
+    }
+    return `<tr>
+      <td>${r.id}</td><td><b>${r.seat}</b></td>
+      <td>${fmtD(r.s)} ${fmtT(r.s)}–${fmtT(r.e)}</td>
+      <td>${resTag(r.status)}</td>
+      <td>${r.ci?fmtT(r.ci):'—'} / ${r.co?fmtT(r.co)+(r.auto?'（自动）':''):'—'}</td>
+      <td>${act}</td></tr>`;
+  }).join('');
+  document.getElementById('myResList').innerHTML = `
+    <table><thead><tr><th>预约编号</th><th>座位</th><th>时段</th><th>状态</th><th>签到 / 签退</th><th>操作</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+/* UC-04 签到（ST-13 成功 / ST-14 拒绝） */
+function doCheckIn(rid) {
+  const r = S.reservations.find(x=>x.id===rid);
+  if (!inCheckWindow(r)) {
+    const n = nowMs();
+    toast(`<b>签到被拒绝（ST-14）</b><br>当前时间 ${fmtT(n)} 不在签到窗口内。<br>
+      允许窗口：<b>${fmtT(r.s-15*MIN)} – ${fmtT(r.s+15*MIN)}</b>（BR-06 闭区间，候选值）<br>
+      <span class="muted">拒绝型转换：预约状态<b>保持「待开始」</b>，不记录签到时间，座位状态不变。</span>`,'no');
+    return;
+  }
+  r.status = '使用中'; r.ci = nowMs();
+  const x = seat(r.seat); if (x) x.status = '使用中';
+  toast(`<b>签到成功（ST-13 / ST-02）</b><br>预约 ${r.id} 转为「使用中」，座位 ${r.seat} 转为「使用中」，已记录签到时间 ${fmtT(r.ci)}。`,'ok');
+  renderMyRes(); renderSeatList(); renderAdmSeat();
+}
+
+/* UC-05 签退（ST-20 / ST-05） */
+function doCheckOut(rid) {
+  const r = S.reservations.find(x=>x.id===rid);
+  r.status = '已完成'; r.co = nowMs();
+  const x = seat(r.seat); if (x) x.status = '空闲';
+  toast(`<b>签退成功（ST-20 / ST-05）</b><br>预约 ${r.id} 转为「已完成」，座位 ${r.seat} 释放为「空闲」，已记录签退时间 ${fmtT(r.co)}。`,'ok');
+  renderMyRes(); renderSeatList(); renderAdmSeat();
+}
+
+/* UC-03 取消（ST-16 不记违约 / ST-17 记违约 / ST-18 开始后拒绝） */
+function askCancel(rid) {
+  const r = S.reservations.find(x=>x.id===rid);
+  const n = nowMs(), mis = Math.round((r.s - n)/MIN);
+
+  if (n >= r.s) {
+    toast(`<b>自助取消失败（ST-18 拒绝型转换）</b><br>预约已过开始时间，不可自助取消。<br>
+      <span class="muted">预约状态<b>保持「待开始」</b>（或按 ST-15 自动转为「已违约」）；请联络管理员处理（ST-19）。</span>`,'no');
+    return;
+  }
+  const penalty = mis < 30;
+  openModal(`取消预约确认`, `
+    <div class="row"><label>预约编号</label><div><b>${r.id}</b>　座位 <b>${r.seat}</b>　${fmtT(r.s)}–${fmtT(r.e)}</div></div>
+    <div class="row"><label>距开始时间</label><div><b>${mis}</b> 分钟</div></div>
+    <div class="${penalty?'note':'info'}" style="margin:0">
+      ${penalty
+        ? `<b>提示：本次取消将记录 1 次违约。</b><br>
+           取消时间距开始不足 30 分钟（<b>BR-05</b>，候选值）。取消成功后：预约转「已取消」（<b>ST-17</b>），
+           座位释放为「空闲」（<b>ST-03</b>），该用户当月违约累计 +1。`
+        : `<b>本次取消不记违约。</b><br>
+           取消时间距开始已满 30 分钟以上（<b>BR-05</b>）。取消成功后：预约转「已取消」（<b>ST-16</b>），
+           座位释放为「空闲」（<b>ST-03</b>），违约累计不变。`}
+    </div>`,
+    () => {
+      r.status = '已取消'; r.ct = nowMs();
+      const x = seat(r.seat); if (x && x.status === '已预约') x.status = '空闲';
+      if (penalty) {
+        S.violations.push({ id:'VIO-'+(100 + S.violations.length), uid:S.me, rid:r.id, seat:r.seat,
+          type:'超时取消', src:'AUTO', at:nowMs(), reason:'', operator:'', revoked:false });
+        u(S.me).count++;
+      }
+      toast(`<b>取消成功（${penalty?'ST-17':'ST-16'} / ST-03）</b><br>预约 ${r.id} 转为「已取消」，座位 ${r.seat} 释放为「空闲」。<br>
+        ${penalty ? `已生成 1 条<b>「超时取消」</b>违约记录，当月违约累计现为 <b>${u(S.me).count}</b> 次。
+          <span class="muted">（BR-08 候选：累计 3 次将自动加入黑名单）</span>` : '本次不记违约，违约累计不变。'}`,
+        penalty ? 'wa' : 'ok');
+      closeModal(); renderMyRes(); renderSeatList(); renderVio(); renderAdmSeat(); renderAdmUsers(); renderAdmRes();
+    });
+}
+
+/* ============================================================
+   学生端 · 违约记录 / 评价 / 投诉
+   ============================================================ */
+function renderVio() {
+  const me = u(S.me);
+  const list = S.violations.filter(v=>v.uid===S.me).sort((a,b)=>b.at-a.at);
+  const rows = list.map(v=>`<tr>
+      <td>${v.id}</td><td>${v.type}</td><td>${v.rid||'—'}</td><td>${v.seat}</td>
+      <td>${v.src==='AUTO'?'自动':'手动'}</td><td>${fmtDT(v.at)}</td>
+      <td>${v.revoked?'<span class="tag t-can">已撤销</span>':'<span class="tag t-vio">有效</span>'}</td>
+      <td>${v.reason||'—'}</td></tr>`).join('');
+  const valid = list.filter(v=>!v.revoked).length;
+  document.getElementById('myVioList').innerHTML = `
+    <div class="info">当月违约累计：<b>${me.count}</b> 次　|　有效明细条数：<b>${valid}</b> 条
+      <span class="muted">（派生汇总字段须与明细一致 —— SRS 9.3）</span></div>
+    ${list.length ? `<table><thead><tr><th>记录编号</th><th>类型</th><th>关联预约</th><th>座位</th><th>来源</th><th>发生时间</th><th>状态</th><th>事由</th></tr></thead>
+      <tbody>${rows}</tbody></table>` : '<div class="muted">暂无违约记录。</div>'}
+    <div class="note" style="margin-top:12px">
+      <b>V-01（保留待确认）：</b>本系统当前<b>未定义申诉流程</b> —— 谁可以申诉、在什么期限内、由谁审批、
+      撤销后违约累计与黑名单如何回退，均待确认（见《需求规格说明书》附录 B · Q-02）。
+      本原型因此<b>不提供申诉入口</b>，如实反映需求缺口，而非以界面掩盖。
+    </div>`;
+}
+
+function renderReviewBox() {
+  const done = S.reservations.filter(r=>r.uid===S.me && r.status==='已完成');
+  const vio  = S.reservations.filter(r=>r.uid===S.me && r.status==='已违约');
+  if (!done.length && !vio.length) { document.getElementById('reviewBox').innerHTML='<div class="muted">暂无可评价的预约。</div>'; return; }
+  const rows = [...done, ...vio].map(r=>{
+    const rv = S.reviews.find(x=>x.rid===r.id);
+    let act;
+    if (rv) act = '<span class="muted">已评价，不可重复评价（BR-11）</span>';
+    else if (r.status==='已违约') act = '<span class="muted">已违约的预约当前不允许评价（Q-09 / V-08 待确认）</span>';
+    else act = `<button class="sm" onclick="openReview('${r.id}')">评价</button>`;
+    return `<tr><td>${r.id}</td><td>${r.seat}</td><td>${fmtT(r.s)}–${fmtT(r.e)}</td><td>${resTag(r.status)}</td>
+      <td>${rv?`${'★'.repeat(rv.score)}${'☆'.repeat(5-rv.score)} ${rv.text}`:'—'}</td><td>${act}</td></tr>`;
+  }).join('');
+  document.getElementById('reviewBox').innerHTML =
+    `<table><thead><tr><th>预约编号</th><th>座位</th><th>时段</th><th>状态</th><th>我的评价</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function openReview(rid) {
+  openModal('提交评价', `
+    <div class="row"><label>预约编号</label><div><b>${rid}</b></div></div>
+    <div class="row"><label>评分</label><div>
+      <select id="rvScore"><option value="5">5 分（很满意）</option><option value="4">4 分</option>
+      <option value="3">3 分</option><option value="2">2 分</option><option value="1">1 分</option></select></div></div>
+    <div class="row"><label>评价内容</label><textarea id="rvText" rows="3" placeholder="请描述使用体验"></textarea></div>`,
+    () => {
+      const sc = Number(document.getElementById('rvScore').value);
+      const tx = document.getElementById('rvText').value.trim() || '（未填写内容）';
+      S.reviews.push({ id:'RV-'+(100+S.reviews.length), uid:S.me, rid, seat:S.reservations.find(r=>r.id===rid).seat,
+        score:sc, text:tx, visible:true, at:nowMs() });
+      toast(`<b>评价已提交</b><br>预约 ${rid} 的评价已保存（BR-11：同一预约只能评价 1 次）。`,'ok');
+      closeModal(); renderReviewBox();
+    });
+}
+
+function submitComplaint() {
+  const t = document.getElementById('cText').value.trim();
+  if (!t) { toast('<b>提交失败</b><br>投诉描述不能为空。','no'); return; }
+  const id = 'C-' + (3100 + S.complaints.length);
+  S.complaints.push({ id, uid:S.me, type:document.getElementById('cType').value,
+    seat:document.getElementById('cSeat').value.trim(), text:t, status:'待处理', at:nowMs(), handler:'', fb:'', fbat:null });
+  document.getElementById('cText').value=''; document.getElementById('cSeat').value='';
+  toast(`<b>投诉已提交</b><br>投诉编号：${id}<br>状态：「待处理」（ST-28 前）；<br>
+    <span class="muted">BR-10（候选）：管理端须在 3 个工作日内完成首次反馈。</span>`,'ok');
+  renderMyComplaints(); renderAdmComplaints();
+}
+
+function renderMyComplaints() {
+  const list = S.complaints.filter(c=>c.uid===S.me).sort((a,b)=>b.at-a.at);
+  if (!list.length) { document.getElementById('myComplaints').innerHTML='<div class="muted">暂无投诉记录。</div>'; return; }
+  const map = {'待处理':'t-pend','处理中':'t-blue','已回复':'t-done','已关闭':'t-can','已驳回':'t-vio'};
+  document.getElementById('myComplaints').innerHTML =
+    `<table><thead><tr><th>编号</th><th>类型</th><th>座位</th><th>内容</th><th>状态</th><th>提交时间</th><th>反馈内容</th></tr></thead><tbody>` +
+    list.map(c=>`<tr><td>${c.id}</td><td>${c.type}</td><td>${c.seat||'—'}</td><td>${c.text}</td>
+      <td><span class="tag ${map[c.status]}">${c.status}</span></td><td>${fmtDT(c.at)}</td>
+      <td>${c.fb||'—'}</td></tr>`).join('') + '</tbody></table>';
+}
+
+/* ============================================================
+   管理端 · 实时座位管理与手动违约登记
+   ============================================================ */
+function renderAdmSeat() {
+  if (!isAdm()) return;
+  const rows = S.seats.map(x=>{
+    const busy = S.reservations.find(r=>r.seat===x.id && ['待开始','使用中'].includes(r.status));
+    let act;
+    if (x.status === '使用中') {
+      act = `<button class="sm ghost" onclick="admSetSeat('${x.id}','空闲')">置为空闲</button>
+             <button class="sm ghost" onclick="admSetSeat('${x.id}','维修')">置为维修</button>
+             <button class="sm" onclick="openManualVio('${x.id}')">手动违约登记</button>`;
+    } else if (x.status === '空闲') {
+      act = `<button class="sm ghost" onclick="admSetSeat('${x.id}','维修')">置为维修</button>
+             <button class="sm ghost" onclick="admSetSeat('${x.id}','停用')">停用</button>
+             <button class="sm" onclick="openManualVio('${x.id}')">手动违约登记</button>`;
+    } else {
+      act = `<button class="sm ghost" onclick="admSetSeat('${x.id}','空闲')">恢复可用</button>
+             <button class="sm" onclick="openManualVio('${x.id}')">手动违约登记</button>`;
+    }
+    return `<tr><td><b>${x.id}</b></td><td>${room(x.room).name}</td><td>${x.attr.join('、')}</td>
+      <td>${seatTag(x.status)}</td>
+      <td>${busy?`${busy.id}　${u(busy.uid).name}　${resTag(busy.status)}`:'<span class="muted">无有效预约</span>'}</td>
+      <td>${act}</td></tr>`;
+  }).join('');
+  document.getElementById('admSeatList').innerHTML =
+    `<table><thead><tr><th>座位</th><th>自习室</th><th>属性</th><th>当前状态</th><th>有效预约</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>`;
+
+  const man = S.violations.filter(v=>v.src==='MANUAL').sort((a,b)=>b.at-a.at);
+  document.getElementById('admManualVio').innerHTML = man.length
+    ? `<table><thead><tr><th>编号</th><th>用户</th><th>座位</th><th>关联预约</th><th>类型</th><th>事由</th><th>操作人</th><th>时间</th></tr></thead><tbody>` +
+      man.map(v=>`<tr><td>${v.id}</td><td>${u(v.uid).name}</td><td>${v.seat}</td><td>${v.rid||'（空，无有效预约）'}</td>
+        <td>${v.type}</td><td>${v.reason}</td><td>${v.operator}</td><td>${fmtDT(v.at)}</td></tr>`).join('') + '</tbody></table>'
+    : '<div class="muted">暂无手动登记的违约记录。</div>';
+}
+
+/* FR-10：管理员改座位状态；BR-15 / ST-11 拒绝型转换 */
+function admSetSeat(seatId, target) {
+  if (!needAdmin('实时座位管理')) return;
+  const x = seat(seatId);
+  const busy = S.reservations.find(r=>r.seat===seatId && ['待开始','使用中'].includes(r.status));
+  if (busy && (target === '空闲' || target === '维修')) {
+    toast(`<b>操作被拒绝（ST-11 拒绝型转换，BR-15）</b><br>
+      座位 <b>${seatId}</b> 当前状态「${x.status}」且存在有效预约 <b>${busy.id}</b>（${u(busy.uid).name}，${resTag(busy.status)}）。<br>
+      座位处于「使用中」时不得被直接置为「${target}」，须先处置其预约记录。<br>
+      <span class="muted">状态保持「${x.status}」，业务数据未发生任何变更。</span>
+      <br><br>可行处理路径：<br>
+      ① 学生自行签退（ST-20）；② 管理员强制取消该预约（ST-19 / BR-17，不记用户违约）；③ 转「预约记录」页处置。`,'no');
+    return;
+  }
+  const from = x.status; x.status = target;
+  S.logs.push({ id:'LOG-'+(1000+S.logs.length), action:`座位状态变更：${from} → ${target}`, target:`座位 ${seatId}`,
+    by:'王管理员', at:nowMs() });
+  toast(`<b>座位状态已变更（${target==='空闲'?'ST-06 / ST-10':'ST-07 / ST-09'}）</b><br>座位 ${seatId}：「${from}」→「${target}」。<br>
+    <span class="muted">已写入管理员操作日志。BR-12：真实系统中权限校验在服务端完成。</span>`,'ok');
+  renderAdmSeat(); renderSeatList(); renderAdmLogs();
+}
+
+/* FR-11：手动违约登记；V-07 关联对象确定规则 */
+function openManualVio(seatId) {
+  if (!needAdmin('手动违约登记')) return;
+  const busies = S.reservations.filter(r=>r.seat===seatId && ['待开始','使用中'].includes(r.status));
+  const noSeat = S.seats.map(x=>x.id);
+  openModal(`手动违约登记 —— 座位 ${seatId}`, `
+    <div class="row"><label>座位编号</label><div><b>${seatId}</b>
+      <span class="muted">（V-07：优先从本座位的有效预约中选取关联对象）</span></div></div>
+    <div class="row"><label>关联预约 ${busies.length?'（必选）':'（本座位当前无有效预约，可为空）'}</label>
+      <select id="mvRes">
+        ${busies.length
+          ? busies.map(r=>`<option value="${r.id}">${r.id} · ${u(r.uid).name} · ${fmtT(r.s)}–${fmtT(r.e)} · ${r.status}</option>`).join('')
+          : '<option value="">（无有效预约）</option>'}
+      </select></div>
+    <div class="row"><label>关联用户</label>
+      <select id="mvUser" ${busies.length?'disabled':''}>
+        ${busies.length
+          ? busies.map(r=>`<option value="${r.uid}">${u(r.uid).name}（${u(r.uid).no}）</option>`).join('')
+          : S.users.filter(x=>x.role==='STU').map(x=>`<option value="${x.id}">${x.name}（${x.no}）</option>`).join('')}
+      </select></div>
+    <div class="row"><label>违约类型</label>
+      <select id="mvType"><option>现场违规占座</option><option>冒用他人座位</option><option>其他现场违规</option></select></div>
+    <div class="row"><label>违约事由（必填）</label><textarea id="mvReason" rows="2" placeholder="如：现场长时间无人，物品占座"></textarea></div>
+    <div class="row"><label>其他座位（如需登记到别的座位）</label>
+      <select id="mvOther"><option value="">保持当前座位 ${seatId}</option>${noSeat.map(s=>`<option value="${s}">${s}</option>`).join('')}</select></div>`,
+    () => {
+      const reason = document.getElementById('mvReason').value.trim();
+      if (!reason) { toast('<b>登记失败</b><br>违约事由为必填项，未填写原因不予登记。','no'); return; }
+      const rid = document.getElementById('mvRes').value || null;
+      const uid = document.getElementById('mvUser').value;
+      const st  = document.getElementById('mvOther').value || seatId;
+      const type= document.getElementById('mvType').value;
+      S.violations.push({ id:'VIO-'+(100+S.violations.length), uid, rid, seat:st, type, src:'MANUAL',
+        at:nowMs(), reason, operator:'王管理员', revoked:false });
+      u(uid).count++;
+      S.logs.push({ id:'LOG-'+(1000+S.logs.length), action:`手动违约登记（${type}）`, target:`${rid||'无关联预约'} / 座位 ${st} / 用户 ${u(uid).name}`,
+        by:'王管理员', at:nowMs() });
+      toast(`<b>手动违约登记成功</b><br>用户 ${u(uid).name}　座位 ${st}　关联预约 ${rid||'（空）'}<br>
+        违约类型：${type}（source = MANUAL）<br>操作人：王管理员　时间：${fmtT(nowMs())}<br>
+        <span class="muted">${rid
+          ? '该用户当月违约累计 +1。手动登记仅产生违约记录，不改变预约状态、不释放座位。'
+          : 'V-07：无关联预约时仅计入违约累计，<b>不改变任何预约状态、不释放座位</b>。'}</span>`,'ok');
+      closeModal(); renderAdmSeat(); renderAdmUsers(); renderVio();
+    });
+}
+
+/* ============================================================
+   管理端 · 预约记录查询
+   ============================================================ */
+function fillQueryFilters() {
+  document.getElementById('qSeat').innerHTML = '<option value="">全部座位</option>' +
+    S.seats.map(s=>`<option>${s.id}</option>`).join('');
+  document.getElementById('qUser').innerHTML = '<option value="">全部用户</option>' +
+    S.users.filter(x=>x.role==='STU').map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+}
+function renderAdmRes() {
+  if (!isAdm()) return;
+  const qs = document.getElementById('qSeat').value, qu = document.getElementById('qUser').value;
+  let list = S.reservations.slice().sort((a,b)=>b.s-a.s);
+  if (qs) list = list.filter(r=>r.seat===qs);
+  if (qu) list = list.filter(r=>r.uid===qu);
+  const rows = list.map(r=>{
+    const v = S.violations.filter(x=>x.rid===r.id);
+    const act = (S.role==='ADM' && r.status==='待开始')
+      ? `<button class="sm ghost" onclick="forceCancel('${r.id}')">强制取消</button>` : '<span class="muted">—</span>';
+    return `<tr><td>${r.id}</td><td>${u(r.uid).name}</td><td>${r.seat}</td>
+      <td>${fmtD(r.s)} ${fmtT(r.s)}–${fmtT(r.e)}</td><td>${resTag(r.status)}</td>
+      <td>${r.ci?fmtT(r.ci):'—'}</td><td>${r.co?fmtT(r.co)+(r.auto?'（自动）':''):'—'}</td>
+      <td>${v.length?v.map(x=>x.type+(x.revoked?'(已撤销)':'')).join('、'):'无'}</td><td>${act}</td></tr>`;
+  }).join('');
+  document.getElementById('admResList').innerHTML =
+    `<table><thead><tr><th>预约编号</th><th>用户</th><th>座位</th><th>时段</th><th>状态</th><th>签到</th><th>签退</th><th>违约</th><th>操作</th></tr></thead>
+     <tbody>${rows}</tbody></table>`;
+}
+
+/* ST-19 / BR-17：管理员强制取消，不记用户违约 */
+function forceCancel(rid) {
+  if (!needAdmin('管理员强制取消预约')) return;
+  const r = S.reservations.find(x=>x.id===rid);
+  openModal('管理员强制取消预约（ST-19 / BR-17）', `
+    <div class="row"><label>预约编号</label><div><b>${r.id}</b>　${u(r.uid).name}　座位 ${r.seat}　${fmtT(r.s)}–${fmtT(r.e)}</div></div>
+    <div class="info" style="margin:0">
+      <b>BR-17：</b>管理员强制取消（座位故障、资源停用、账号停用等非用户责任情形）<b>不记该用户违约</b>，
+      但必须填写原因并写入操作日志。
+    </div>
+    <div class="row" style="margin-top:11px"><label>取消原因（必填）</label>
+      <select id="fcReason">
+        <option>座位故障（需维修）</option><option>资源停用</option><option>账号停用</option><option>其他非用户责任情形</option>
+      </select></div>`,
+    () => {
+      const reason = document.getElementById('fcReason').value;
+      r.status = '已取消'; r.ct = nowMs();
+      const x = seat(r.seat); if (x && x.status==='已预约') x.status = '空闲';
+      S.logs.push({ id:'LOG-'+(1000+S.logs.length), action:`管理员强制取消预约（不记用户违约，BR-17）`,
+        target:`${r.id} / 用户 ${u(r.uid).name} / 原因：${reason}`, by:'王管理员', at:nowMs() });
+      toast(`<b>强制取消成功（ST-19 / BR-17）</b><br>预约 ${r.id} 转为「已取消」，座位 ${r.seat} 释放为「空闲」。<br>
+        <b>不记该用户违约</b>（违约累计保持 ${u(r.uid).count} 次）。原因已记录：${reason}。`,'ok');
+      closeModal(); renderAdmRes(); renderAdmSeat(); renderSeatList(); renderAdmLogs();
+    });
+}
+
+/* ============================================================
+   管理端 · 投诉处理
+   ============================================================ */
+function renderAdmComplaints() {
+  if (!isAdm()) return;
+  const map = {'待处理':'t-pend','处理中':'t-blue','已回复':'t-done','已关闭':'t-can','已驳回':'t-vio'};
+  const list = S.complaints.slice().sort((a,b)=>b.at-a.at);
+  const rows = list.map(c=>{
+    // 逾期提示：BR-10 候选 3 个工作日（此处按 3 天近似演示）
+    const overdue = (c.status==='待处理'||c.status==='处理中') && (nowMs()-c.at) > 3*24*60*MIN;
+    let act = '<span class="muted">已终结</span>';
+    if (c.status==='待处理') act = `<button class="sm" onclick="cAccept('${c.id}')">受理</button>
+      <button class="sm ghost" onclick="cReject('${c.id}')">驳回</button>`;
+    else if (c.status==='处理中') act = `<button class="sm" onclick="cReply('${c.id}')">提交反馈</button>`;
+    else if (c.status==='已回复') act = `<button class="sm ghost" onclick="cClose('${c.id}')">确认关闭</button>`;
+    return `<tr><td>${c.id}</td><td>${u(c.uid).name}</td><td>${c.type}</td><td>${c.seat||'—'}</td><td>${c.text}</td>
+      <td><span class="tag ${map[c.status]}">${c.status}</span>${overdue?' <span class="tag t-vio">逾期未反馈</span>':''}</td>
+      <td>${c.handler||'—'}</td><td>${c.fb||'—'}</td><td>${act}</td></tr>`;
+  }).join('');
+  document.getElementById('admComplaints').innerHTML =
+    `<table><thead><tr><th>编号</th><th>投诉人</th><th>类型</th><th>座位</th><th>内容</th><th>状态</th><th>处理人</th><th>反馈</th><th>操作</th></tr></thead>
+     <tbody>${rows}</tbody></table>`;
+}
+function cAccept(id) {
+  if (!needAdmin('投诉处理')) return;
+  const c = S.complaints.find(x=>x.id===id);
+  c.status='处理中'; c.handler='王管理员';
+  toast(`<b>已受理（ST-28）</b><br>投诉 ${id}：「待处理」→「处理中」，处理人：王管理员。`,'ok');
+  renderAdmComplaints(); renderMyComplaints();
+}
+function cReject(id) {
+  if (!needAdmin('投诉处理')) return;
+  openModal('驳回投诉（ST-31）', `
+    <div class="row"><label>投诉编号</label><div><b>${id}</b></div></div>
+    <div class="row"><label>驳回理由（必填）</label>
+      <select id="rjReason"><option>情况不属实</option><option>不属于本系统受理范围</option><option>重复提交</option></select></div>`,
+    () => {
+      const r = document.getElementById('rjReason').value;
+      const c = S.complaints.find(x=>x.id===id);
+      c.status='已驳回'; c.handler='王管理员'; c.fb='【驳回】'+r; c.fbat=nowMs();
+      toast(`<b>已驳回（ST-31）</b><br>投诉 ${id}：「待处理」→「已驳回」，理由：${r}。<br>
+        <span class="muted">已驳回的投诉不删除，保留完整留痕，并向投诉人展示驳回理由。</span>`,'wa');
+      closeModal(); renderAdmComplaints(); renderMyComplaints();
+    });
+}
+function cReply(id) {
+  if (!needAdmin('投诉处理')) return;
+  openModal('提交反馈（ST-29）', `
+    <div class="row"><label>投诉编号</label><div><b>${id}</b></div></div>
+    <div class="row"><label>反馈内容（必填）</label><textarea id="rpText" rows="3" placeholder="请填写处理结果与反馈"></textarea></div>`,
+    () => {
+      const t = document.getElementById('rpText').value.trim();
+      if (!t) { toast('<b>提交失败</b><br>反馈内容不能为空，状态保持「处理中」。','no'); return; }
+      const c = S.complaints.find(x=>x.id===id);
+      c.status='已回复'; c.fb=t; c.fbat=nowMs();
+      toast(`<b>反馈已提交（ST-29）</b><br>投诉 ${id}：「处理中」→「已回复」，已记录首次反馈时间，并站内通知投诉人。<br>
+        <span class="muted">BR-18（候选）：7 个自然日内投诉人无操作将自动归档为「已关闭」（ST-30）。</span>`,'ok');
+      closeModal(); renderAdmComplaints(); renderMyComplaints();
+    });
+}
+function cClose(id) {
+  if (!needAdmin('投诉处理')) return;
+  const c = S.complaints.find(x=>x.id===id);
+  c.status='已关闭';
+  toast(`<b>已关闭（ST-30）</b><br>投诉 ${id}：「已回复」→「已关闭」，归档留痕，不再变更。`,'ok');
+  renderAdmComplaints(); renderMyComplaints();
+}
+
+/* ============================================================
+   管理端 · 用户与黑名单
+   ============================================================ */
+function renderAdmUsers() {
+  if (!isAdm()) return;
+  const rows = S.users.map(x=>{
+    const bl = x.blackUntil && x.blackUntil > nowMs();
+    const act = x.role==='ADM' ? '<span class="muted">—</span>' :
+      (bl ? `<button class="sm ghost" onclick="blRemove('${x.id}')">移出黑名单</button>`
+          : `<button class="sm" onclick="blAdd('${x.id}')">加入黑名单</button>`);
+    return `<tr><td>${x.name}</td><td>${x.no}</td><td>${x.role==='ADM'?'管理员':'学生'}</td>
+      <td>${x.count}</td>
+      <td>${bl?`<span class="tag t-vio">黑名单至 ${fmtDT(x.blackUntil)}</span>`:'<span class="tag t-free">正常</span>'}</td>
+      <td>${x.phone}</td><td>${act}</td></tr>`;
+  }).join('');
+  document.getElementById('admUsers').innerHTML =
+    `<table><thead><tr><th>姓名</th><th>学号</th><th>角色</th><th>当月违约</th><th>账号状态</th><th>联系电话</th><th>黑名单操作</th></tr></thead>
+     <tbody>${rows}</tbody></table>`;
+
+  const bl = S.blacklist.slice().sort((a,b)=>b.s-a.s);
+  document.getElementById('admBlacklist').innerHTML = bl.length
+    ? `<table><thead><tr><th>记录编号</th><th>用户</th><th>原因</th><th>开始时间</th><th>结束时间</th><th>操作人</th><th>状态</th></tr></thead><tbody>` +
+      bl.map(b=>`<tr><td>${b.id}</td><td>${u(b.uid).name}（${u(b.uid).no}）</td><td>${b.reason}</td>
+        <td>${fmtDT(b.s)}</td><td>${fmtDT(b.e)}</td><td>${b.by}</td>
+        <td>${b.active && b.e>nowMs()?'<span class="tag t-vio">生效中</span>':'<span class="tag t-can">已解除</span>'}</td></tr>`).join('') +
+      '</tbody></table>'
+    : '<div class="muted">暂无黑名单记录。</div>';
+
+  renderAdmLogs();
+}
+function renderAdmLogs() {
+  if (!isAdm()) return;
+  const l = S.logs.slice().reverse();
+  document.getElementById('admLogs').innerHTML = l.length
+    ? `<table><thead><tr><th>日志编号</th><th>操作</th><th>对象</th><th>操作人</th><th>时间</th></tr></thead><tbody>` +
+      l.map(x=>`<tr><td>${x.id}</td><td>${x.action}</td><td>${x.target}</td><td>${x.by}</td><td>${fmtDT(x.at)}</td></tr>`).join('') +
+      '</tbody></table>'
+    : '<div class="muted">暂无操作日志。</div>';
+}
+function blAdd(uid) {
+  if (!needAdmin('黑名单管理')) return;
+  openModal(`加入黑名单 —— ${u(uid).name}`, `
+    <div class="row"><label>用户</label><div><b>${u(uid).name}</b>（${u(uid).no}）　当月违约 ${u(uid).count} 次</div></div>
+    <div class="row"><label>原因（必填，BR-12 要求留痕）</label>
+      <select id="blReason"><option>当月违约累计达 3 次</option><option>现场严重违规占座</option><option>冒用他人座位</option><option>其他</option></select></div>
+    <div class="row"><label>有效期</label>
+      <select id="blDays"><option value="7">7 天（BR-09 候选值）</option><option value="14">14 天</option><option value="30">30 天</option></select></div>`,
+    () => {
+      const reason = document.getElementById('blReason').value;
+      const days = Number(document.getElementById('blDays').value);
+      const x = u(uid);
+      x.blackUntil = nowMs() + days*24*60*MIN;
+      S.blacklist.push({ id:'BL-'+(100+S.blacklist.length), uid, reason:reason+'（管理员手动加入）',
+        s:nowMs(), e:x.blackUntil, by:'王管理员', active:true });
+      S.logs.push({ id:'LOG-'+(1000+S.logs.length), action:`加入黑名单（${days} 天）`,
+        target:`用户 ${x.name} / 原因：${reason}`, by:'王管理员', at:nowMs() });
+      toast(`<b>已加入黑名单（ST-25 反向操作 / BR-09）</b><br>用户 ${x.name} 黑名单生效至 <b>${fmtDT(x.blackUntil)}</b>。<br>
+        <span class="muted">BR-09（V-03）：黑名单期间<b>仅限制发起新预约</b>；该用户黑名单前已存在的有效预约予以保留，仍可签到签退。</span>`,'wa');
+      closeModal(); renderAdmUsers();
+    });
+}
+function blRemove(uid) {
+  if (!needAdmin('黑名单管理')) return;
+  openModal(`移出黑名单 —— ${u(uid).name}`, `
+    <div class="row"><label>原因（必填）</label>
+      <select id="rbReason"><option>申诉通过，属误判</option><option>表现良好，提前解除</option><option>其他</option></select></div>`,
+    () => {
+      const reason = document.getElementById('rbReason').value;
+      const x = u(uid);
+      x.blackUntil = null;
+      S.blacklist.filter(b=>b.uid===uid && b.active).forEach(b=>b.active=false);
+      S.logs.push({ id:'LOG-'+(1000+S.logs.length), action:'移出黑名单', target:`用户 ${x.name} / 原因：${reason}`, by:'王管理员', at:nowMs() });
+      toast(`<b>已移出黑名单（ST-25 / BR-09）</b><br>用户 ${x.name} 恢复预约资格。原因已留痕：${reason}。`,'ok');
+      closeModal(); renderAdmUsers();
+    });
+}
+
+/* ============================================================
+   管理端 · 数据分析看板（10 秒自动刷新）
+   ============================================================ */
+let tick = 0, cd = 10;
+function dashData() {
+  const activeSeats = S.seats.filter(x=>x.status==='使用中'||x.status==='已预约').length;
+  const todayRes = S.reservations.filter(r=>fmtD(r.s)===fmtD(nowMs())).length;
+  const todayVio = S.violations.filter(v=>fmtD(v.at)===fmtD(nowMs())).length;
+  const pending  = S.complaints.filter(c=>['待处理','处理中'].includes(c.status)).length;
+  return { activeSeats, todayRes, todayVio, pending };
+}
+function bar(t, vals, labels) {
+  const w = Math.max(520, labels.length*72), h = 210, pl = 46, pb = 30, pt = 14;
+  const max = Math.max(1, ...vals);
+  const bw = (w - pl - 12) / labels.length;
+  let s = `<svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px" role="img" aria-label="${t}">`;
+  for (let i=0;i<=4;i++){ const y = pt + (h-pt-pb)*i/4;
+    s += `<line x1="${pl}" y1="${y}" x2="${w-8}" y2="${y}" stroke="#EAF0F7"/>`;
+    s += `<text x="${pl-8}" y="${y+4}" font-size="10" fill="#8595A8" text-anchor="end">${Math.round(max*(4-i)/4)}</text>`; }
+  vals.forEach((v,i)=>{ const bh = (h-pt-pb)*v/max, x = pl + i*bw + bw*0.22, y = h-pb-bh;
+    s += `<rect x="${x}" y="${y}" width="${bw*0.56}" height="${Math.max(bh,1)}" fill="#2B5F9E" rx="3"/>`;
+    s += `<text x="${x+bw*0.28}" y="${y-4}" font-size="10" fill="#12304F" text-anchor="middle">${v}</text>`;
+    s += `<text x="${x+bw*0.28}" y="${h-pb+14}" font-size="10" fill="#6B7A8D" text-anchor="middle">${labels[i]}</text>`; });
+  s += `<line x1="${pl}" y1="${h-pb}" x2="${w-8}" y2="${h-pb}" stroke="#C7D6E7"/></svg>`;
+  return s;
+}
+function multiLine(labels, series) {
+  const w = Math.max(520, labels.length*70), h = 210, pl = 40, pb = 30, pt = 14;
+  const max = Math.max(1, ...series.flatMap(s=>s.vals));
+  const step = (w - pl - 14) / Math.max(1, labels.length-1);
+  let s = `<svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px" role="img" aria-label="趋势图">`;
+  for (let i=0;i<=4;i++){ const y = pt + (h-pt-pb)*i/4;
+    s += `<line x1="${pl}" y1="${y}" x2="${w-8}" y2="${y}" stroke="#EAF0F7"/>`;
+    s += `<text x="${pl-6}" y="${y+4}" font-size="10" fill="#8595A8" text-anchor="end">${Math.round(max*(4-i)/4)}</text>`; }
+  series.forEach(se=>{
+    const pts = se.vals.map((v,i)=>[pl+i*step, h-pb-(h-pt-pb)*v/max]);
+    s += `<polyline fill="none" stroke="${se.color}" stroke-width="2" points="${pts.map(p=>p.join(',')).join(' ')}"/>`;
+    pts.forEach((p,i)=>{ s += `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="#fff" stroke="${se.color}" stroke-width="2"/>`;
+      s += `<text x="${p[0]}" y="${p[1]-7}" font-size="10" fill="${se.color}" text-anchor="middle">${se.vals[i]}</text>`; });
+  });
+  labels.forEach((l,i)=>{ const x = pl+i*step; s += `<text x="${x}" y="${h-pb+14}" font-size="10" fill="#6B7A8D" text-anchor="middle">${l}</text>`; });
+  s += `<line x1="${pl}" y1="${h-pb}" x2="${w-8}" y2="${h-pb}" stroke="#C7D6E7"/></svg>`;
+  return s;
+}
+function renderDash() {
+  if (!isAdm()) return;
+  const d = dashData();
+  document.getElementById('dashKpi').innerHTML = `
+    <div class="kpi"><div class="n">${d.activeSeats}</div><div class="l">当前在用/已预约座位数</div></div>
+    <div class="kpi"><div class="n">${d.todayRes}</div><div class="l">今日预约数</div></div>
+    <div class="kpi"><div class="n">${d.todayVio}</div><div class="l">今日违约数</div></div>
+    <div class="kpi"><div class="n">${d.pending}</div><div class="l">待处理投诉数</div></div>`;
+  const labels = ['08-10','10-12','12-14','14-16','16-18','18-20','20-22'];
+  const total = S.seats.length;
+  const vals = labels.map((_,i)=>Math.min(total, Math.max(0, Math.round(total*(0.25+0.42*Math.sin(i/2.1)+ (i===3?0.12:0))))));
+  document.getElementById('dashBar').innerHTML = bar('各时段座位占用率', vals, labels);
+  const days = [], res7 = [], vio7 = [];
+  for (let i=6;i>=0;i--){
+    const t = nowMs()-i*24*60*MIN; days.push(fmtD(t).slice(5));
+    res7.push(Math.max(1, 12 + Math.round(6*Math.sin((6-i)/1.7)) + (6-i)*2));
+    vio7.push(Math.max(0, Math.round(2 + 2*Math.sin((6-i)/1.3)) + (6-i===6?d.todayVio:0)));
+  }
+  document.getElementById('dashLine').innerHTML = multiLine(days, [
+    { color:'#2B5F9E', vals:res7 }, { color:'#B3261E', vals:vio7 }]);
+  const top = S.users.filter(x=>x.role==='STU').sort((a,b)=>b.count-a.count).slice(0,5);
+  document.getElementById('dashTop').innerHTML = bar('用户违约次数 Top 5', top.map(x=>x.count), top.map(x=>x.name));
+  document.getElementById('dashStamp').textContent = fmtDT(nowMs());
+}
+function dashTick() {
+  tick++;
+  document.getElementById('dashTick').textContent = tick;
+  renderDash();                       // 增量更新各图表容器，不重载页面
+}
+setInterval(()=>{ if (S.role==='ADM') { cd--; if (cd<=0) { cd=10; dashTick(); } 
+  const el=document.getElementById('dashCd'); if (el) el.textContent = cd; } }, 1000);
+
+/* ============================================================
+   弹窗
+   ============================================================ */
+let modalCb = null;
+function openModal(title, html, cb) {
+  modalCb = cb;
+  const d = document.createElement('div');
+  d.className = 'modal'; d.id = 'modal';
+  d.innerHTML = `<div class="box"><h3>${title}</h3>${html}
+    <div class="acts"><button class="ghost" onclick="closeModal()">取消</button>
+    <button onclick="confirmModal()">确认</button></div></div>`;
+  document.body.appendChild(d);
+}
+function closeModal(){ const m=document.getElementById('modal'); if(m) m.remove(); modalCb=null; }
+function confirmModal(){ if (modalCb) modalCb(); }
+
+/* ============================================================
+   页面与导航
+   ============================================================ */
+const PAGES = {
+  STU: [
+    { id:'p-seat',   nav:'座位查询与预约' },
+    { id:'p-myres',  nav:'我的预约 / 签到签退' },
+    { id:'p-tools',  nav:'违约记录 · 评价 · 投诉' },
+  ],
+  ADM: [
+    { id:'p-adm-seat', nav:'实时座位管理' },
+    { id:'p-adm-res',  nav:'预约记录查询' },
+    { id:'p-adm-comp', nav:'投诉处理' },
+    { id:'p-adm-bl',   nav:'用户与黑名单' },
+    { id:'p-adm-dash', nav:'数据分析看板' },
+  ],
+};
+let cur = 'p-seat';
+function buildNav() {
+  const nav = document.getElementById('nav');
+  nav.innerHTML = PAGES[S.role].map(p=>`<button data-p="${p.id}" class="${p.id===cur?'on':''}">${p.nav}</button>`).join('');
+  nav.querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.p));
+}
+function go(pid) {
+  cur = pid;
+  document.querySelectorAll('.page').forEach(s=>s.classList.add('hidden'));
+  const el = document.getElementById(pid);
+  if (el) el.classList.remove('hidden');
+  buildNav();
+  if (pid==='p-adm-seat') renderAdmSeat();
+  if (pid==='p-adm-res')  { fillQueryFilters(); renderAdmRes(); }
+  if (pid==='p-adm-comp') renderAdmComplaints();
+  if (pid==='p-adm-bl')   renderAdmUsers();
+  if (pid==='p-adm-dash') { renderDash(); }
+  if (pid==='p-myres')    renderMyRes();
+  if (pid==='p-tools')    { renderVio(); renderReviewBox(); renderMyComplaints(); }
+  if (pid==='p-seat')     renderSeatList();
+}
+function setRole() {
+  const r = document.getElementById('roleSel').value;
+  S.role = r;
+  document.getElementById('stuWrap').classList.toggle('hidden', r!=='STU');
+  const allowed = PAGES[r].map(p=>p.id);
+  cur = allowed[0];
+  go(cur);
+  if (r==='ADM') toast('<b>已切换为管理员身份</b><br>可访问实时座位管理、投诉处理、用户与黑名单、数据看板。<br>' +
+    '<span class="muted">BR-12：真实系统中，学生访问管理端接口应被服务端拒绝。本原型仅作入口切换演示。</span>');
+}
+function fillStuSel() {
+  const sel = document.getElementById('stuSel');
+  sel.innerHTML = S.users.filter(x=>x.role==='STU')
+    .map(x=>`<option value="${x.id}" ${x.id===S.me?'selected':''}>${x.name}（${x.no}）</option>`).join('');
+}
+function resetAll() {
+  seed();
+  offsetMin = DEF_OFFSET;
+  document.getElementById('offset').value = 0;
+  document.getElementById('roleSel').value = 'STU';
+  fillStuSel(); fillFilters(); cur='p-seat'; setRole();
+  toast('<b>数据已重置</b><br>所有内存数据恢复为初始播种状态（刷新页面效果相同）。');
+}
+
+/* ---------- 初始化 ---------- */
+seed();
+fillFilters(); fillStuSel(); fillQueryFilters();
+document.getElementById('fDate').value = fmtD(nowMs());
+document.getElementById('roleSel').onchange = setRole;
+document.getElementById('stuSel').onchange = e => { S.me = e.target.value; renderMyRes(); renderVio(); renderReviewBox(); renderMyComplaints(); renderSeatList(); renderDash(); };
+document.getElementById('offset').onchange = e => {
+  offsetMin = Number(e.target.value) || 0;
+  document.getElementById('fDate').value = fmtD(nowMs());
+  renderSeatList(); renderMyRes(); renderVio(); renderDash();
+  toast(`<b>模拟时间已偏移</b><br>当前模拟时间：<b>${fmtDT(nowMs())}</b>（偏移 ${offsetMin} 分钟）<br>
+    <span class="muted">用于走查 PV-02（签到窗口）、PV-03（取消扣罚门槛）、PV-05（座位状态拒绝）、PV-07（黑名单有效期）等边界行为。</span>`);
+};
+setRole();
+</script>
+</body>
+</html>

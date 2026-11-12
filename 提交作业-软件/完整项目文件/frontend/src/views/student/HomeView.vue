@@ -1,0 +1,330 @@
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { Calendar, Tickets, Warning } from '@element-plus/icons-vue'
+
+import { checkIn, checkOut } from '@/api/reservation'
+import FirstUseGuide from '@/components/home/FirstUseGuide.vue'
+import MessageDigest from '@/components/home/MessageDigest.vue'
+import TodayReservationCard from '@/components/home/TodayReservationCard.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useMessageStore } from '@/stores/message'
+import type { Reservation, StationMessage } from '@/types'
+import {
+  fetchAllMyReservations,
+  loadSeatDirectory,
+  toBookingFailure,
+  type SeatRef,
+} from '@/utils/bookingData'
+import { isEffectiveReservation, parseTimeToMinutes, todayText, todayIso } from '@/utils/bookingRules'
+import type { BookingFailure } from '@/utils/bookingRules'
+import { relatedRoute } from '@/utils/messageLinks'
+import { useClock } from '@/utils/useClock'
+
+const router = useRouter()
+const auth = useAuthStore()
+const clock = useClock()
+const messages = useMessageStore()
+
+const directory = ref<Map<number, SeatRef> | null>(null)
+const myReservations = ref<Reservation[]>([])
+const loading = ref(true)
+const error = ref<BookingFailure | null>(null)
+
+const today = computed(() => todayIso(clock.value))
+const greetingDate = computed(() => todayText(clock.value))
+
+/** 首次使用引导：按学号记忆关闭状态，换用户登录仍会各自出现一次 */
+const GUIDE_DISMISS_PREFIX = 'ssr_first_use_guide_dismissed'
+const guideDismissed = ref(false)
+const guideKey = computed(
+  () => `${GUIDE_DISMISS_PREFIX}:${auth.user?.student_no ?? 'anonymous'}`,
+)
+
+function syncGuideDismissed(): void {
+  try {
+    guideDismissed.value = localStorage.getItem(guideKey.value) === '1'
+  } catch {
+    // 隐私模式 / 禁用存储时按「未关闭」处理，不阻塞页面
+    guideDismissed.value = false
+  }
+}
+
+watch(guideKey, syncGuideDismissed, { immediate: true })
+
+const showGuide = computed(
+  () =>
+    Boolean(auth.user) &&
+    !loading.value &&
+    !error.value &&
+    myReservations.value.length === 0 &&
+    !guideDismissed.value,
+)
+
+function dismissGuide(): void {
+  try {
+    localStorage.setItem(guideKey.value, '1')
+  } catch {
+    // 存储不可用时仅在当前会话隐藏
+  }
+  guideDismissed.value = true
+}
+
+/** 今日有效预约（待使用 / 使用中），按开始时间升序 */
+const todayReservations = computed(() =>
+    myReservations.value
+    .filter((item) => item.reserve_date === today.value && isEffectiveReservation(item))
+    .sort((a, b) => (parseTimeToMinutes(a.start_time) ?? 0) - (parseTimeToMinutes(b.start_time) ?? 0)),
+)
+
+const entries = [
+  { title: '预约座位', description: '查询可预约座位并提交预约', to: '/student/booking', icon: Calendar },
+  { title: '我的预约', description: '查看预约、签到与签退', to: '/student/reservations', icon: Tickets },
+  { title: '我的违约', description: '查看违约记录与账户状态', to: '/student/violations', icon: Warning },
+]
+
+async function load() {
+  loading.value = true
+  error.value = null
+  try {
+    myReservations.value = await fetchAllMyReservations()
+  } catch (caught) {
+    error.value = toBookingFailure(caught)
+  } finally {
+    loading.value = false
+  }
+  // 座位目录只用于把 seat_id 展示成「自习室 · A-01」；失败时退化为「座位 #id」，不影响主流程
+  if (directory.value === null) {
+    directory.value = await loadSeatDirectory().catch(() => null)
+  }
+}
+
+/** 站内消息摘要：只取未读前 3 条（列表已改为服务端分页，拉整页既浪费也无法代表全部未读）。 */
+async function loadMessages() {
+  await messages.loadDigest()
+}
+
+async function onCheckIn(reservation: Reservation) {
+  try {
+    const result = await checkIn(reservation.id)
+    ElMessage.success(result.message)
+    await Promise.all([load(), loadMessages()])
+  } catch {
+    // 失败提示由 request.ts 拦截器统一用 ElMessage 呈现，已选条件不受影响
+  }
+}
+
+async function onCheckOut(reservation: Reservation) {
+  try {
+    const result = await checkOut(reservation.id)
+    ElMessage.success(result.message)
+    await Promise.all([load(), loadMessages()])
+  } catch {
+    // 同上
+  }
+}
+
+async function onOpenMessage(message: StationMessage) {
+  const target = relatedRoute(message)
+  if (!message.is_read) {
+    try {
+      await messages.markRead(message.id)
+    } catch {
+      return
+    }
+  }
+  if (target) {
+    void router.push(target)
+  } else {
+    ElMessage.info('该消息没有关联对象，已标记为已读')
+  }
+}
+
+onMounted(() => {
+  void auth.fetchMe().catch(() => undefined)
+  void load()
+  void loadMessages()
+})
+</script>
+
+<template>
+  <div class="page home-page">
+    <section class="welcome">
+      <svg class="welcome__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="1" y="1" width="30" height="30" rx="8" fill="none" stroke="currentColor" stroke-width="2" />
+        <rect x="7" y="9" width="18" height="3" rx="1.5" fill="currentColor" />
+        <rect x="8" y="15" width="5" height="8" rx="1.5" fill="currentColor" />
+        <rect x="19" y="15" width="5" height="8" rx="1.5" fill="currentColor" />
+      </svg>
+      <div class="welcome__text">
+        <h2>你好，{{ auth.user?.name ?? '同学' }}</h2>
+        <p>
+          今天是 {{ greetingDate }} · 账户状态
+          <strong>{{ auth.user?.account_status ?? '—' }}</strong> · 累计违约
+            <strong>{{ auth.user?.violation_count ?? 0 }}</strong> 次
+            <span class="ssr-text-muted">（违约满 3 次触发 7 天限制）</span>
+          </p>
+        </div>
+        <el-button type="primary" @click="router.push('/student/booking')">预约座位</el-button>
+      </section>
+
+      <FirstUseGuide
+        v-if="showGuide"
+        @dismiss="dismissGuide"
+        @booking="router.push('/student/booking')"
+      />
+
+      <div class="home-grid">
+        <div class="home-col">
+          <TodayReservationCard
+            :reservations="todayReservations"
+            :directory="directory"
+            :now="clock"
+            :loading="loading"
+            :error-message="error?.message ?? ''"
+            @checkin="onCheckIn"
+            @checkout="onCheckOut"
+            @retry="load"
+            @booking="router.push('/student/booking')"
+          />
+
+          <section class="entries" aria-label="快捷入口">
+            <button
+              v-for="entry in entries"
+              :key="entry.to"
+              class="entry"
+              type="button"
+              @click="router.push(entry.to)"
+            >
+              <el-icon class="entry__icon"><component :is="entry.icon" /></el-icon>
+              <span class="entry__title">{{ entry.title }}</span>
+              <span class="entry__desc">{{ entry.description }}</span>
+            </button>
+          </section>
+        </div>
+
+        <MessageDigest
+          :messages="messages.digestItems"
+          :unread-total="messages.unreadCount"
+          :loading="messages.loading"
+          :error-message="messages.errorMessage"
+          @open="onOpenMessage"
+          @retry="loadMessages"
+        />
+      </div>
+    </div>
+</template>
+
+<style scoped>
+.welcome {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  padding: 18px 22px;
+  margin-bottom: 16px;
+  color: var(--ssr-ink);
+  /* Linear：欢迎条也是一档卡片（1px 描边 + 卡片底色），不用装饰性渐变 */
+  background: var(--ssr-surface);
+  border: 1px solid var(--ssr-line);
+  border-radius: var(--ssr-radius);
+}
+
+.welcome__mark {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  color: var(--ssr-primary-ink);
+  font-size: 20px;
+}
+
+.welcome__text {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.welcome__text h2 {
+  margin: 0;
+  font-size: 21px;
+  letter-spacing: 0.2px;
+  font-weight: 600;
+}
+
+.welcome__text p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+  margin: 7px 0 0;
+  font-size: 14px;
+}
+
+.welcome__text .ssr-text-muted {
+  color: var(--ssr-muted-ink);
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.home-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.entries {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  font-family: inherit;
+  text-align: left;
+  background: var(--ssr-surface);
+  border: 1px solid var(--ssr-line);
+  border-radius: var(--ssr-radius);
+  cursor: pointer;
+}
+
+.entry {
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.entry:hover {
+  background: var(--ssr-surface-raised);
+  border-color: var(--ssr-primary-ink);
+}
+
+.entry__icon {
+  color: var(--ssr-primary-ink);
+  font-size: 18px;
+}
+
+.entry__title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.entry__desc {
+  color: var(--ssr-muted-ink);
+  font-size: var(--ssr-font-note);
+}
+
+@media (max-width: 1024px) {
+  .home-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+</style>

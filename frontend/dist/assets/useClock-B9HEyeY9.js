@@ -1,1 +1,0 @@
-import{o as t,I as l,r}from"./index-CnqPIVIJ.js";function u(o=1e3){const n=r(new Date);let e=null;return t(()=>{e=window.setInterval(()=>{n.value=new Date},o)}),l(()=>{e!==null&&window.clearInterval(e),e=null}),n}export{u};
