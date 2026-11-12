@@ -12,6 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.utils import time_utils
 
 
 class Room(Base):
@@ -30,7 +31,7 @@ class Room(Base):
     close_time: Mapped[str] = mapped_column(String(5), default="22:00")
     capacity: Mapped[int] = mapped_column(Integer, default=0)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time_utils.now)
 
 
 class Area(Base):
@@ -44,7 +45,7 @@ class Area(Base):
         ForeignKey("rooms.id", ondelete="RESTRICT"), index=True
     )
     name: Mapped[str] = mapped_column(String(50))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time_utils.now)
 
 
 class RoomClosure(Base):
@@ -69,4 +70,4 @@ class RoomClosure(Base):
     end_at: Mapped[datetime] = mapped_column(DateTime, index=True)
     reason: Mapped[str] = mapped_column(String(255))
     operator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time_utils.now)

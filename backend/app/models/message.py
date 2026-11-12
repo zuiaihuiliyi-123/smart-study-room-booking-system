@@ -12,6 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.utils import time_utils
 from app.models.enums import MessageType
 
 
@@ -37,4 +38,4 @@ class StationMessage(Base):
     related_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     related_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time_utils.now)

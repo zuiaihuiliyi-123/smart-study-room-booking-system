@@ -1,13 +1,20 @@
 from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
+
+from app.core.config import settings
 
 
 def now() -> datetime:
-    """服务器本地时间（naive）。
+    """返回统一业务时区（默认 Asia/Shanghai）的 naive datetime。
 
     需求 TB-12 / NFR-010：签到窗口、自动违约等判定统一以服务器时间为准，
-    不使用客户端时间。测试可 monkeypatch 本函数固定时间。
+    不使用客户端时间。MySQL 的 DATETIME 不保存时区，因此约定：
+    - 数据库与后端业务时间统一存 Asia/Shanghai 的墙上时间；
+    - 前端按本地展示；
+    - JWT 等安全令牌仍使用 UTC（见 core/security.py），不与业务时间混用。
     """
-    return datetime.now().replace(microsecond=0)
+    zone = ZoneInfo(settings.app_timezone)
+    return datetime.now(zone).replace(tzinfo=None, microsecond=0)
 
 
 def is_aligned(value: time, granularity_minutes: int) -> bool:

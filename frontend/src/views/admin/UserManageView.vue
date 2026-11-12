@@ -3,9 +3,9 @@
  * 用户管理（FR-040）。
  *
  * 查询口径：姓名 / 学号关键词 + 角色 + 账户状态 + 累计违约次数下限。
- * **只读页面**：按 BR-018 / Q-030 的本版裁定，管理员不可编辑姓名、学号等身份信息与口令，
- * 也不可代改联系方式，因此本页没有任何编辑入口；账户状态变更一律走「黑名单管理」（FR-044），
- * 表格与详情抽屉都提供跳转入口。
+ * 管理员不可编辑姓名、学号等身份信息与口令，也不可代改联系方式。
+ * 本版按 BR-018 收口：**学生账户**可停用/恢复、加入黑名单；管理员/系统管理员账号
+ * 只读，由信息中心/系统管理员维护，本页不提供停用、恢复或黑名单入口。
  *
  * NFR-006：手机号 / 邮箱一律掩码展示。
  */
@@ -38,6 +38,8 @@ const {
   pageSize,
   detailVisible,
   detail,
+  canManageAccount,
+  canManageBlacklist,
   load,
   refresh,
   onSearch,
@@ -77,7 +79,7 @@ onMounted(() => {
   <div class="page">
     <PageHeader
       title="用户管理"
-      subtitle="查看用户信息、账户状态与累计违约次数"
+      subtitle="查看用户信息；学生账户可停用/恢复与加入黑名单，管理员账号只读"
     />
 
     <FilterBar :loading="loading" @search="onSearch" @reset="onReset">
@@ -163,9 +165,13 @@ onMounted(() => {
 
             <el-table-column label="累计违约次数" width="130">
               <template #default="{ row }">
-                <span :class="{ 'violation-alert': row.violation_count >= 3 }">
+                <span
+                  v-if="row.role === '学生用户'"
+                  :class="{ 'violation-alert': row.violation_count >= 3 }"
+                >
                   {{ row.violation_count }} / 3
                 </span>
+                <span v-else class="ssr-text-muted">不适用</span>
               </template>
             </el-table-column>
 
@@ -184,36 +190,42 @@ onMounted(() => {
               </template>
             </el-table-column>
 
-            <el-table-column label="操作" width="260" fixed="right">
+            <el-table-column label="操作" width="300" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="openDetail(row)">详情</el-button>
-                <el-button
-                  link
-                  type="warning"
-                  size="small"
-                  @click="openBlacklist(row.id, row.name)"
-                >
-                  黑名单
-                </el-button>
-                <el-button
-                  v-if="row.account_status === '正常'"
-                  link
-                  type="danger"
-                  size="small"
-                  @click="openStatusDialog(row)"
-                >
-                  停用
-                </el-button>
-                <el-button
-                  v-else-if="row.account_status === '停用'"
-                  link
-                  type="success"
-                  size="small"
-                  @click="openStatusDialog(row)"
-                >
-                  恢复
-                </el-button>
-                <el-button v-else link size="small" disabled>受限中</el-button>
+
+                <template v-if="canManageAccount(row)">
+                  <el-button
+                    v-if="canManageBlacklist(row)"
+                    link
+                    type="warning"
+                    size="small"
+                    @click="openBlacklist(row.id, row.name)"
+                  >
+                    黑名单
+                  </el-button>
+                  <el-button
+                    v-if="row.account_status === '正常'"
+                    link
+                    type="danger"
+                    size="small"
+                    @click="openStatusDialog(row)"
+                  >
+                    停用
+                  </el-button>
+                  <el-button
+                    v-else-if="row.account_status === '停用'"
+                    link
+                    type="success"
+                    size="small"
+                    @click="openStatusDialog(row)"
+                  >
+                    恢复
+                  </el-button>
+                  <el-button v-else link size="small" disabled>受限中</el-button>
+                </template>
+
+                <span v-else class="ssr-text-muted">管理员账号由信息中心维护</span>
               </template>
             </el-table-column>
           </el-table>
@@ -240,9 +252,13 @@ onMounted(() => {
         联系方式也只有用户本人能改，因此本页没有身份信息的编辑入口。
       </p>
       <p>
-        列表中的手机号与邮箱只显示部分数字。<strong>受限</strong>由「黑名单管理」产生；
-        <strong>停用 / 恢复</strong>可在本页操作（须填写原因并记入审计日志）。
-        受限账户需先在黑名单解除限制，才能停用。
+        列表中的手机号与邮箱只显示部分数字。对<strong>学生账户</strong>，
+        <strong>受限</strong>由「黑名单管理」产生；<strong>停用 / 恢复</strong>可在本页操作
+        （须填写原因并记入审计日志）。受限账户需先在黑名单解除限制，才能停用。
+      </p>
+      <p>
+        <strong>管理员 / 系统管理员账号只读</strong>：由信息中心或系统管理员维护，
+        本页不提供停用、恢复或黑名单入口。
       </p>
     </el-alert>
 

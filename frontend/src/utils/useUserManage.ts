@@ -6,6 +6,8 @@
  *
  * 账户状态：**受限**由黑名单流程产生（FR-044）；**停用 / 恢复**由本页的
  * `PATCH /users/{id}/account-status` 完成（ST-044 / ST-045 / ST-046，须填原因并写审计）。
+ * 本版按 BR-018 收口：业务管理员只维护**学生账户**；管理员/系统管理员账号只读，
+ * 不显示停用、恢复或黑名单入口。
  * 「受限」账户不能直接停用——须先解除黑名单，避免两类限制互相覆盖。
  *
  * 脱敏（NFR-006）：手机号与邮箱在界面上必须掩码，掩码逻辑集中在 `utils/mask.ts`。
@@ -14,6 +16,7 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { listUsers, updateUserAccountStatus } from '@/api/user'
+import { useAuthStore } from '@/stores/auth'
 import type { CurrentUser } from '@/types'
 import { toBookingFailure } from '@/utils/bookingData'
 import { useAdminScope } from '@/utils/useAdminScope'
@@ -23,6 +26,7 @@ export type UserStatusFilter = '全部' | '正常' | '受限' | '停用'
 
 export function useUserManage() {
   const scope = useAdminScope()
+  const auth = useAuthStore()
 
   const items = ref<CurrentUser[]>([])
   const total = ref(0)
@@ -39,6 +43,19 @@ export function useUserManage() {
 
   const detailVisible = ref(false)
   const detail = ref<CurrentUser | null>(null)
+
+  /**
+   * BR-018 权限边界：业务管理员只能维护学生账户。
+   * 管理员/系统管理员账号只读，由信息中心或系统管理员维护；同时禁止操作自己。
+   */
+  function canManageAccount(item: CurrentUser): boolean {
+    return auth.isAdmin && item.role === '学生用户' && item.id !== auth.user?.id
+  }
+
+  /** 黑名单同样只针对学生，管理员账号不进入业务端黑名单流程。 */
+  function canManageBlacklist(item: CurrentUser): boolean {
+    return auth.isAdmin && item.role === '学生用户'
+  }
 
   async function load(): Promise<void> {
     loading.value = true
@@ -118,6 +135,10 @@ const statusSubmitting = ref(false)
 const statusError = ref('')
 
 function openStatusDialog(item: CurrentUser): void {
+  if (!canManageAccount(item)) {
+    ElMessage.warning('管理员账号由信息中心/系统管理员维护，业务端不能停用或恢复')
+    return
+  }
   if (item.account_status === '受限') {
     ElMessage.warning('该账户处于「受限」，请先在黑名单管理解除限制，再调整账户状态')
     return
@@ -139,6 +160,10 @@ function closeStatusDialog(): void {
 async function submitStatus(): Promise<void> {
   const target = statusTarget.value
   if (!target) return
+  if (!canManageAccount(target)) {
+    statusError.value = '管理员账号由信息中心/系统管理员维护，业务端不能停用或恢复'
+    return
+  }
   const reason = statusReason.value.trim()
   if (!reason) {
     statusError.value = '请填写原因（本次操作将记入审计日志）'
@@ -178,6 +203,8 @@ return {
   pageSize,
   detailVisible,
   detail,
+  canManageAccount,
+  canManageBlacklist,
   load,
   refresh,
   onSearch,

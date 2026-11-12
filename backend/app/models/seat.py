@@ -12,6 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.utils import time_utils
 from app.models.enums import SeatStatus
 
 
@@ -47,4 +48,4 @@ class Seat(Base):
     status: Mapped[str] = mapped_column(
         String(20), default=SeatStatus.AVAILABLE.value, index=True
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time_utils.now)

@@ -4,6 +4,7 @@ from sqlalchemy import DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.utils import time_utils
 
 
 class AuditLog(Base):
@@ -22,4 +23,4 @@ class AuditLog(Base):
     reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
     before_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     after_value: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time_utils.now)

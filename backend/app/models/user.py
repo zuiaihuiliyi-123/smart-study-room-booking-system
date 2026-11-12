@@ -4,6 +4,7 @@ from sqlalchemy import CheckConstraint, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.utils import time_utils
 from app.models.enums import AccountStatus, Role
 
 
@@ -43,4 +44,4 @@ class User(Base):
     token_version: Mapped[int] = mapped_column(
         Integer, default=0, nullable=False, comment="令牌版本；改密后递增"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time_utils.now)

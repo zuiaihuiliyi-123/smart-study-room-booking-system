@@ -3,6 +3,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 
 
 class BusinessError(Exception):
@@ -34,6 +35,19 @@ def register_exception_handlers(app: FastAPI) -> None:
         if exc.details:
             content["details"] = exc.details
         return JSONResponse(status_code=exc.status_code, content=content)
+
+    @app.exception_handler(IntegrityError)
+    async def handle_integrity_error(
+        _: Request, exc: IntegrityError
+    ) -> JSONResponse:
+        """数据库唯一约束/外键等完整性冲突统一转 409，不向客户端泄露 SQL。"""
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "code": "DATA_CONFLICT",
+                "message": "数据冲突：该记录已被占用或状态已变化，请刷新后重试",
+            },
+        )
 
     @app.exception_handler(HTTPException)
     async def handle_http_exception(

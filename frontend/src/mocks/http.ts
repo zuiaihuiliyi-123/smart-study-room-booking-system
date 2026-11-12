@@ -90,7 +90,7 @@ export function requireUser(request: Request): UserRecord {
 
 export function requireAdmin(request: Request): UserRecord {
   const user = requireUser(request)
-  if (user.role !== '自习室管理员' && user.role !== '系统管理员') forbidden()
+  if (user.role !== '自习室管理员') forbidden()
   return user
 }
 

@@ -13,6 +13,7 @@ from app.models.room import Area, Room
 from app.models.seat import Seat
 from app.schemas.seat import SeatCreate, SeatStatusBatchUpdate, SeatStatusUpdate
 from app.services import audit_service
+from app.utils import time_utils
 
 # 座位资源状态只含“可用/维修中/停用”，不含“已预约/使用中”（§10.0 MD-01）
 _UNAVAILABLE_STATUSES = {SeatStatus.MAINTENANCE.value, SeatStatus.DISABLED.value}
@@ -76,7 +77,7 @@ def _conflicting_future_reservations(db: Session, seat_id: int) -> list[Reservat
     有效预约 = 待使用 / 使用中（TM-18）；此处按 ST-006/ST-033 关注待使用。
     “尚未结束”= 预约日期在今天之后，或就在今天但结束时间晚于当前时刻。
     """
-    now = datetime.now()
+    now = time_utils.now()
     stmt = (
         select(Reservation)
         .where(
@@ -281,7 +282,7 @@ def update_status_batch(
 
     conflicts: list[Reservation] = []
     if new_status != SeatStatus.AVAILABLE.value:
-        now = datetime.now()
+        now = time_utils.now()
         conflicts = _overlapping_reservations(
             db,
             {seat.id for seat in seats},

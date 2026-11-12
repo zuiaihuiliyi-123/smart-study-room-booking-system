@@ -1,8 +1,8 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.models.enums import AccountStatus
 from app.schemas.common import ORMModel
 
 
@@ -30,9 +30,13 @@ class PasswordChangeRequest(BaseModel):
 
 
 class AccountStatusUpdate(BaseModel):
-    """管理员调整账户状态（ST-044 / ST-045 / ST-046），须填写原因（NFR-009）。"""
+    """管理员调整账户状态（ST-044 / ST-045 / ST-046），须填写原因（NFR-009）。
 
-    account_status: AccountStatus
+    本接口只负责「停用 / 恢复学生账户」；「受限」只能由黑名单/自动违约流程产生，
+    因此这里不接受 `受限`，避免绕过 FR-044 的黑名单审计与期限规则。
+    """
+
+    account_status: Literal["正常", "停用"]
     reason: str = Field(min_length=1, max_length=255)
 
 

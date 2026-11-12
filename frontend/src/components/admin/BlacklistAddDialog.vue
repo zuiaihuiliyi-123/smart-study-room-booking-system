@@ -68,12 +68,13 @@ async function searchUsers(query: string): Promise<void> {
     const keyword = query.trim()
     const result = await listUsers({
       keyword: keyword === '' ? undefined : keyword,
+      role: '学生用户',
       page: 1,
       page_size: 20,
     })
     // 丢弃过期结果（连续输入时只采用最后一次查询）
     if (seq !== searchSeq) return
-    options.value = result.items.filter((user) => user.role !== '系统管理员')
+    options.value = result.items.filter((user) => user.role === '学生用户')
   } catch {
     if (seq === searchSeq) options.value = []
   } finally {
@@ -137,8 +138,8 @@ async function onSubmit(): Promise<void> {
           />
         </el-select>
         <p class="ssr-text-muted hint">
-          候选由<strong>后端按关键词实时查询</strong>（最多 20 条，不含系统管理员）；
-          输入完整学号可精确定位，不受用户目录缓存上限影响。
+          候选由<strong>后端按关键词实时查询</strong>（最多 20 条，<strong>仅学生用户</strong>）；
+          输入完整学号可精确定位，不受用户目录缓存上限影响。管理员 / 系统管理员账号不参与黑名单限制。
         </p>
       </el-form-item>
 

@@ -76,6 +76,11 @@ http.post('/api/v1/violations/manual', ({ request }) =>
     const target = db.users.find((item) => item.id === record.user_id)
     if (!target) return abort(404, 'USER_NOT_FOUND', '预约单对应的用户不存在')
 
+    // 违约只适用于学生；管理员账号不参与违约登记。
+    if (target.role !== '学生用户') {
+      return abort(409, 'VIOLATION_TARGET_NOT_STUDENT', '管理员账号不参与违约登记')
+    }
+
     const result = validateManualViolation(record)
     if (!result.ok) return fromError(result.error)
 

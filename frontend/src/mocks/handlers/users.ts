@@ -13,6 +13,7 @@ import {
   intParam,
   json,
   pageOf,
+  param,
   readBody,
   requireAdmin,
   requireUser,
@@ -78,4 +79,61 @@ http.get('/api/v1/users', ({ request }) =>
   return json(pageOf(filtered, query))
 }),
 ),
+/**
+ * FR-040 / ST-044～ST-046：管理员停用 / 恢复学生账户。
+ *
+ * 与后端一致：只维护学生账户；管理员/系统管理员只读；不能操作自己；
+ * 「受限」只能由黑名单产生，账户状态接口只接受正常/停用。
+ */
+http.patch('/api/v1/users/:userId/account-status', ({ request, params }) =>
+    safe(async () => {
+    const admin = requireAdmin(request)
+    const targetId = Number(param(params, 'userId'))
+    if (!Number.isInteger(targetId)) {
+      return abort(400, 'INVALID_ARGUMENT', '用户参数不合法')
+    }
+    const payload = await readBody<{ account_status?: string; reason?: string }>(request)
+    const db = getDb()
+    const target = db.users.find((item) => item.id === targetId)
+    if (!target) return abort(404, 'USER_NOT_FOUND', '用户不存在')
+
+    if (target.id === admin.id) {
+      return abort(403, 'SELF_OPERATION_FORBIDDEN', '不能停用或恢复自己的账户')
+    }
+    if (target.role !== '学生用户') {
+      return abort(
+        403,
+        'TARGET_ROLE_NOT_ALLOWED',
+        '管理员账号由信息中心/系统管理员维护，业务管理员不能停用或恢复',
+      )
+    }
+    if (target.account_status === '受限') {
+      return abort(
+        409,
+        'ACCOUNT_STILL_RESTRICTED',
+        '该账户当前为「受限」，请先在黑名单管理中解除限制',
+      )
+    }
+
+    const nextStatus = payload.account_status
+    if (nextStatus !== '正常' && nextStatus !== '停用') {
+      return abort(400, 'ACCOUNT_STATUS_INVALID', '账户状态只能是正常或停用')
+    }
+    if (nextStatus === target.account_status) {
+      return abort(
+        409,
+        'ACCOUNT_STATUS_NO_CHANGE',
+        `账户当前已是「${target.account_status}」，无需重复操作`,
+      )
+    }
+    const reason = (payload.reason ?? '').trim()
+    if (reason === '') {
+      return abort(400, 'INVALID_ARGUMENT', '变更原因不能为空')
+    }
+
+    target.account_status = nextStatus
+    return json(publicUser(target))
+  }),
+),
+
 ]

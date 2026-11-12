@@ -11,6 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.utils import time_utils
 from app.models.enums import ViolationType
 
 
@@ -43,4 +44,4 @@ class ViolationRecord(Base):
     operator_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"), nullable=True, comment="手动登记的操作人"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time_utils.now)

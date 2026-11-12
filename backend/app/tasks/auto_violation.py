@@ -5,8 +5,9 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.database import SessionLocal
-from app.models.enums import ReservationStatus
+from app.models.enums import ReservationStatus, Role
 from app.models.reservation import Reservation
+from app.models.user import User
 from app.services import violation_service
 from app.utils import time_utils
 
@@ -25,9 +26,12 @@ def scan_auto_violations(now=None) -> int:
     with SessionLocal() as db:
         candidate_ids = list(
             db.scalars(
-                select(Reservation.id).where(
+                select(Reservation.id)
+                .join(User, User.id == Reservation.user_id)
+                .where(
                     Reservation.status == ReservationStatus.PENDING.value,
                     Reservation.reserve_date <= now.date(),
+                    User.role == Role.STUDENT.value,
                 )
             ).all()
         )

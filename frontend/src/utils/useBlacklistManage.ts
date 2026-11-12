@@ -171,6 +171,10 @@ async function onSearchByStudentNo(): Promise<void> {
       )
       return
     }
+    if (found.role !== '学生用户') {
+      ElMessage.warning('管理员 / 系统管理员账号不参与黑名单限制，请输入学生学号')
+      return
+    }
     userId.value = found.id
     userIdLabel.value = found.name
     stateFilter.value = '全部'
@@ -192,6 +196,10 @@ async function add(payload: {
     return false
   }
   const user = directory.value?.usersById.get(payload.user_id)
+  if (user !== undefined && user.role !== '学生用户') {
+    ElMessage.warning('管理员 / 系统管理员账号不参与黑名单限制')
+    return false
+  }
   try {
     await ElMessageBox.confirm(
       `将用户 ${user ? `${user.name}（${user.student_no}）` : `#${payload.user_id}`} 加入黑名单，账户转为「受限」。限制期限：${payload.expire_at === null ? '不设期限（须管理员手动解除）' : payload.expire_at.replace('T', ' ')}。本次操作将记入审计日志，确认执行？`,

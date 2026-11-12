@@ -15,10 +15,21 @@ class Settings(BaseSettings):
     app_name: str = "智慧自习室预约与管理系统"
     api_v1_prefix: str = "/api/v1"
     debug: bool = False
+    # 统一业务时间口径：数据库存 Asia/Shanghai 的 naive datetime（MySQL DATETIME），
+    # 前端按本地时间展示；禁止混用服务器本地时区与 UTC。
+    app_timezone: str = "Asia/Shanghai"
 
     database_url: str = (
         "mysql+pymysql://root:password@127.0.0.1:3306/smart_study_room?charset=utf8mb4"
     )
+    # 连接池显式配置：避免默认池在考试周高并发下不可控。
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+    db_pool_timeout: int = 30
+    db_pool_recycle_seconds: int = 3600
+    # MySQL 死锁/锁等待重试（SQLite 测试库的 database is locked 也复用该策略）。
+    db_retry_attempts: int = 3
+    db_retry_base_delay_ms: int = 50
 
     jwt_secret_key: str = "change-me-in-env"
     jwt_algorithm: str = "HS256"
@@ -43,6 +54,12 @@ class Settings(BaseSettings):
     violation_threshold: int = 3
     restriction_days: int = 7
     dashboard_refresh_seconds: int = 10
+    # 看板服务端短缓存：10 秒轮询时把同一窗口内的并发查询合并，降低考试周 QPS。
+    dashboard_cache_seconds: int = 10
+    # APScheduler：错过触发后的宽限、任务失败重试与退避。
+    scheduler_misfire_grace_seconds: int = 60
+    scheduler_task_retries: int = 2
+    scheduler_retry_delay_seconds: int = 5
     # ST-063：已处理投诉超过该天数未关闭则自动关闭（候选 7 天，BR-014 相关，待确认）
     complaint_close_days: int = 7
     # ---- 注册策略（A2） ----

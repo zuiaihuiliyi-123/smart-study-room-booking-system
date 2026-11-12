@@ -10,6 +10,7 @@ from app.models.reservation_slot import ReservationSlot
 from app.models.review import Review
 from app.models.room import Area, Room, RoomClosure
 from app.models.seat import Seat
+from app.models.task_execution import TaskExecution
 from app.models.user import User
 from app.models.violation import ViolationRecord
 
@@ -26,6 +27,7 @@ __all__ = [
     "RoomClosure",
     "Seat",
     "StationMessage",
+    "TaskExecution",
     "User",
     "ViolationRecord",
 ]

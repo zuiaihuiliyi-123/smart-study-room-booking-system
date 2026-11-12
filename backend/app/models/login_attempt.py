@@ -4,6 +4,7 @@ from sqlalchemy import CheckConstraint, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.utils import time_utils
 
 
 class LoginAttempt(Base):
@@ -23,5 +24,5 @@ class LoginAttempt(Base):
     first_failed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now, nullable=False
+        DateTime, default=time_utils.now, nullable=False
     )

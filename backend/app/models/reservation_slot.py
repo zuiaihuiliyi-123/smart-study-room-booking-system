@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -22,6 +22,7 @@ class ReservationSlot(Base):
     __table_args__ = (
         UniqueConstraint("seat_id", "slot_start", name="uq_slot_seat_start"),
         UniqueConstraint("user_id", "slot_start", name="uq_slot_user_start"),
+        Index("ix_reservation_slots_slot_start", "slot_start"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
