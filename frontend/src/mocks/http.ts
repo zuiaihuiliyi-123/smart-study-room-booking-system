@@ -72,7 +72,6 @@ export async function safe(fn: () => Response | Promise<Response>): Promise<Resp
     return await fn()
   } catch (error) {
     if (error instanceof MockHttpError) return error.response
-    const message = error instanceof Error ? error.message : String(error)
     return problem(500, 'MOCK_ERROR', '请求处理失败，请稍后重试')
   }
 }

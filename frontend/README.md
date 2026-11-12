@@ -43,6 +43,21 @@ npm run dev          # http://127.0.0.1:5173
 
 `.env.development` 默认 `VITE_USE_MOCK=false`，所有请求经 Vite 代理到真实后端；如需脱离后端独立演示，改为 `true` 后重启（MSW 在浏览器内拦截）。
 
+## 质量工具与测试
+
+```bash
+npm run lint              # ESLint
+npm run format:check      # Prettier 检查（npm run format 自动修复）
+npm run test              # Vitest（工具函数 + Pinia store）
+npm run test:coverage     # Vitest + v8 覆盖率
+npx playwright install chromium   # 首次运行 E2E 前安装浏览器
+npm run test:e2e          # Playwright 5 条主流程
+```
+
+E2E 使用 `.env.e2e` + MSW，不依赖 FastAPI / MySQL，覆盖登录、预约、取消、签到/签退、管理员临时关闭自习室；
+浏览器时间固定在 `2026-11-12 10:00`，保证种子数据与签到窗口可复现。构建通过 `manualChunks` 拆分
+`vendor-echarts` / `vendor-element-plus` / `vendor-vue`，ECharts 在 `BaseChart.vue` 中按需注册。
+
 ## 约定
 
 - 登录后 token 存于 `localStorage`（`ssr_token`），Axios 请求拦截器统一附加 `Authorization: Bearer`。

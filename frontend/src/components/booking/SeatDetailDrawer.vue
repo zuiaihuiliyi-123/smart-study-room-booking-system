@@ -6,7 +6,6 @@ import SeatSummaryList from '@/components/booking/SeatSummaryList.vue'
 import type { BookingFailure, JudgementItem, SubmitState, SubmitSuccess } from '@/components/booking/types'
 import type { Room, Seat } from '@/types'
 import {
-  BOOKING_RULES,
   durationText,
   restrictUntilText,
   slotMinutes,

@@ -47,6 +47,7 @@ Thumbs.db
 .env.*
 !.env.example
 !frontend/.env.development
+!frontend/.env.e2e
 
 # ---- Node / 前端 ----
 node_modules/
@@ -57,3 +58,8 @@ frontend/dist/
 *.sqlite3
 *.db
 *.log
+
+# ---- 前端测试与构建产物 ----
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/

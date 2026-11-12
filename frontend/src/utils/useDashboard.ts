@@ -126,6 +126,8 @@ let requestSeq = 0
  * 少了这一步，切换自习室若正好撞上一次心跳，用户要等下一个 10 秒才看到新数据。
  */
 let pendingRefresh: RefreshSource | null = null
+/** 当前在途请求的取消句柄：切页 / 卸载时真正中止，避免请求回来继续写已销毁页面的状态 */
+let abortController: AbortController | null = null
 
 async function refresh(source: RefreshSource = 'manual'): Promise<void> {
   // 防重入：上一次还没回来就跳过本次（任务要求），不叠加请求
@@ -137,24 +139,27 @@ async function refresh(source: RefreshSource = 'manual'): Promise<void> {
   inFlight.value = true
   const seq = (requestSeq += 1)
   const params = query.value
+  abortController?.abort()
+  abortController = new AbortController()
+  const { signal } = abortController
   if (source === 'initial' || source === 'manual') {
     loading.value = !hasData.value
   }
 
   try {
     const [nextOverview, nextUsage, nextTrend, nextTop] = await Promise.all([
-      getOverview(params, { silent: true }),
-      getSeatUsageBySlot(params, { silent: true }),
-      getTrend(params, { silent: true }),
+      getOverview(params, { silent: true, signal }),
+      getSeatUsageBySlot(params, { silent: true, signal }),
+      getTrend(params, { silent: true, signal }),
       // 图 3 由后端一次聚合；不传 room_id，保持「全站口径」与原页面说明一致
       getViolationTop(
         { start_date: params.start_date, end_date: params.end_date, limit: TOP_N },
-        { silent: true },
+        { silent: true, signal },
       ),
     ])
 
-  // 等待期间用户改了筛选 → 丢弃这次结果，避免旧范围覆盖新范围
-  if (seq !== requestSeq) return
+  // 等待期间用户改了筛选 / 页面已卸载 → 丢弃这次结果，避免旧范围覆盖新范围
+  if (signal.aborted || seq !== requestSeq) return
 
   overview.value = nextOverview
   seatUsage.value = nextUsage
@@ -167,7 +172,8 @@ async function refresh(source: RefreshSource = 'manual'): Promise<void> {
   if (source === 'auto') refreshCount.value += 1
   countdown.value = COUNTDOWN_SECONDS
 } catch (caught) {
-  if (seq !== requestSeq) return
+  // 主动取消 / 已卸载：静默丢弃，不写错误态
+  if (signal.aborted || seq !== requestSeq) return
   // 失败**不清空**已有数据：只记下失败时刻，界面显示"更新失败，显示 mm:ss 的数据"
   lastFailedAt.value = new Date()
   if (!hasData.value) errorMessage.value = toBookingFailure(caught).message
@@ -175,6 +181,7 @@ async function refresh(source: RefreshSource = 'manual'): Promise<void> {
   if (seq === requestSeq) {
     inFlight.value = false
     loading.value = false
+    if (abortController?.signal === signal) abortController = null
     // 恢复可见 / 改筛选时被防重入挡掉的那次读取，在这里补上（保证「切回立即拉一次」）
     if (pendingRefresh !== null) {
       const next = pendingRefresh
@@ -252,6 +259,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   stopTimer()
   document.removeEventListener('visibilitychange', handleVisibility)
+  // 切页 / 卸载：中止在途请求，避免旧页面的 Promise 回来后继续写状态
+  abortController?.abort()
+  abortController = null
+  pendingRefresh = null
 })
 
 return {
