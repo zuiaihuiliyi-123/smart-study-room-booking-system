@@ -12,9 +12,10 @@ declare module 'axios' {
   }
 }
 
-/** 单次请求的可选行为（目前只有静默失败） */
+/** 单次请求的可选行为：静默失败 / 取消信号（轮询组件卸载时用） */
 export interface RequestOptions {
   silent?: boolean
+  signal?: AbortSignal
 }
 
 const request = axios.create({
@@ -35,6 +36,11 @@ request.interceptors.request.use((config) => {
 request.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    // 主动取消（切页 / 轮询停止）：静默上抛，不弹错误提示
+    if (axios.isCancel?.(error) || error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') {
+      return Promise.reject(error)
+    }
+
     const status = error.response?.status
     const message =
       error.response?.data?.message ?? error.response?.data?.detail ?? '请求失败，请稍后重试'

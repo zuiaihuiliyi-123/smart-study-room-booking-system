@@ -26,22 +26,28 @@ export function useAdminComplaintBadge() {
   const pendingCount = ref(0)
   let timer: number | null = null
   let inFlight = false
+  let abortController: AbortController | null = null
 
   async function refresh(): Promise<void> {
     if (!auth.isAdmin || inFlight) return
     // 页面隐藏时跳过后台轮询；恢复可见由 visibilitychange 立即补一次
     if (document.visibilityState === 'hidden') return
     inFlight = true
+    abortController?.abort()
+    abortController = new AbortController()
+    const { signal } = abortController
     try {
       const result = await listAllComplaints(
         { status: '待处理', page: 1, page_size: 1 },
-        { silent: true },
+        { silent: true, signal },
       )
+      if (signal.aborted) return
       pendingCount.value = result.total
     } catch {
       // 角标是辅助信息：失败保留上一次值，不弹提示
     } finally {
       inFlight = false
+      if (abortController?.signal === signal) abortController = null
     }
   }
 
@@ -100,6 +106,8 @@ export function useAdminComplaintBadge() {
 
   onBeforeUnmount(() => {
     stopTimer()
+    abortController?.abort()
+    abortController = null
     document.removeEventListener('visibilitychange', onVisibilityChange)
     window.removeEventListener('ssr:complaints-changed', onComplaintsChanged)
   })

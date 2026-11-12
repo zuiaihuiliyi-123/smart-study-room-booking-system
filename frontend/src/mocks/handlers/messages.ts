@@ -25,6 +25,20 @@ export const messageHandlers = [
     }),
 ),
 
+/**
+ * 未读数：分页后列表不再包含全部消息，角标必须单独取。
+ * 与 `GET /messages/me` 分开注册，避免被 `:messageId` 类路由抢先匹配。
+ */
+http.get('/api/v1/messages/unread-count', ({ request }) =>
+    safe(() => {
+    const user = requireUser(request)
+    const count = getDb().messages.filter(
+      (item) => item.user_id === user.id && !item.is_read,
+    ).length
+    return json({ count })
+  }),
+),
+
 http.post('/api/v1/messages/:messageId/read', ({ request, params }) =>
     safe(() => {
     const user = requireUser(request)

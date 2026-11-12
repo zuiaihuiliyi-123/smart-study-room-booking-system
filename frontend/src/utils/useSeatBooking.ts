@@ -9,7 +9,7 @@
  *   若新筛选条件把已选座位排除，会主动清除选中并关闭抽屉，避免图上不可点但底部仍能提交。
  * - 时间判定以服务端为准（NFR-010）；此处的「已开始」「提前天数」等只是提交前的本地预估。
  */
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { createReservation } from '@/api/reservation'
@@ -663,6 +663,15 @@ onMounted(() => {
   // 刷新账户状态，保证 C5（用户资格）用的是服务端当前值
   void auth.fetchMe().catch(() => undefined)
   void bootstrap()
+})
+
+onBeforeUnmount(() => {
+  // 切页时取消尚未触发的防抖查询，并让在途查询结果作废（querySeq 比对）
+  if (autoTimer) {
+    clearTimeout(autoTimer)
+    autoTimer = null
+  }
+  querySeq += 1
 })
 
 return {

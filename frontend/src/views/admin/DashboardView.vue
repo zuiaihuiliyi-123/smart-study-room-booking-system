@@ -172,7 +172,7 @@ const topViolatorsLabel = computed(
       <!-- 图 1 -->
       <section class="ssr-card dash-chart">
         <div class="ssr-card__head">
-          <h3>图 1　各自习室各时段座位占用率</h3>
+          <h3>图 1 各自习室各时段座位占用率</h3>
           <span class="ssr-text-muted">统计周期 {{ dateRange[0] }} 至 {{ dateRange[1] }}</span>
         </div>
         <EmptyState
@@ -194,7 +194,7 @@ const topViolatorsLabel = computed(
       <!-- 图 2 -->
       <section class="ssr-card dash-chart">
         <div class="ssr-card__head">
-          <h3>图 2　近 7 天预约量与违约量趋势</h3>
+          <h3>图 2 近 7 天预约量与违约量趋势</h3>
           <span class="ssr-text-muted">按自然日</span>
         </div>
         <EmptyState v-if="trend.length === 0" description="所选周期内没有预约与违约记录" />
@@ -213,7 +213,7 @@ const topViolatorsLabel = computed(
       <!-- 图 3 -->
       <section class="ssr-card dash-chart">
         <div class="ssr-card__head">
-          <h3>图 3　用户违约次数 Top {{ TOP_N }}</h3>
+          <h3>图 3 用户违约次数 Top {{ TOP_N }}</h3>
           <span class="ssr-text-muted">横向条形 · 次数越多越靠上</span>
         </div>
         <EmptyState v-if="topViolators.length === 0" description="所选区间内没有违约记录" />
