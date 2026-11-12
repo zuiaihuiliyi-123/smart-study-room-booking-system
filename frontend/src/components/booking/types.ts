@@ -27,6 +27,8 @@ export interface MatrixCell {
   state: SeatCellState
   /** tooltip 里的「该时段占用」文案，与资源状态分开呈现 */
   occupancy: string
+  /** 是否命中当前座位筛选；false 表示保留原位淡显、不可选择 */
+  matched?: boolean
 }
 
 export interface MatrixGroup {

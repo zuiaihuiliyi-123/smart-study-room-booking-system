@@ -87,7 +87,7 @@ const emit = defineEmits<{
     />
 
     <EmptyState
-      v-else-if="props.groups.length === 0"
+      v-else-if="props.groups.length === 0 || props.visibleCount === 0"
       description="当前筛选条件下没有座位"
       action-text="清空座位类型 / 靠窗 / 插座筛选"
       @action="emit('clear-seat-filter')"
@@ -111,7 +111,7 @@ const emit = defineEmits<{
         :closable="false"
         show-icon
         title="本时段没有可预约座位"
-        :description="`已列出 ${props.visibleCount} 个座位，可改选其它时段。`"
+        :description="`已列出 ${props.visibleCount} 个符合筛选的座位，可改选其它时段。`"
       />
 
       <SeatMapCanvas

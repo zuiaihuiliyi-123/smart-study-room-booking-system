@@ -13,6 +13,8 @@ import { SEAT_STATE_ORDER, type SeatCellState } from '@/utils/bookingRules'
  */
 const props = defineProps<{
   counts: Record<SeatCellState, number>
+  /** 不符合当前筛选的椅子数：保留原位淡显，不计入状态图例 */
+  filteredCount: number
   mineCount: number
   zoomText: string
   canZoomOut: boolean
@@ -54,6 +56,17 @@ const stateIcon = (state: SeatCellState): Component => SEAT_STATE_ICON[state]
         </span>
         <span class="map-legend__text">{{ LEGEND_TEXT[state] }}</span>
         <strong class="map-legend__count">{{ props.counts[state] }}</strong>
+      </li>
+      <li v-if="props.filteredCount > 0" class="map-legend__item map-legend__item--filtered">
+        <span
+          class="map-legend__chip map-legend__chip--filtered"
+          title="不符合当前筛选：保留座位位置，但不可预约"
+          aria-hidden="true"
+        >
+          —
+        </span>
+        <span class="map-legend__text">不符合筛选</span>
+        <strong class="map-legend__count">{{ props.filteredCount }}</strong>
       </li>
       <li v-if="props.mineCount > 0" class="map-legend__item map-legend__item--mine">
         <span class="map-legend__chip map-legend__chip--mine" title="你在这个时段已经预约的座位">
@@ -161,6 +174,16 @@ const stateIcon = (state: SeatCellState): Component => SEAT_STATE_ICON[state]
 
 .map-legend__item--mine .map-legend__text {
   color: var(--ssr-warning-ink);
+}
+
+.map-legend__chip--filtered {
+  color: var(--ssr-muted-ink);
+  background: transparent;
+  border: 1.5px dashed var(--ssr-line-strong);
+}
+
+.map-legend__item--filtered .map-legend__text {
+  color: var(--ssr-muted-ink);
 }
 
 .map-legend__chip--mine {

@@ -9,6 +9,9 @@
  *
  * 这是一层可替换的适配器：后续后端提供 layout 接口时，只需把 buildSeatMapLayout
  * 的数据源替换为接口返回值，地图组件和预约逻辑不需要改。
+ *
+ * 注意：这里的 groups 必须是**完整座位集合**。筛选只在 `MatrixCell.matched`
+ * 上表达，绝不能先按筛选过滤 groups，否则分区、桌子数量和椅子位置都会重排。
  */
 import type { Area } from '@/types'
 import type { MatrixCell, MatrixGroup } from '@/components/booking/types'

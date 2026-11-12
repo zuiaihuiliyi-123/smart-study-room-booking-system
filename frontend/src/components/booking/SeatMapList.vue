@@ -35,8 +35,18 @@ function mineOf(cell: MatrixCell): boolean {
   return mineSet.value.has(cell.seat.id)
 }
 
+function filteredOf(cell: MatrixCell): boolean {
+  return cell.matched === false
+}
+
 function stateText(cell: MatrixCell): string {
+  if (filteredOf(cell)) return '不符合当前筛选'
   return mineOf(cell) ? '我的预约' : SEAT_STATE_TEXT[cell.state]
+}
+
+function chairAria(cell: MatrixCell): string {
+  const base = seatAriaLabel(cell.seat, cell.state)
+  return filteredOf(cell) ? `${base}，不符合当前筛选，不可预约` : base
 }
 
 function tableLabel(table: SeatMapTable): string {
@@ -70,14 +80,19 @@ function tableLabel(table: SeatMapTable): string {
               {
                 'seat-map-list__chair--mine': mineOf(chair.cell),
                 'seat-map-list__chair--selected': props.selectedSeatId === chair.cell.seat.id,
+                'seat-map-list__chair--filtered': filteredOf(chair.cell),
               },
             ]"
+            :disabled="filteredOf(chair.cell)"
             :aria-pressed="props.selectedSeatId === chair.cell.seat.id"
-            :aria-label="seatAriaLabel(chair.cell.seat, chair.cell.state)"
+            :aria-label="chairAria(chair.cell)"
             @click="emit('select', chair.cell)"
           >
             <span class="seat-map-list__state-icon" aria-hidden="true">
-              <el-icon><component :is="SEAT_STATE_ICON[chair.cell.state]" /></el-icon>
+              <el-icon v-if="!filteredOf(chair.cell)">
+                <component :is="SEAT_STATE_ICON[chair.cell.state]" />
+              </el-icon>
+              <span v-else>—</span>
             </span>
             <strong>{{ chair.cell.seat.seat_no }}</strong>
             <span>{{ stateText(chair.cell) }}</span>
@@ -218,6 +233,21 @@ function tableLabel(table: SeatMapTable): string {
 .seat-map-list__chair--mine {
   border-color: var(--ssr-warning);
   background: var(--ssr-warning-bg);
+}
+
+/* 不符合当前筛选：保留列表项位置，淡显且不可选 */
+.seat-map-list__chair.seat-map-list__chair--filtered {
+  color: var(--ssr-muted-ink);
+  cursor: default;
+  background: transparent;
+  border-color: var(--ssr-line-strong);
+  border-style: dashed;
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.seat-map-list__chair.seat-map-list__chair--filtered:hover {
+  border-color: var(--ssr-line-strong);
 }
 
 .seat-map-list__state-icon {

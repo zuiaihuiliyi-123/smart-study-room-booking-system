@@ -5,7 +5,8 @@
  * - 幂等键（BR-021）按「座位 + 日期 + 时段」这一个预约意图生成一次，并缓存在意图表里：
  *   关闭抽屉再打开同一意图会复用同一个键（重试即幂等，返回同一张预约单），
  *   换成另一个座位 / 时段才生成新键（新意图）。提交按钮点击时不会重新生成键。
- * - 筛选条件与已选座位都保存在本 composable 内，改筛选、查询失败都不会清空已选。
+ * - 筛选条件与已选座位都保存在本 composable 内，查询失败不会清空已选。
+ *   若新筛选条件把已选座位排除，会主动清除选中并关闭抽屉，避免图上不可点但底部仍能提交。
  * - 时间判定以服务端为准（NFR-010）；此处的「已开始」「提前天数」等只是提交前的本地预估。
  */
 import { computed, onMounted, reactive, ref, watch } from 'vue'
@@ -55,6 +56,20 @@ function fallbackKey(): string {
 export function createIdempotencyKey(): string {
   const uuid = globalThis.crypto?.randomUUID?.()
   return uuid ?? fallbackKey()
+}
+
+/**
+ * 座位属性筛选（类型 / 插座 / 靠窗）。
+ *
+ * 这里只决定椅子是否“命中”筛选，不参与分区、桌子、椅子位置的计算；
+ * 地图布局始终由完整座位集合生成，筛选不会让房间重新排布。
+ */
+function matchesSeatFilters(seat: Seat, filters: BookingFilters): boolean {
+  return (
+    (filters.seatType === '' || seat.seat_type === filters.seatType) &&
+    (!filters.powerOnly || seat.has_power) &&
+    (!filters.windowOnly || seat.near_window)
+  )
 }
 
 export function useSeatBooking() {
@@ -165,20 +180,22 @@ const occupancyKnown = computed(() => {
   return true
 })
 
-/** 画到座位图上的座位：按类型、插座、靠窗筛选，与时段无关。 */
-const visibleSeats = computed(() =>
-  seats.value.filter(
-    (seat) =>
-      (filters.seatType === '' || seat.seat_type === filters.seatType) &&
-      (!filters.powerOnly || seat.has_power) &&
-      (!filters.windowOnly || seat.near_window),
-  ),
+/**
+ * 命中当前筛选的座位：只用于“可约 / 命中”统计与空状态，
+ * 不参与地图布局。地图始终使用完整 `seats` 集合。
+ */
+const matchedSeats = computed(() =>
+  seats.value.filter((seat) => matchesSeatFilters(seat, filters)),
+)
+
+const matchedSeatIds = computed(
+  () => new Set(matchedSeats.value.map((seat) => seat.id)),
 )
 
 const groups = computed<MatrixGroup[]>(() => {
   const ids = availableIds.value
   if (ids === null) return []
-  return groupSeatsByArea(visibleSeats.value).map((group) => ({
+  return groupSeatsByArea(seats.value).map((group) => ({
     key: group.key,
     title: group.title,
     note: group.note,
@@ -186,14 +203,29 @@ const groups = computed<MatrixGroup[]>(() => {
       seat,
       state: seatCellState(seat, ids, occupancyKnown.value, closedIds.value),
       occupancy: occupancyText(seat, ids, occupancyKnown.value, closedIds.value),
+      matched: matchedSeatIds.value.has(seat.id),
     })),
 }))
+})
+
+/**
+ * 筛选条件变化后，如果当前选中的座位不再命中，清掉选中并关闭抽屉。
+ * 否则会出现“图上已经淡显不可点，底部操作条却还能提交”的不一致。
+ */
+watch(matchedSeatIds, (ids) => {
+  const current = selectedSeatId.value
+  if (current === null || ids.has(current)) return
+  selectedSeatId.value = null
+  drawerVisible.value = false
+  failure.value = null
 })
 
 const freeCount = computed(() => {
   const ids = availableIds.value
   if (ids === null || !occupancyKnown.value) return 0
-  return visibleSeats.value.filter((seat) => seatCellState(seat, ids, true, closedIds.value) === 'free').length
+  return matchedSeats.value.filter(
+    (seat) => seatCellState(seat, ids, true, closedIds.value) === 'free',
+  ).length
 })
 
 const selectedSeat = computed(
@@ -254,7 +286,7 @@ const hint = computed(() => {
   if (loadError.value) return ''
   if (slotStarted.value) return '该时段已开始 · 仅供查看占用'
   if (userBlock.value) return ''
-  return `可约 ${freeCount.value} / ${visibleSeats.value.length} 座`
+  return `可约 ${freeCount.value} / ${matchedSeats.value.length} 座`
 })
 
 const blockedHint = computed(() => {
@@ -650,7 +682,7 @@ return {
   minStartTime,
   groups,
   freeCount,
-  visibleCount: computed(() => visibleSeats.value.length),
+  visibleCount: computed(() => matchedSeats.value.length),
   userBlock,
   blockedHint,
   summary,

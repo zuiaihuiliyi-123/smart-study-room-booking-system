@@ -83,12 +83,19 @@ const counts = computed<Record<SeatCellState, number>>(() => {
     off: 0,
   }
   layout.value.chairs.forEach((chair) => {
+    if (chair.cell.matched === false) return
     result[chair.cell.state] += 1
   })
   return result
 })
+/** 不符合当前筛选的椅子：保留原位置淡显，不计入状态图例。 */
+const filteredCount = computed(
+  () => layout.value.chairs.filter((chair) => chair.cell.matched === false).length,
+)
 const mineCount = computed(() =>
-  layout.value.chairs.filter((chair) => mineSet.value.has(chair.cell.seat.id)).length,
+  layout.value.chairs.filter(
+    (chair) => chair.cell.matched !== false && mineSet.value.has(chair.cell.seat.id),
+  ).length,
 )
 const selectedTableId = computed(() => {
   if (props.selectedSeatId === null) return null
@@ -120,17 +127,29 @@ function tableStyle(table: SeatMapTable): Record<string, string> {
 function chairClass(chair: SeatMapChair): Record<string, boolean> {
   const mine = mineSet.value.has(chair.cell.seat.id)
   return {
-    'chair--selected': props.selectedSeatId === chair.cell.seat.id,
-    'chair--mine': mine,
-    'chair--table-hover': hoveredTableId.value === chair.tableId,
-    [`chair--${chair.cell.state}`]: true,
-    [`chair--${chair.orientation}`]: true,
+    'map-chair--selected': props.selectedSeatId === chair.cell.seat.id,
+    'map-chair--mine': mine,
+    'map-chair--filtered': chair.cell.matched === false,
+    'map-chair--table-hover': hoveredTableId.value === chair.tableId,
+    [`map-chair--${chair.cell.state}`]: true,
+    [`map-chair--${chair.orientation}`]: true,
   }
+}
+
+function chairFiltered(chair: SeatMapChair): boolean {
+  return chair.cell.matched === false
 }
 
 function chairLabel(chair: SeatMapChair): string {
   const base = seatAriaLabel(chair.cell.seat, chair.cell.state)
+  if (chairFiltered(chair)) return `${base}，不符合当前筛选，不可预约`
   return mineSet.value.has(chair.cell.seat.id) ? `${base}，这是你在这个时段的预约` : base
+}
+
+function chairTitle(chair: SeatMapChair): string {
+  if (chairFiltered(chair)) return `${chair.cell.seat.seat_no} · 不符合当前筛选`
+  const state = mineSet.value.has(chair.key) ? '我的预约' : SEAT_STATE_TEXT[chair.cell.state]
+  return `${chair.cell.seat.seat_no} · ${state}`
 }
 
 function clampViewport(): void {
@@ -288,7 +307,7 @@ function onPointerUp(event: PointerEvent): void {
 }
 
 function onChairClick(cell: MatrixCell): void {
-  if (suppressClick.value) return
+  if (suppressClick.value || cell.matched === false) return
   emit('select', cell)
 }
 
@@ -318,7 +337,7 @@ function focusAdjacentChair(current: SeatMapChair, key: string): void {
   let best: SeatMapChair | null = null
   let score = Infinity
   for (const chair of layout.value.chairs) {
-    if (chair.key === current.key) continue
+    if (chair.key === current.key || chair.cell.matched === false) continue
     const dx = chair.x + chair.w / 2 - cx
     const dy = chair.y + chair.h / 2 - cy
     const forward = dx * direction[0] + dy * direction[1]
@@ -405,6 +424,7 @@ onBeforeUnmount(() => {
   <section class="seat-map" aria-label="自习室座位地图">
     <SeatMapToolbar
       :counts="counts"
+      :filtered-count="filteredCount"
       :mine-count="mineCount"
       :zoom-text="zoomText"
       :can-zoom-out="canZoomOut"
@@ -516,9 +536,10 @@ onBeforeUnmount(() => {
             :class="chairClass(chair)"
             :style="chairStyle(chair)"
             :data-seat-id="chair.key"
+            :disabled="chairFiltered(chair)"
             :aria-label="chairLabel(chair)"
             :aria-pressed="props.selectedSeatId === chair.cell.seat.id"
-            :title="`${chair.cell.seat.seat_no} · ${mineSet.has(chair.key) ? '我的预约' : SEAT_STATE_TEXT[chair.cell.state]}`"
+            :title="chairTitle(chair)"
             @click="onChairClick(chair.cell)"
             @keydown="onChairKeydown($event, chair)"
           >
@@ -528,16 +549,20 @@ onBeforeUnmount(() => {
                 <span class="map-chair__no-full">{{ chair.cell.seat.seat_no }}</span>
                 <span class="map-chair__no-short">{{ chair.cell.seat.seat_no.split('-').pop() }}</span>
               </span>
-              <span v-if="mineSet.has(chair.key)" class="map-chair__mine">我的</span>
+              <span v-if="!chairFiltered(chair) && mineSet.has(chair.key)" class="map-chair__mine">我的</span>
               <span
-                v-if="!mineSet.has(chair.key) && chair.cell.state !== 'free'"
+                v-if="!chairFiltered(chair) && !mineSet.has(chair.key) && chair.cell.state !== 'free'"
                 class="map-chair__state"
                 :title="SEAT_STATE_NOTE[chair.cell.state]"
                 aria-hidden="true"
               >
                 <el-icon><component :is="SEAT_STATE_ICON[chair.cell.state]" /></el-icon>
               </span>
-              <span v-else-if="mineSet.has(chair.key)" class="map-chair__state" aria-hidden="true">
+              <span
+                v-else-if="!chairFiltered(chair) && mineSet.has(chair.key)"
+                class="map-chair__state"
+                aria-hidden="true"
+              >
                 <el-icon><Check /></el-icon>
               </span>
             </span>
@@ -554,6 +579,7 @@ onBeforeUnmount(() => {
         <span>拖拽平移</span>
         <span>滚轮 / 双指缩放</span>
         <span>点击椅子查看</span>
+        <span v-if="filteredCount > 0">淡色椅子不符合当前筛选</span>
       </p>
     </div>
 
@@ -1102,6 +1128,27 @@ onBeforeUnmount(() => {
   font-size: 7px;
   font-weight: 700;
   place-items: center;
+}
+
+/* 不符合当前筛选：保留椅子原位，只用低透明度虚线占位，不响应点击 */
+.map-chair--filtered {
+  cursor: default;
+  opacity: 0.42;
+  filter: grayscale(1);
+}
+
+.map-chair--filtered .map-chair__back {
+  opacity: 0.55;
+}
+
+.map-chair--filtered .map-chair__pad,
+.map-chair--filtered:hover .map-chair__pad {
+  background: transparent;
+  border-color: var(--ssr-line-strong);
+  border-style: dashed;
+  box-shadow: none;
+  filter: none;
+  transform: none;
 }
 
 .map-chair:focus-visible {
