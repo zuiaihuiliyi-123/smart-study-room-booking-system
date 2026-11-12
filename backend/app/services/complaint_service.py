@@ -18,6 +18,7 @@ from app.models.user import User
 from app.schemas.common import PageResult
 from app.schemas.complaint import ComplaintCreate, ComplaintHandle, ComplaintRead
 from app.services import audit_service, notification_service
+from app.utils import time_utils
 from app.utils.pagination import to_offset
 
 # SM-04（ST-060～ST-063）：管理员可执行的状态迁移。
@@ -207,7 +208,7 @@ def handle_complaint(
     complaint.status = target
     complaint.handler_id = admin.id
     complaint.handle_note = note
-    complaint.handled_at = datetime.now()
+    complaint.handled_at = time_utils.now()
 
     audit_service.record(
         db,
@@ -279,7 +280,7 @@ def close_stale(db: Session, now: datetime | None = None) -> int:
     关闭期限为候选值（settings.complaint_close_days，默认 7 天；BR-014 相关，待确认）。
     返回本次关闭的投诉数。
     """
-    current = now or datetime.now()
+    current = now or time_utils.now()
     deadline = current - timedelta(days=settings.complaint_close_days)
     stmt = select(Complaint).where(
         Complaint.status == ComplaintStatus.RESOLVED.value,

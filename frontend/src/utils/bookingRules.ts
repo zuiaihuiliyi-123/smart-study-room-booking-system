@@ -483,6 +483,8 @@ export function buildJudgements(ctx: JudgementContext): JudgementItem[] {
     DURATION_EXCEEDED: 'C6',
     DATE_OUT_OF_RANGE: 'C6',
     DAILY_LIMIT: 'C6',
+    // 已开始时段同样是 409，必须归到「时段限制」而不是座位冲突
+    TIME_STARTED: 'C6',
   }
 
   /** 服务端只回 `rule` 不回 `code` 时的兜底映射（键为后端规则标识）。 */

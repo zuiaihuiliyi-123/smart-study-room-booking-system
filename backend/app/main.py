@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
+from app.core.cache import clear_dashboard_cache
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.tasks.scheduler import shutdown_scheduler, start_scheduler
@@ -36,6 +37,17 @@ app.add_middleware(
 )
 
 register_exception_handlers(app)
+
+
+@app.middleware("http")
+async def clear_dashboard_cache_after_writes(request, call_next):
+    """写请求成功后清掉看板短缓存，避免管理操作后仍返回旧统计。"""
+    response = await call_next(request)
+    if request.method not in {"GET", "HEAD", "OPTIONS"} and response.status_code < 500:
+        clear_dashboard_cache()
+    return response
+
+
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 

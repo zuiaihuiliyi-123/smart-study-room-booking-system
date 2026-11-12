@@ -11,10 +11,31 @@
  * 3. **dispose**：卸载时断开 observer、移除监听并 `chart.dispose()`，避免路由切换后实例泄漏。
  */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts/core'
+import { BarChart, LineChart } from 'echarts/charts'
+import {
+  AxisPointerComponent,
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import type { EChartsType } from 'echarts/core'
 import type { EChartsOption } from 'echarts'
 
 import { supportsViewTransition, themeMotionAllowed, useTheme } from '@/utils/useTheme'
+
+// 按需注册：看板只用到柱状图、折线图与网格/图例/提示框。
+// 之前 `import * as echarts from 'echarts'` 会把整个 echarts 打进首屏 chunk。
+echarts.use([
+  BarChart,
+  LineChart,
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+  AxisPointerComponent,
+  CanvasRenderer,
+])
 
 const props = withDefaults(
   defineProps<{
@@ -31,7 +52,7 @@ const props = withDefaults(
 )
 
 const container = ref<HTMLDivElement>()
-let chart: echarts.ECharts | undefined
+let chart: EChartsType | undefined
 let observer: ResizeObserver | undefined
 let frame = 0
 

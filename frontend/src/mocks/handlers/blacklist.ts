@@ -67,6 +67,18 @@ http.post('/api/v1/blacklist', ({ request }) =>
     const target = db.users.find((item) => item.id === Number(payload.user_id))
     if (!target) return abort(404, 'USER_NOT_FOUND', '用户不存在')
 
+    // BR-018：管理员/系统管理员账号只读，不进入业务端黑名单。
+    if (target.id === admin.id) {
+      return abort(403, 'SELF_OPERATION_FORBIDDEN', '不能限制自己的账户')
+    }
+    if (target.role !== '学生用户') {
+      return abort(
+        403,
+        'BLACKLIST_TARGET_NOT_STUDENT',
+        '管理员账号不参与黑名单限制，由信息中心/系统管理员维护',
+      )
+    }
+
     const now = serverNow()
     // `expire_at` 三种情形分开处理：未传 → 按 FR-044 的常见做法给 7 天；
     // 显式传 null → 「不设期限」，只能由管理员手动解除（ST-042）。

@@ -10,12 +10,13 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.exceptions import BusinessError
 from app.models.blacklist import BlacklistEntry
-from app.models.enums import AccountStatus, BlacklistMode, MessageType
+from app.models.enums import AccountStatus, BlacklistMode, MessageType, Role
 from app.models.user import User
 from app.models.violation import ViolationRecord
 from app.schemas.blacklist import BlacklistCreate, BlacklistRead
 from app.schemas.common import PageResult
 from app.services import audit_service, notification_service
+from app.utils import time_utils
 from app.utils.pagination import to_offset
 
 
@@ -68,7 +69,7 @@ def list_entries(
     now: datetime | None = None,
 ) -> PageResult[BlacklistRead]:
     """M5 / FR-044：管理员查询黑名单记录（含历史记录，按开始时间倒序）。"""
-    current = now or datetime.now()
+    current = now or time_utils.now()
     conditions: list = []
     if state == "生效中":
         conditions.append(BlacklistEntry.released_at.is_(None))
@@ -130,10 +131,25 @@ def add_entry(db: Session, admin: User, payload: BlacklistCreate) -> BlacklistEn
             status_code=422,
         )
 
-    now = datetime.now()
+    now = time_utils.now()
     user = db.get(User, payload.user_id)
     if user is None:
         raise BusinessError("用户不存在", code="USER_NOT_FOUND", status_code=404)
+
+    # BR-018：黑名单只约束学生账户。管理员/系统管理员账号由信息中心或
+    # 系统管理员维护，不能通过业务端黑名单把管理员变为「受限」。
+    if user.id == admin.id:
+        raise BusinessError(
+            "不能限制自己的账户",
+            code="SELF_OPERATION_FORBIDDEN",
+            status_code=403,
+        )
+    if user.role != Role.STUDENT.value:
+        raise BusinessError(
+            "管理员账号不参与黑名单限制，由信息中心/系统管理员维护",
+            code="BLACKLIST_TARGET_NOT_STUDENT",
+            status_code=403,
+        )
 
     if _active_entries(db, user.id, now):
         raise BusinessError(
@@ -204,7 +220,7 @@ def release_entry(
             status_code=422,
         )
 
-    now = datetime.now()
+    now = time_utils.now()
     entry = db.get(BlacklistEntry, entry_id)
     if entry is None:
         raise BusinessError(
@@ -261,9 +277,13 @@ def restrict_if_threshold(
     事务内调用——保证「违约记录 + 黑名单 + 黑名单审计 + 违约审计」原子落盘，
     避免黑名单先提交而违约审计日志后提交导致的不一致（调用方负责统一 commit）。
     """
-    now = now or datetime.now()
+    now = now or time_utils.now()
     user = db.get(User, user_id)
     if user is None:
+        return None
+
+    # 违约累计与自动限制只针对学生；管理员账号不参与学生违约/黑名单体系。
+    if user.role != Role.STUDENT.value:
         return None
 
     # 以违约记录数回写累计次数，保证计数与记录一致（ST-034 幂等）
@@ -342,7 +362,7 @@ def release_expired(db: Session, now: datetime | None = None) -> int:
     只处理 mode=自动 的记录；管理员手动加入的限制到期后**不自动解除**（BR-010），
     必须由管理员按 ST-043 显式解除。返回本次解除的记录数。
     """
-    current = now or datetime.now()
+    current = now or time_utils.now()
     stmt = select(BlacklistEntry).where(
         BlacklistEntry.mode == BlacklistMode.AUTO.value,
         BlacklistEntry.released_at.is_(None),

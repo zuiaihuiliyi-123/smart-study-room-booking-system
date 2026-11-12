@@ -27,6 +27,27 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    // 拆包目标：ECharts / Element Plus / Vue 运行时各自独立，
+    // 避免首屏与图表库、组件库一起下载。
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('echarts') || id.includes('zrender')) return 'vendor-echarts'
+          if (id.includes('element-plus') || id.includes('@element-plus')) {
+            return 'vendor-element-plus'
+          }
+          if (id.includes('/vue/') || id.includes('@vue/') || id.includes('vue-router') || id.includes('pinia')) {
+            return 'vendor-vue'
+          }
+          if (id.includes('axios') || id.includes('dayjs')) return 'vendor-utils'
+          return 'vendor'
+        },
+      },
+    },
+    chunkSizeWarningLimit: 900,
+  },
   server: {
     // 显式绑定 IPv4：Node 17+ 的 localhost 可能只解析到 ::1，
     // 而文档、代理和启动脚本统一使用 http://127.0.0.1:5173。

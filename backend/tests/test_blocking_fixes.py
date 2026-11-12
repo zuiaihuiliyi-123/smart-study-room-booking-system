@@ -3,15 +3,20 @@
 from datetime import date, datetime, time, timedelta
 
 import pytest
+from sqlalchemy import func, select
 
 from app.core.config import settings
+from app.core.exceptions import BusinessError
 from app.core.security import hash_password
-from app.models.enums import Role
+from app.models.enums import AccountStatus, ReservationStatus, Role
+from app.models.violation import ViolationRecord
+from app.schemas.violation import ManualViolationCreate
 from app.services import (
     attendance_service,
     dashboard_service,
     notification_service,
     user_service,
+    violation_service,
 )
 from app.utils import masking, time_utils
 
@@ -368,6 +373,237 @@ def test_disable_account_rejects_same_status(api_client, db, make_user) -> None:
         json={"account_status": "正常", "reason": "重复操作"},
     )
     assert response.status_code == 409, response.text
+
+def test_business_admin_cannot_disable_another_admin(
+    api_client, db, make_user
+) -> None:
+    target = make_user(
+        student_no="A7210",
+        name="目标管理员",
+        role=Role.ADMIN.value,
+        password_hash=hash_password("admin123"),
+    )
+    make_user(
+        student_no="A7211",
+        name="操作管理员",
+        role=Role.ADMIN.value,
+        password_hash=hash_password("admin123"),
+    )
+    headers = _login(api_client, "A7211", "admin123")
+
+    response = api_client.patch(
+        f"/api/v1/users/{target.id}/account-status",
+        headers=headers,
+        json={"account_status": "停用", "reason": "测试管理员互停"},
+    )
+    assert response.status_code == 403, response.text
+    db.refresh(target)
+    assert target.account_status == AccountStatus.NORMAL.value
+
+
+def test_business_admin_cannot_disable_system_admin(
+    api_client, db, make_user
+) -> None:
+    target = make_user(
+        student_no="A7212",
+        name="系统管理员",
+        role=Role.SYSTEM_ADMIN.value,
+        password_hash=hash_password("admin123"),
+    )
+    make_user(
+        student_no="A7213",
+        name="操作管理员",
+        role=Role.ADMIN.value,
+        password_hash=hash_password("admin123"),
+    )
+    headers = _login(api_client, "A7213", "admin123")
+
+    response = api_client.patch(
+        f"/api/v1/users/{target.id}/account-status",
+        headers=headers,
+        json={"account_status": "停用", "reason": "测试停用系统管理员"},
+    )
+    assert response.status_code == 403, response.text
+    db.refresh(target)
+    assert target.account_status == AccountStatus.NORMAL.value
+
+
+def test_business_admin_cannot_disable_self(api_client, db, make_user) -> None:
+    operator = make_user(
+        student_no="A7214",
+        name="操作管理员",
+        role=Role.ADMIN.value,
+        password_hash=hash_password("admin123"),
+    )
+    headers = _login(api_client, "A7214", "admin123")
+
+    response = api_client.patch(
+        f"/api/v1/users/{operator.id}/account-status",
+        headers=headers,
+        json={"account_status": "停用", "reason": "测试停用自己"},
+    )
+    assert response.status_code == 403, response.text
+    db.refresh(operator)
+    assert operator.account_status == AccountStatus.NORMAL.value
+
+
+def test_account_status_rejects_restricted_value(
+    api_client, db, make_user
+) -> None:
+    student = make_user(
+        student_no="S7215",
+        name="学生",
+        password_hash=hash_password("student123"),
+    )
+    make_user(
+        student_no="A7215",
+        name="操作管理员",
+        role=Role.ADMIN.value,
+        password_hash=hash_password("admin123"),
+    )
+    headers = _login(api_client, "A7215", "admin123")
+
+    response = api_client.patch(
+        f"/api/v1/users/{student.id}/account-status",
+        headers=headers,
+        json={"account_status": "受限", "reason": "不应绕过黑名单"},
+    )
+    assert response.status_code == 422, response.text
+    db.refresh(student)
+    assert student.account_status == AccountStatus.NORMAL.value
+
+
+def test_business_admin_cannot_blacklist_admin(
+    api_client, db, make_user
+) -> None:
+    target = make_user(
+        student_no="A7216",
+        name="目标管理员",
+        role=Role.ADMIN.value,
+        password_hash=hash_password("admin123"),
+    )
+    make_user(
+        student_no="A7217",
+        name="操作管理员",
+        role=Role.ADMIN.value,
+        password_hash=hash_password("admin123"),
+    )
+    headers = _login(api_client, "A7217", "admin123")
+
+    response = api_client.post(
+        "/api/v1/blacklist",
+        headers=headers,
+        json={"user_id": target.id, "reason": "测试管理员黑名单", "expire_at": None},
+    )
+    assert response.status_code == 403, response.text
+    db.refresh(target)
+    assert target.account_status == AccountStatus.NORMAL.value
+
+
+
+
+def test_auto_violation_skips_non_student_reservation(
+    db, make_user, make_room, make_seat, make_reservation
+) -> None:
+    """管理员历史预约不进入自动违约流程。"""
+    owner = make_user(
+        student_no="A7218",
+        name="管理员",
+        role=Role.ADMIN.value,
+    )
+    room = make_room()
+    seat = make_seat(room.id)
+    reservation = make_reservation(
+        owner.id,
+        seat.id,
+        reserve_date=date(2026, 11, 2),
+        start_time=time(14, 0),
+        end_time=time(16, 0),
+        status=ReservationStatus.PENDING.value,
+    )
+
+    record = violation_service.apply_auto_violation(
+        db, reservation.id, now=datetime(2026, 11, 2, 14, 20)
+    )
+    assert record is None
+    db.refresh(reservation)
+    assert reservation.status == ReservationStatus.PENDING.value
+    assert owner.violation_count == 0
+    assert db.scalar(select(func.count()).select_from(ViolationRecord)) == 0
+
+
+def test_manual_violation_rejects_non_student_reservation(
+    db, make_user, make_room, make_seat, make_reservation
+) -> None:
+    """管理员历史预约不能通过手动违约登记。"""
+    owner = make_user(
+        student_no="A7219",
+        name="管理员",
+        role=Role.ADMIN.value,
+    )
+    operator = make_user(
+        student_no="A7220",
+        name="操作管理员",
+        role=Role.ADMIN.value,
+    )
+    room = make_room()
+    seat = make_seat(room.id)
+    reservation = make_reservation(
+        owner.id,
+        seat.id,
+        status=ReservationStatus.IN_USE.value,
+    )
+
+    with pytest.raises(BusinessError) as exc:
+        violation_service.register_manual(
+            db,
+            operator,
+            ManualViolationCreate(reservation_id=reservation.id, reason="测试"),
+        )
+    assert exc.value.status_code == 409
+    db.refresh(reservation)
+    assert reservation.status == ReservationStatus.IN_USE.value
+    assert owner.violation_count == 0
+
+
+def test_violation_stats_only_count_students(
+    db, make_user, make_room, make_seat, make_reservation
+) -> None:
+    """看板违约统计只统计学生，不把管理员历史数据算进去。"""
+    student = make_user(student_no="S7221", name="学生")
+    admin = make_user(student_no="A7221", name="管理员", role=Role.ADMIN.value)
+    room = make_room()
+    seat = make_seat(room.id)
+    student_reservation = make_reservation(student.id, seat.id)
+    admin_reservation = make_reservation(admin.id, seat.id)
+    created_at = datetime(2026, 11, 2, 11, 0)
+    db.add_all(
+        [
+            ViolationRecord(
+                user_id=student.id,
+                reservation_id=student_reservation.id,
+                type="自动违约",
+                reason="学生违约",
+                created_at=created_at,
+            ),
+            ViolationRecord(
+                user_id=admin.id,
+                reservation_id=admin_reservation.id,
+                type="手动违约",
+                reason="历史管理员数据",
+                created_at=created_at,
+            ),
+        ]
+    )
+    db.commit()
+
+    top = dashboard_service.get_violation_top(
+        db, date(2026, 11, 2), date(2026, 11, 2)
+    )
+    assert [item.name for item in top.items] == ["学生"]
+    overview = dashboard_service.get_overview(db)
+    assert overview.today_violations == 1
+
 
 
 # ---- 场地关闭：改为「关闭时间窗」实体，不再永久停用座位 ----

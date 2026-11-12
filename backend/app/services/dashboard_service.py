@@ -6,7 +6,7 @@ from sqlalchemy import false, func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models.enums import AccountStatus, ReservationStatus, SeatStatus
+from app.models.enums import AccountStatus, ReservationStatus, Role, SeatStatus
 from app.models.reservation import Reservation
 from app.models.room import Room
 from app.models.seat import Seat
@@ -71,18 +71,21 @@ def get_overview(db: Session, room_id: int | None = None) -> StatOverview:
     if seat_ids is not None:
         reservation_conditions.append(Reservation.seat_id.in_(seat_ids))
 
-    in_use_count = 0
-    in_use_rows = db.scalars(
-        select(Reservation).where(
-            Reservation.status == ReservationStatus.IN_USE.value,
-            Reservation.reserve_date == today,
-            *reservation_conditions,
+    in_use_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(Reservation)
+            .where(
+                Reservation.status == ReservationStatus.IN_USE.value,
+                Reservation.reserve_date == today,
+                # 用 SQL 的时间闭开区间直接 COUNT，避免把当日 IN_USE 全量拉回 Python。
+                Reservation.start_time <= now.time(),
+                Reservation.end_time > now.time(),
+                *reservation_conditions,
+            )
         )
+        or 0
     )
-    current_minutes = _minutes(now.time())
-    for row in in_use_rows:
-        if _minutes(row.start_time) <= current_minutes < _minutes(row.end_time):
-            in_use_count += 1
 
     today_start = datetime.combine(today, datetime.min.time())
     today_end = today_start + timedelta(days=1)
@@ -104,6 +107,10 @@ def get_overview(db: Session, room_id: int | None = None) -> StatOverview:
     violation_conditions = [
         ViolationRecord.created_at >= today_start,
         ViolationRecord.created_at < today_end,
+        # 违约只统计学生；管理员账号不参与学生违约体系。
+        ViolationRecord.user_id.in_(
+            select(User.id).where(User.role == Role.STUDENT.value)
+        ),
     ]
     if seat_ids is not None:
         violation_conditions.append(
@@ -253,6 +260,10 @@ def get_violation_top(
     conditions = [
         ViolationRecord.created_at >= period_start,
         ViolationRecord.created_at < period_end,
+        # 违约排行榜只统计学生，管理员账号不进入学生违约 Top。
+        ViolationRecord.user_id.in_(
+            select(User.id).where(User.role == Role.STUDENT.value)
+        ),
     ]
 
     total_records = (
@@ -332,6 +343,10 @@ def get_trend(
     violation_stmt = select(ViolationRecord).where(
         ViolationRecord.created_at >= period_start,
         ViolationRecord.created_at < period_end,
+        # 违约趋势只统计学生；历史管理员数据不计入学生违约统计。
+        ViolationRecord.user_id.in_(
+            select(User.id).where(User.role == Role.STUDENT.value)
+        ),
     )
     if room_id is not None:
         violation_stmt = violation_stmt.where(

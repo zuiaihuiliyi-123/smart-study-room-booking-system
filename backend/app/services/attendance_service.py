@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.exceptions import BusinessError
+from app.core.transactions import transaction
 from app.models.enums import ReservationStatus
 from app.models.reservation import Reservation
 from app.services import reservation_service
@@ -78,9 +79,9 @@ def check_in(db: Session, user_id: int, reservation_id: int) -> Reservation:
             },
         )
 
-    reservation.status = ReservationStatus.IN_USE.value
-    reservation.check_in_time = now
-    db.commit()
+    with transaction(db):
+        reservation.status = ReservationStatus.IN_USE.value
+        reservation.check_in_time = now
     db.refresh(reservation)
     return reservation
 
@@ -111,9 +112,9 @@ def check_out(db: Session, user_id: int, reservation_id: int) -> Reservation:
             details={"status": reservation.status},
         )
 
-    reservation.status = ReservationStatus.COMPLETED.value
-    reservation.check_out_time = time_utils.now()
-    reservation_service.release_slots(db, reservation.id)
-    db.commit()
+    with transaction(db):
+        reservation.status = ReservationStatus.COMPLETED.value
+        reservation.check_out_time = time_utils.now()
+        reservation_service.release_slots(db, reservation.id)
     db.refresh(reservation)
     return reservation

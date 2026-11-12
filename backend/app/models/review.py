@@ -4,6 +4,7 @@ from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.utils import time_utils
 
 
 class Review(Base):
@@ -21,4 +22,4 @@ class Review(Base):
     )
     score: Mapped[int] = mapped_column(Integer, comment="1～5 分")
     content: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time_utils.now)

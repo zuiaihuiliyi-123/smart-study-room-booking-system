@@ -12,7 +12,7 @@ import { http } from 'msw'
 import type { Area, ConflictPreview, Room, RoomCloseResult } from '@/types'
 
 import { getDb, nextId, publicReservation, pushMessage, type MockDb, type ReservationRecord } from '../db'
-import { abort, json, param, readBody, requireAdmin, safe } from '../http'
+import { abort, json, param, readBody, requireAdmin, requireUser, safe } from '../http'
 import { isEffective } from '../rules'
 import { formatDateTime, serverNow } from '../time'
 
@@ -145,9 +145,20 @@ function slotEnd(record: ReservationRecord): number {
         }),
     ),
 
-    /** FR-001：分区列表。后端尚无该只读路由（见文件头说明）。 */
-    http.get('/api/v1/rooms/:roomId/areas', ({ params }) =>
-        safe(() => {
+  /**
+   * 进行中的临时关闭记录：预约页用它把关闭窗口标成「临时关闭」，
+   * 管理端抽屉用它展示「进行中」并支持提前解除。mock 不持久化关闭记录，返回空数组。
+   */
+  http.get('/api/v1/rooms/:roomId/closures', ({ request }) =>
+      safe(() => {
+      requireUser(request)
+      return json([])
+    }),
+  ),
+
+  /** FR-001：分区列表。后端尚无该只读路由（见文件头说明）。 */
+  http.get('/api/v1/rooms/:roomId/areas', ({ params }) =>
+      safe(() => {
         const roomId = Number(param(params, 'roomId'))
         if (!Number.isInteger(roomId)) {
           return abort(400, 'INVALID_ARGUMENT', '自习室参数不合法')

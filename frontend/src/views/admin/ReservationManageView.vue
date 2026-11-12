@@ -171,7 +171,7 @@ onMounted(() => {
               <template #default="{ row }">
                 <el-tooltip
                   placement="top"
-                  :content="`签到：${formatDateTime(row.check_in_time)}　签退：${formatDateTime(row.check_out_time)}（完整时间见详情）`"
+                  :content="`签到：${formatDateTime(row.check_in_time)} 签退：${formatDateTime(row.check_out_time)}（完整时间见详情）`"
                 >
                   <div>
                     <div>签到 {{ clockText(row.check_in_time) }}</div>

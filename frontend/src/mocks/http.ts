@@ -72,7 +72,6 @@ export async function safe(fn: () => Response | Promise<Response>): Promise<Resp
     return await fn()
   } catch (error) {
     if (error instanceof MockHttpError) return error.response
-    const message = error instanceof Error ? error.message : String(error)
     return problem(500, 'MOCK_ERROR', '请求处理失败，请稍后重试')
   }
 }
@@ -90,7 +89,7 @@ export function requireUser(request: Request): UserRecord {
 
 export function requireAdmin(request: Request): UserRecord {
   const user = requireUser(request)
-  if (user.role !== '自习室管理员' && user.role !== '系统管理员') forbidden()
+  if (user.role !== '自习室管理员') forbidden()
   return user
 }
 

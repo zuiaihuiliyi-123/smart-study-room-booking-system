@@ -4,7 +4,8 @@
  *
  * **只读**：不提供任何编辑入口。依据 BR-018 / Q-030 的本版裁定，管理员不可编辑姓名、学号等
  * 身份信息与口令，也不得代改联系方式（联系方式是用户唯一可自行修改的字段）。
- * 账户状态的变更不在此处发生——一律走 FR-044 的黑名单流程，因此抽屉底部提供跳转入口。
+ * 学生账户的受限由黑名单产生、停用/恢复在用户列表行内操作；管理员/系统管理员账号只读，
+ * 由信息中心/系统管理员维护，详情抽屉不提供黑名单跳转。
  *
  * NFR-006：联系方式按形态掩码展示（手机号 / 邮箱），并标注「已掩码」以免被误认为原值。
  */
@@ -44,8 +45,11 @@ const emit = defineEmits<{
         <el-descriptions-item label="角色">{{ props.user.role }}</el-descriptions-item>
         <el-descriptions-item label="账户状态">{{ props.user.account_status }}</el-descriptions-item>
         <el-descriptions-item label="累计违约次数">
-          {{ props.user.violation_count }} / 3
-          <span class="ssr-text-muted">（达到 3 次由系统自动限制 7 天）</span>
+          <template v-if="props.user.role === '学生用户'">
+            {{ props.user.violation_count }} / 3
+            <span class="ssr-text-muted">（达到 3 次由系统自动限制 7 天）</span>
+          </template>
+          <span v-else class="ssr-text-muted">不适用（管理员账号不参与学生违约累计）</span>
         </el-descriptions-item>
         <el-descriptions-item label="联系方式">
           {{ maskContact(props.user.contact) }}
@@ -68,14 +72,20 @@ const emit = defineEmits<{
           也不可代改联系方式。
         </p>
         <p>
-          账户状态（正常 / 受限 / 停用）变化：<strong>受限</strong>由「黑名单管理」产生与解除；
-          <strong>停用 / 恢复</strong>请在用户列表的行内操作（须填写原因并记入审计日志）。
+          账户状态（正常 / 受限 / 停用）变化：对<strong>学生账户</strong>，
+          <strong>受限</strong>由「黑名单管理」产生与解除；<strong>停用 / 恢复</strong>请在用户列表的行内操作
+          （须填写原因并记入审计日志）。<strong>管理员 / 系统管理员账号只读</strong>，
+          由信息中心或系统管理员维护。
         </p>
       </el-alert>
 
       <div class="drawer-actions">
         <el-button @click="emit('update:modelValue', false)">关闭</el-button>
-        <el-button type="primary" @click="emit('open-blacklist', props.user.id)">
+        <el-button
+          v-if="props.user.role === '学生用户'"
+          type="primary"
+          @click="emit('open-blacklist', props.user.id)"
+        >
           跳转到黑名单管理
         </el-button>
       </div>

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.exceptions import BusinessError
-from app.models.enums import MessageType, ReservationStatus, ViolationType
+from app.models.enums import MessageType, ReservationStatus, Role, ViolationType
 from app.models.reservation import Reservation
 from app.models.user import User
 from app.models.violation import ViolationRecord
@@ -184,6 +184,14 @@ def register_manual(
     if user is None:  # pragma: no cover - 外键保证
         raise BusinessError("预约单对应的用户不存在", code="USER_NOT_FOUND", status_code=404)
 
+    # 违约/黑名单只适用于学生；管理员账号不参与预约，也不进入违约累计。
+    if user.role != Role.STUDENT.value:
+        raise BusinessError(
+            "管理员账号不参与违约登记",
+            code="VIOLATION_TARGET_NOT_STUDENT",
+            status_code=409,
+        )
+
     before = {
         "status": reservation.status,
         "violation_count": user.violation_count,
@@ -240,6 +248,11 @@ def apply_auto_violation(
     now = now or time_utils.now()
     reservation = db.get(Reservation, reservation_id)
     if reservation is None:
+        return None
+
+    # 自动违约只处理学生预约；管理员/系统管理员历史预约不进入违约流程。
+    owner = db.get(User, reservation.user_id)
+    if owner is None or owner.role != Role.STUDENT.value:
         return None
 
     existing = _find_violation(db, reservation_id, ViolationType.AUTO)

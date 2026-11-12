@@ -1,6 +1,6 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
-import ElementPlus from 'element-plus'
+import ElementPlus, { ElMessage } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 import 'element-plus/dist/index.css'
@@ -29,6 +29,14 @@ async function bootstrap() {
   app.use(createPinia())
   app.use(router)
   app.use(ElementPlus, { locale: zhCn })
+
+  // 全局兜底：事件处理函数 / 异步回调里的异常不会经过 onErrorCaptured，
+  // 这里统一记录并给用户一条可恢复的提示；渲染异常由 AppErrorBoundary 接住。
+  app.config.errorHandler = (error, _instance, info) => {
+    console.error('[ssr] 未捕获的应用异常', error, info)
+    ElMessage.error('页面发生异常，请稍后重试')
+  }
+
   app.mount('#app')
 }
 

@@ -20,6 +20,7 @@ from app.schemas.room import (
     RoomUpdate,
 )
 from app.services import audit_service, notification_service, reservation_service
+from app.utils import time_utils
 
 
 def _parse_hhmm(value: str, field_name: str) -> datetime:
@@ -344,7 +345,7 @@ def close_room(
             status_code=409,
         )
 
-    now = datetime.now()
+    now = time_utils.now()
     closure = RoomClosure(
         room_id=room.id,
         area_id=payload.area_id,
@@ -434,7 +435,7 @@ def list_closures(db: Session, room_id: int) -> list[RoomClosure]:
         raise BusinessError("自习室不存在", code="ROOM_NOT_FOUND", status_code=404)
     stmt = (
         select(RoomClosure)
-        .where(RoomClosure.room_id == room_id, RoomClosure.end_at > datetime.now())
+        .where(RoomClosure.room_id == room_id, RoomClosure.end_at > time_utils.now())
         .order_by(RoomClosure.start_at)
     )
     return list(db.scalars(stmt))

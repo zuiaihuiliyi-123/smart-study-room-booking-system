@@ -4,6 +4,7 @@ from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.utils import time_utils
 from app.models.enums import BlacklistMode
 
 
@@ -32,7 +33,7 @@ class BlacklistEntry(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     reason: Mapped[str] = mapped_column(String(255))
     mode: Mapped[str] = mapped_column(String(20), default=BlacklistMode.AUTO.value)
-    start_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    start_at: Mapped[datetime] = mapped_column(DateTime, default=time_utils.now)
     expire_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     released_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     release_reason: Mapped[str | None] = mapped_column(

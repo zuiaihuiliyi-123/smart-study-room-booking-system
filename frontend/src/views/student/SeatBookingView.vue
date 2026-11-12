@@ -41,7 +41,6 @@ const {
   summary,
   hint,
   slotStarted,
-  occupancyKnown,
   mySeatIds,
   drawerVisible,
   selectedSeat,

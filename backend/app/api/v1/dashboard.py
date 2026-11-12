@@ -3,6 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.cache import dashboard_cache
 from app.core.database import get_db
 from app.core.dependencies import require_admin
 from app.core.exceptions import BusinessError
@@ -15,6 +16,7 @@ from app.schemas.dashboard import (
     ViolationTopResponse,
 )
 from app.services import dashboard_service
+from app.utils import time_utils
 
 router = APIRouter(prefix="/dashboard", tags=["M6 数据分析"])
 
@@ -41,7 +43,14 @@ def overview(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> StatOverview:
-    return dashboard_service.get_overview(db, room_id)
+    """统计概览：5～10 秒服务端短缓存，降低 10 秒轮询的数据库 QPS。"""
+    key = (id(db.get_bind()), room_id, time_utils.now().date())
+    cached = dashboard_cache.get(key)
+    if isinstance(cached, StatOverview):
+        return cached
+    result = dashboard_service.get_overview(db, room_id)
+    dashboard_cache.set(key, result)
+    return result
 
 
 @router.get(

@@ -14,6 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.utils import time_utils
 from app.models.enums import ReservationStatus
 
 
@@ -33,6 +34,7 @@ class Reservation(Base):
         Index("ix_reservation_seat_date", "seat_id", "reserve_date"),
         Index("ix_reservation_user_date", "user_id", "reserve_date"),
         Index("ix_reservation_status", "status"),
+        Index("ix_reservation_created_at", "created_at"),
         CheckConstraint("start_time < end_time", name="ck_reservation_time_order"),
         CheckConstraint(
             "status IN ('待使用', '使用中', '已完成', '已取消', '已违约')",
@@ -63,7 +65,7 @@ class Reservation(Base):
         Boolean, default=False, comment="ST-025 系统自动结束标记"
     )
     idempotency_key: Mapped[str] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time_utils.now)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now, onupdate=datetime.now
+        DateTime, default=time_utils.now, onupdate=time_utils.now
     )
