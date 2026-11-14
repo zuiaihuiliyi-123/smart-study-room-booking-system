@@ -26,6 +26,8 @@ const {
   loading,
   loadError,
   dateOptions,
+  dateCounts,
+  dateLoading,
   room,
   seats,
   areas,
@@ -130,6 +132,8 @@ watch(() => filters.reserveDate, applyDateChange)
         :close-time="closeTime"
         :min-start-time="minStartTime"
         :loading="loading"
+        :date-counts="dateCounts"
+        :date-loading="dateLoading"
         @search="query"
         @reset="resetFilters"
         @room-change="applyRoomChange"

@@ -33,6 +33,14 @@ const restrictText = computed(() =>
   restrictUntilText(props.error?.restrictUntil ?? '') || '管理员手动限制，须由管理员解除',
 )
 
+/**
+ * 查询中是否已经有可显示的地图。
+ *
+ * 首屏（还没拿到座位）用骨架屏；已经有座位时只在图上盖一层轻提示，
+ * 不把地图整个换掉——否则每次改筛选都会重建地图，用户刚调好的缩放和平移被重置回「适配」。
+ */
+const hasMap = computed(() => props.groups.length > 0 && props.visibleCount > 0)
+
 const emit = defineEmits<{
   (e: 'retry'): void
   (e: 'clear-seat-filter'): void
@@ -49,7 +57,7 @@ const emit = defineEmits<{
     </header>
 
     <LoadingBlock
-      v-if="props.loading"
+      v-if="props.loading && !hasMap"
       :rows="8"
       min-height="320px"
       text="正在查询该时段的可预约座位…"
@@ -93,7 +101,7 @@ const emit = defineEmits<{
       @action="emit('clear-seat-filter')"
     />
 
-    <template v-else>
+    <div v-else class="booking-result__map" :class="{ 'is-refreshing': props.loading }">
       <el-alert
         v-if="props.slotStarted"
         class="booking-result__notice"
@@ -121,7 +129,10 @@ const emit = defineEmits<{
         :areas="props.areas"
         @select="emit('select', $event)"
       />
-    </template>
+
+      <!-- 刷新中只盖一层提示，不卸载地图：否则用户调好的缩放与平移会被重置回「适配」 -->
+      <p v-if="props.loading" class="booking-result__refreshing" role="status">正在刷新这个时段的座位…</p>
+    </div>
   </section>
 </template>
 
@@ -164,5 +175,23 @@ const emit = defineEmits<{
 
 .booking-result__notice {
   margin-bottom: 12px;
+}
+
+.booking-result__map {
+  position: relative;
+}
+
+.booking-result__refreshing {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  margin: 0;
+  padding: 3px 10px;
+  color: var(--ssr-primary-ink);
+  font-size: var(--ssr-font-note);
+  background: var(--ssr-primary-light);
+  border-radius: 999px;
+  pointer-events: none;
 }
 </style>

@@ -12,7 +12,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
-import { createReservation } from '@/api/reservation'
+import { createReservation, listAvailableSeats } from '@/api/reservation'
 import { listRooms } from '@/api/room'
 import type { BookingFilters, MatrixGroup, SubmitState, SubmitSuccess } from '@/components/booking/types'
 import { useAuthStore } from '@/stores/auth'
@@ -187,10 +187,78 @@ const occupancyKnown = computed(() => {
 const matchedSeats = computed(() =>
   seats.value.filter((seat) => matchesSeatFilters(seat, filters)),
 )
-
 const matchedSeatIds = computed(
   () => new Set(matchedSeats.value.map((seat) => seat.id)),
 )
+
+/*
+ * 日期条余量：把「同一自习室、同一时段、另外 7 天」的可约座位也取回来，
+ * 用户不用逐个点开日期才知道哪天有位。8 个日期并发 3 路，失败只影响那一天（记 null）。
+ * 只在换自习室或改时段时重取——座位类型 / 插座 / 靠窗是本地的筛选，不额外请求。
+ */
+const dateFreeSeats = ref<Map<string, ReadonlySet<number>>>(new Map<string, ReadonlySet<number>>())
+const dateLoading = ref(false)
+let dateSeq = 0
+
+async function loadDateAvailability(): Promise<void> {
+  const roomId = filters.roomId
+  if (roomId === null) {
+    dateFreeSeats.value = new Map()
+    return
+  }
+  const token = (dateSeq += 1)
+  const dates = dateOptions.value.map((item) => item.value)
+  const startTime = filters.startTime
+  const endTime = filters.endTime
+  const collected = new Map<string, ReadonlySet<number>>()
+  let cursor = 0
+  dateLoading.value = true
+  const worker = async (): Promise<void> => {
+    while (cursor < dates.length) {
+      const reserveDate = dates[cursor]
+      cursor += 1
+      try {
+        const seatsFree = await listAvailableSeats({
+          room_id: roomId,
+          reserve_date: reserveDate,
+          start_time: startTime,
+          end_time: endTime,
+          include_conflict: true,
+        })
+        collected.set(reserveDate, new Set(seatsFree.map((seat) => seat.id)))
+      } catch {
+        collected.set(reserveDate, new Set<number>())
+      }
+    }
+  }
+  await Promise.all([worker(), worker(), worker()])
+  // 期间又换了条件：这批结果已过期，丢掉
+  if (token !== dateSeq) return
+  dateFreeSeats.value = collected
+  dateLoading.value = false
+}
+
+/** 每个日期在当前筛选下的可约数量；`null` = 还没取到，`-1` = 这个时段已经过去 */
+const dateCounts = computed<Record<string, number | null>>(() => {
+  const counts: Record<string, number | null> = {}
+  const free = dateFreeSeats.value
+  const today = todayKey.value
+  const endMinutes = parseTimeToMinutes(filters.endTime) ?? 22 * 60
+  const now = clock.value
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  for (const option of dateOptions.value) {
+    // 今天但时段已经结束：写 0 会显示成「已满」，会误导成「都约满了」
+    if (option.value === today && nowMinutes >= endMinutes) {
+      counts[option.value] = -1
+      continue
+    }
+    const ids = free.get(option.value)
+    counts[option.value] = ids === undefined
+      ? null
+      : seats.value.filter((seat) => ids.has(seat.id) && matchesSeatFilters(seat, filters)).length
+  }
+  return counts
+})
 
 const groups = computed<MatrixGroup[]>(() => {
   const ids = availableIds.value
@@ -441,7 +509,53 @@ watch(
   },
 )
 
-async function query() {
+/** 最近一次真正发出的查询：用于把「显式查询」和随后的防抖自动刷新合并成一次 */
+let lastQueryKey = ''
+let lastQueryAt = 0
+
+/*
+ * 日期条余量只在「自习室 / 时段」变化时重取；换日期不重取（那 8 个数字是一样的）。
+ * 与主查询同一个 400ms 节奏，避免连改开始时间时打出两批请求。
+ */
+let dateTimer: ReturnType<typeof setTimeout> | null = null
+watch(
+  () => [filters.roomId, filters.startTime, filters.endTime].join('|'),
+  () => {
+    if (!autoReady) return
+    if (dateTimer) clearTimeout(dateTimer)
+    dateTimer = setTimeout(() => {
+      dateTimer = null
+      void loadDateAvailability()
+    }, 400)
+  },
+)
+
+async function query(force = false) {
+  // 换馆 / 换日期时 applyRoomChange() 会先发一次 query()，Vue 之后才把对应的 watch 排进队列，
+  // 所以这里清定时器清不掉它——同一条件会在 400ms 后再发一次一模一样的请求。
+  // 改成按「条件 + 时间窗」去重：同一组条件 800ms 内只发一次；手动刷新传 force 绕过。
+  const key = [
+    filters.roomId,
+    filters.reserveDate,
+    filters.startTime,
+    filters.endTime,
+    filters.seatType,
+    filters.powerOnly,
+    filters.windowOnly,
+  ].join('|')
+  if (!force && key === lastQueryKey && Date.now() - lastQueryAt < 800) {
+    if (autoTimer) {
+      clearTimeout(autoTimer)
+      autoTimer = null
+    }
+    return
+  }
+  lastQueryKey = key
+  lastQueryAt = Date.now()
+  if (autoTimer) {
+    clearTimeout(autoTimer)
+    autoTimer = null
+  }
   const problem = validationError()
   if (problem) {
     loading.value = false
@@ -490,7 +604,9 @@ async function query() {
 
 async function bootstrap() {
   try {
-    rooms.value = await listRooms()
+    // 学生视角只看启用的自习室：停用是「这间暂时不开放预约」，不该出现在切换条里，
+    // 更不该选中后把整页变成「查询失败 · 该自习室已停用」的错误态。
+    rooms.value = (await listRooms()).filter((item) => item.enabled !== false)
   } catch (error) {
     loadError.value = toBookingFailure(error)
     loading.value = false
@@ -506,6 +622,8 @@ async function bootstrap() {
     setAutoNotice('默认时段已被占用，已自动改选到下一个可用时段')
   }
   autoReady = true
+  // 首屏就把日期条上另外几天的余量取回来，用户不必逐个点开才知道哪天有位
+  void loadDateAvailability()
 }
 
 function resetFilters() {
@@ -684,6 +802,8 @@ return {
   loadError,
   // 派生
   dateOptions,
+  dateCounts,
+  dateLoading,
   room,
   openTime,
   closeTime,
