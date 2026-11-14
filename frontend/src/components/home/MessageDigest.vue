@@ -69,10 +69,20 @@ const emit = defineEmits<{
 
 <style scoped>
 .digest {
+  display: flex;
+  flex-direction: column;
   padding: 14px 16px;
   background: var(--ssr-surface);
   border: 1px solid var(--ssr-line);
   border-radius: var(--ssr-radius);
+}
+
+/* 首页两栏同高：右栏被拉满后，把空态与说明铺开，避免下面留一大块空白 */
+.digest :deep(.empty-state) {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
 }
 
 .digest__head {
@@ -178,9 +188,13 @@ const emit = defineEmits<{
   font-weight: 600;
 }
 
+.digest__list {
+  flex: 1 1 auto;
+}
+
 .digest__note {
   padding-top: 8px;
-  margin: 8px 0 0;
+  margin: auto 0 0;
   border-top: 1px dashed var(--ssr-line);
 }
 </style>

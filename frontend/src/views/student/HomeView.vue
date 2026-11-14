@@ -8,6 +8,7 @@ import { checkIn, checkOut } from '@/api/reservation'
 import FirstUseGuide from '@/components/home/FirstUseGuide.vue'
 import MessageDigest from '@/components/home/MessageDigest.vue'
 import TodayReservationCard from '@/components/home/TodayReservationCard.vue'
+import UsageStats from '@/components/home/UsageStats.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMessageStore } from '@/stores/message'
 import type { Reservation, StationMessage } from '@/types'
@@ -176,41 +177,48 @@ onMounted(() => {
       />
 
       <div class="home-grid">
-        <div class="home-col">
-          <TodayReservationCard
-            :reservations="todayReservations"
-            :directory="directory"
-            :now="clock"
-            :loading="loading"
-            :error-message="error?.message ?? ''"
-            @checkin="onCheckIn"
-            @checkout="onCheckOut"
-            @retry="load"
-            @booking="router.push('/student/booking')"
-          />
-
-          <section class="entries" aria-label="快捷入口">
-            <button
-              v-for="entry in entries"
-              :key="entry.to"
-              class="entry"
-              type="button"
-              @click="router.push(entry.to)"
-            >
-              <el-icon class="entry__icon"><component :is="entry.icon" /></el-icon>
-              <span class="entry__title">{{ entry.title }}</span>
-              <span class="entry__desc">{{ entry.description }}</span>
-            </button>
-          </section>
-        </div>
+        <TodayReservationCard
+          class="home-grid__today"
+          :reservations="todayReservations"
+          :directory="directory"
+          :now="clock"
+          :loading="loading"
+          :error-message="error?.message ?? ''"
+          @checkin="onCheckIn"
+          @checkout="onCheckOut"
+          @retry="load"
+          @booking="router.push('/student/booking')"
+        />
 
         <MessageDigest
+          class="home-grid__messages"
           :messages="messages.digestItems"
           :unread-total="messages.unreadCount"
           :loading="messages.loading"
           :error-message="messages.errorMessage"
           @open="onOpenMessage"
           @retry="loadMessages"
+        />
+
+        <section class="entries home-grid__entries" aria-label="快捷入口">
+          <button
+            v-for="entry in entries"
+            :key="entry.to"
+            class="entry"
+            type="button"
+            @click="router.push(entry.to)"
+          >
+            <el-icon class="entry__icon"><component :is="entry.icon" /></el-icon>
+            <span class="entry__title">{{ entry.title }}</span>
+            <span class="entry__desc">{{ entry.description }}</span>
+          </button>
+        </section>
+
+        <UsageStats
+          class="home-grid__usage"
+          :today="today"
+          :reservations="myReservations"
+          :loading="loading"
         />
       </div>
     </div>
@@ -264,17 +272,41 @@ onMounted(() => {
   color: var(--ssr-muted-ink);
 }
 
+/*
+ * 今日预约与未读消息并排在同一行：右栏随左卡拉满同一高度，
+ * 两张卡的底边框才对得齐（之前右栏按内容高度收尾，底下塌进去一截）。
+ */
 .home-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
   gap: 16px;
-  align-items: start;
 }
 
-.home-col {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.home-grid__today {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.home-grid__messages {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.home-grid__entries {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+}
+
+/*
+ * 右下角原本是空白：补一块「本周使用」小结，与左侧快捷入口同一行，
+ * 高度同样随行拉伸，所以两块的底边也齐。
+ */
+.home-grid__usage {
+  grid-column: 2;
+  grid-row: 2;
   min-width: 0;
 }
 
@@ -325,6 +357,26 @@ onMounted(() => {
 @media (max-width: 1024px) {
   .home-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-grid__today {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .home-grid__messages {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .home-grid__entries {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .home-grid__usage {
+    grid-column: 1;
+    grid-row: 4;
   }
 }
 </style>
