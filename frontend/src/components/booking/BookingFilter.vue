@@ -24,6 +24,9 @@ const props = defineProps<{
   /** 时间选择下限；当前为开放时间，允许回看已开始的只读时段 */
   minStartTime: string
   loading: boolean
+  /** 每个日期在当前时段 / 筛选下的可约座位数；null 表示还在取 */
+  dateCounts?: Record<string, number | null>
+  dateLoading?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -72,6 +75,26 @@ function onStartChange() {
   }
 }
 
+/**
+ * 日期条第三行：这几天里这个时段还剩多少座位。
+ * 数字未到（或正在取）显示占位，0 单独标出来，省得点进去才发现没位。
+ */
+function freeLabel(value: string): string {
+  const count = props.dateCounts?.[value] ?? null
+  if (count === null) return '—'
+  if (count < 0) return '已过'
+  if (count === 0) return '已满'
+  return `剩 ${count}`
+}
+
+function isFull(value: string): boolean {
+  return (props.dateCounts?.[value] ?? null) === 0
+}
+
+function isPassed(value: string): boolean {
+  return (props.dateCounts?.[value] ?? null) === -1
+}
+
 function pickDate(value: string) {
   if (props.filters.reserveDate === value) return
   props.filters.reserveDate = value
@@ -98,6 +121,14 @@ function pickRoom(id: number) {
       >
         <span class="date-chip__top">{{ chip.top }}</span>
         <span class="date-chip__sub">{{ chip.sub }}</span>
+        <span
+          class="date-chip__free"
+          :class="{
+            'date-chip__free--full': isFull(chip.value),
+            'date-chip__free--passed': isPassed(chip.value),
+            'date-chip__free--loading': props.dateLoading,
+          }"
+        >{{ freeLabel(chip.value) }}</span>
       </button>
     </div>
 
@@ -213,6 +244,33 @@ function pickRoom(id: number) {
 .date-chip--on .date-chip__sub {
   color: var(--ssr-primary-ink);
   opacity: 0.8;
+}
+
+/* 第三行：这个时段在这天还剩几个座位，一眼看出哪天有位 */
+.date-chip__free {
+  font-size: calc(var(--ssr-font-note) - 3px);
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--ssr-success);
+  font-variant-numeric: tabular-nums;
+}
+
+.date-chip__free--full {
+  color: var(--ssr-danger);
+}
+
+.date-chip__free--passed {
+  color: var(--ssr-muted-ink);
+  font-weight: 500;
+}
+
+.date-chip__free--loading {
+  color: var(--ssr-muted-ink);
+  opacity: 0.6;
+}
+
+.date-chip--on .date-chip__free {
+  color: var(--ssr-primary-ink);
 }
 
 .bar-row {

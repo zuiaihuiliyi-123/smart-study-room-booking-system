@@ -51,12 +51,21 @@ function goHome(): void {
     </template>
   </el-result>
 
-  <div v-else :key="renderKey">
+  <div v-else :key="renderKey" class="error-boundary__host">
     <slot />
   </div>
 </template>
 
 <style scoped>
+/*
+ * 这一层必须把高度传下去：外壳 `#app` 是 height:100%，而登录页 `.auth` / `.app-shell`
+ * 都用 `height/min-height: 100%` 占满视口。如果这层 div 高度为 auto，百分比高度会退化成
+ * 内容高度，登录页就只占屏幕上半部分。
+ */
+.error-boundary__host {
+  height: 100%;
+}
+
 .error-boundary {
   display: flex;
   flex-direction: column;

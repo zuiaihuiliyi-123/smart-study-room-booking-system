@@ -73,8 +73,11 @@ const KIND_META: Record<MapZoneKind, { label: string; en: string }> = {
   central: { label: '中央开放区', en: 'OPEN DESK' },
 }
 
-const CHAIR_W = 28
-const CHAIR_H = 24
+/* 椅子尺寸与桌间距：椅子略大一些更接近真实座位图，也更容易点中 */
+const CHAIR_W = 32
+const CHAIR_H = 27
+/** 同一排相邻椅子的中心距（椅子宽度 + 6px 间隙） */
+const CHAIR_STEP = 38
 const ROW_GAP = 10
 const ZONE_PAD = 12
 const ZONE_TOP = 36
@@ -136,7 +139,7 @@ function chunkCells(cells: readonly MatrixCell[], capacity: number): MatrixCell[
 
 function horizontalBlueprint(cells: readonly MatrixCell[], kind: MapZoneKind): TableBlueprint {
   const count = cells.length
-  const tableW = Math.max(74, count * 34 + 8)
+  const tableW = Math.max(84, count * CHAIR_STEP + 8)
   const tableH = count <= 2 ? 38 : 42
   const topCount = Math.ceil(count / 2)
   const bottomCount = count - topCount
@@ -178,11 +181,11 @@ function horizontalBlueprint(cells: readonly MatrixCell[], kind: MapZoneKind): T
 
 function verticalPowerBlueprint(cells: readonly MatrixCell[]): TableBlueprint {
   const count = cells.length
-  const tableH = Math.max(96, count * 34)
-  const tableW = 52
+  const tableH = Math.max(100, count * CHAIR_STEP)
+  const tableW = 42
   const leftCount = Math.ceil(count / 2)
   const rightCount = count - leftCount
-  const tableX = CHAIR_W + 6
+  const tableX = CHAIR_W + 4
   const chairs: TableBlueprint['chairs'] = []
 
   for (let i = 0; i < leftCount; i += 1) {
@@ -196,7 +199,7 @@ function verticalPowerBlueprint(cells: readonly MatrixCell[]): TableBlueprint {
   for (let i = 0; i < rightCount; i += 1) {
     chairs.push({
       cell: cells[leftCount + i],
-      dx: tableX + tableW + 6,
+      dx: tableX + tableW + 4,
       dy: ((i + 0.5) * tableH) / rightCount - CHAIR_H / 2,
       orientation: 'e',
     })
@@ -213,17 +216,17 @@ function verticalPowerBlueprint(cells: readonly MatrixCell[]): TableBlueprint {
       tags: tableTags('power', cells),
     },
     chairs,
-    w: tableX + tableW + 6 + CHAIR_W,
+    w: tableX + tableW + 4 + CHAIR_W,
     h: tableH,
   }
 }
 
 function roundTableBlueprint(cells: readonly MatrixCell[]): TableBlueprint {
-  const tableW = 58
-  const tableH = 52
-  const centerX = 60
-  const centerY = 56
-  const radius = 43
+  const tableW = 50
+  const tableH = 44
+  const centerX = 58
+  const centerY = 58
+  const radius = 42
   const tableX = centerX - tableW / 2
   const tableY = centerY - tableH / 2
   const chairs: TableBlueprint['chairs'] = cells.map((cell, index) => {
@@ -251,13 +254,13 @@ function roundTableBlueprint(cells: readonly MatrixCell[]): TableBlueprint {
       tags: tableTags('quiet', cells),
     },
     chairs,
-    w: 120,
-    h: 112,
+    w: 116,
+    h: 116,
   }
 }
 
 function accessibleBlueprint(cells: readonly MatrixCell[]): TableBlueprint {
-  const tableW = 142
+  const tableW = 150
   const tableH = 34
   const chairs: TableBlueprint['chairs'] = cells.map((cell, index) => ({
     cell,
@@ -402,7 +405,8 @@ export function buildSeatMapLayout(
   const height = count <= 2 ? 580 : count <= 4 ? 640 : count <= 6 ? 720 : 820
   const columns = count <= 1 ? 1 : count <= 4 ? 2 : count <= 6 ? 3 : 4
   const rows = Math.ceil(count / columns)
-  const inner = { x: 42, y: 56, w: width - 84, h: height - 156 }
+  /* 椅子放大后分区要多留一点高度，否则一区里的多张桌子会压到虚线框外 */
+  const inner = { x: 42, y: 48, w: width - 84, h: height - 140 }
   const gap = 14
   const zoneW = (inner.w - gap * (columns - 1)) / columns
   const zoneH = (inner.h - gap * (rows - 1)) / rows

@@ -57,12 +57,18 @@ let resizeObserver: ResizeObserver | null = null
 
 const stageStyle = computed<Record<string, string>>(() => {
   const z = transform.z
-  const chairFont = Math.min(20, Math.max(8, 10 / z))
-  const tableFont = Math.min(18, Math.max(7, 9 / z))
+  /*
+   * 位置取整：平移量带小数（例如 230.375px）时，画布里的文字和 1px 描边
+   * 会落在半像素上，整体看起来发糊；取整后贴回物理像素格，字才清晰。
+   */
+  const x = Math.round(transform.x)
+  const y = Math.round(transform.y)
+  const chairFont = Math.min(20, Math.max(9, 11 / z))
+  const tableFont = Math.min(18, Math.max(7, 10 / z))
   return {
     width: `${layout.value.width}px`,
     height: `${layout.value.height}px`,
-    transform: `translate(${transform.x}px, ${transform.y}px) scale(${z})`,
+    transform: `translate(${x}px, ${y}px) scale(${z})`,
     '--chair-font': `${chairFont.toFixed(2)}px`,
     '--table-font': `${tableFont.toFixed(2)}px`,
   }
@@ -152,6 +158,48 @@ function chairTitle(chair: SeatMapChair): string {
   return `${chair.cell.seat.seat_no} · ${state}`
 }
 
+/*
+ * 悬停信息卡：浏览器自带的 title 提示要等一秒左右、样式也改不了。
+ * 这里自己画一张小卡片，位置取椅子在画布里的屏幕坐标（画布本身不参与缩放），
+ * 所以无论缩放到多少，卡片都贴着椅子且字号恒定。
+ */
+interface ChairHoverCard {
+  seatNo: string
+  stateText: string
+  mine: boolean
+  meta: string
+  x: number
+  y: number
+  below: boolean
+}
+
+const hoverCard = ref<ChairHoverCard | null>(null)
+
+function onChairEnter(event: PointerEvent, chair: SeatMapChair): void {
+  const shell = shellRef.value
+  if (!shell || dragging.value) return
+  const target = event.currentTarget as HTMLElement | null
+  if (!target) return
+  const box = target.getBoundingClientRect()
+  const frame = shell.getBoundingClientRect()
+  const mine = mineSet.value.has(chair.key)
+  const meta = [
+    chair.cell.seat.seat_type,
+    chair.cell.seat.has_power ? '有插座' : '',
+    chair.cell.seat.near_window ? '靠窗' : '',
+  ].filter(Boolean)
+  const y = box.top - frame.top
+  hoverCard.value = {
+    seatNo: chair.cell.seat.seat_no,
+    stateText: chairFiltered(chair) ? '不符合当前筛选' : mine ? '我的预约' : SEAT_STATE_TEXT[chair.cell.state],
+    mine,
+    meta: meta.join(' · '),
+    x: box.left - frame.left + box.width / 2,
+    y,
+    below: y < 64,
+  }
+}
+
 function clampViewport(): void {
   const shell = shellRef.value
   if (!shell) return
@@ -215,7 +263,88 @@ function zoomBy(factor: number): void {
   zoomAt(shell.clientWidth / 2, shell.clientHeight / 2, transform.z * factor)
 }
 
+/* ------------------------------ 缩略导航 ------------------------------ */
+
+const MINI_W = 132
+const MINI_H = 96
+
+/** 把整张平面图塞进角落的缩放比 */
+const miniScale = computed(() =>
+  Math.min(MINI_W / layout.value.width, MINI_H / layout.value.height),
+)
+
+const miniSize = computed(() => ({
+  w: Math.round(layout.value.width * miniScale.value),
+  h: Math.round(layout.value.height * miniScale.value),
+}))
+
+/** 当前视野（换算回图纸坐标），裁剪到图纸范围内，避免视野框画到外框上 */
+const miniViewport = computed(() => {
+  const z = transform.z || 1
+  const width = layout.value.width
+  const height = layout.value.height
+  const x = clamp(-transform.x / z, 0, width)
+  const y = clamp(-transform.y / z, 0, height)
+  return {
+    x,
+    y,
+    w: Math.max(1, Math.min(shellSize.w / z, width - x)),
+    h: Math.max(1, Math.min(shellSize.h / z, height - y)),
+  }
+})
+
+/** 放大到看不见整张图时才给缩略导航，适配状态不占地方 */
+const showMini = computed(() => {
+  const view = miniViewport.value
+  return view.w < layout.value.width - 6 || view.h < layout.value.height - 6
+})
+
+const miniDragging = ref(false)
+
+/** 缩略图上的点 → 图纸坐标 */
+function miniWorldFrom(event: PointerEvent): { x: number; y: number } {
+  const el = event.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  const scale = miniScale.value || 1
+  return { x: (event.clientX - rect.left) / scale, y: (event.clientY - rect.top) / scale }
+}
+
+/** 把缩略图上点到的位置移到视野中心 */
+function miniCenterOn(event: PointerEvent): void {
+  const world = miniWorldFrom(event)
+  transform.x = shellSize.w / 2 - world.x * transform.z
+  transform.y = shellSize.h / 2 - world.y * transform.z
+  autoFit.value = false
+  clampViewport()
+}
+
+function onMiniDown(event: PointerEvent): void {
+  if (event.pointerType === 'mouse' && event.button !== 0) return
+  event.preventDefault()
+  miniDragging.value = true
+  ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
+  miniCenterOn(event)
+}
+
+function onMiniMove(event: PointerEvent): void {
+  if (!miniDragging.value) return
+  miniCenterOn(event)
+}
+
+function onMiniUp(event: PointerEvent): void {
+  if (!miniDragging.value) return
+  miniDragging.value = false
+  ;(event.currentTarget as HTMLElement).releasePointerCapture?.(event.pointerId)
+}
+
+/**
+ * 滚轮语义：Ctrl / ⌘ + 滚轮缩放，普通滚轮放行给页面滚动。
+ *
+ * 之前无差别 `preventDefault()` + 缩放，鼠标停在图上滚页面时页面不动、地图反而缩小，
+ * 用户会认为「滚轮坏了」。触控板的双指缩放由 pointer 事件单独处理，不受这里影响。
+ */
 function onWheel(event: WheelEvent): void {
+  if (!event.ctrlKey && !event.metaKey) return
   event.preventDefault()
   zoomAt(event.clientX, event.clientY, transform.z * Math.exp(-event.deltaY * 0.0016))
 }
@@ -249,6 +378,7 @@ function onPointerDown(event: PointerEvent): void {
     moved: false,
   }
   dragging.value = true
+  hoverCard.value = null
   window.addEventListener('pointermove', onPointerMove)
   window.addEventListener('pointerup', onPointerUp)
   window.addEventListener('pointercancel', onPointerUp)
@@ -383,11 +513,23 @@ function rebuildAfterLayoutChange(): void {
   })
 }
 
+/** 画布可视区尺寸：缩略导航要用它换算「当前看到的是整图的哪一块」 */
+const shellSize = reactive({ w: 0, h: 0 })
+
+function measureShell(): void {
+  const shell = shellRef.value
+  if (!shell) return
+  shellSize.w = shell.clientWidth
+  shellSize.h = shell.clientHeight
+}
+
 function observeShell(): void {
   resizeObserver?.disconnect()
   const shell = shellRef.value
   if (!shell) return
+  measureShell()
   resizeObserver = new ResizeObserver(() => {
+    measureShell()
     if (autoFit.value) fitMap()
     else {
       clampViewport()
@@ -444,10 +586,10 @@ onBeforeUnmount(() => {
       :class="{ 'is-dragging': dragging }"
       tabindex="0"
       role="region"
-      aria-label="自习室平面图。拖拽平移，滚轮或双指缩放；用 Tab 浏览椅子，回车选择。"
+      aria-label="自习室平面图。拖拽平移，Ctrl 加滚轮或双指缩放；用 Tab 浏览椅子，回车选择。"
       @pointerdown="onPointerDown"
       @keydown="onShellKeydown"
-      @wheel.prevent="onWheel"
+      @wheel="onWheel"
     >
       <div ref="stageRef" class="seat-map__stage" :style="stageStyle" :data-lod="lod">
         <div class="seat-map__floor" :style="{ width: `${layout.width}px`, height: `${layout.height}px` }">
@@ -540,6 +682,8 @@ onBeforeUnmount(() => {
             :aria-label="chairLabel(chair)"
             :aria-pressed="props.selectedSeatId === chair.cell.seat.id"
             :title="chairTitle(chair)"
+            @pointerenter="onChairEnter($event, chair)"
+            @pointerleave="hoverCard = null"
             @click="onChairClick(chair.cell)"
             @keydown="onChairKeydown($event, chair)"
           >
@@ -575,12 +719,68 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
+      <div
+        v-if="hoverCard"
+        class="seat-hover"
+        :class="{ 'seat-hover--below': hoverCard.below }"
+        :style="{ left: `${hoverCard.x}px`, top: `${hoverCard.y}px` }"
+        role="presentation"
+      >
+        <span class="seat-hover__no">{{ hoverCard.seatNo }}</span>
+        <span class="seat-hover__state" :class="{ 'seat-hover__state--mine': hoverCard.mine }">
+          {{ hoverCard.stateText }}
+        </span>
+        <span class="seat-hover__meta">{{ hoverCard.meta }}</span>
+      </div>
+
       <p class="seat-map__hint">
         <span>拖拽平移</span>
-        <span>滚轮 / 双指缩放</span>
+        <span>Ctrl + 滚轮 / 双指缩放</span>
         <span>点击椅子查看</span>
         <span v-if="filteredCount > 0">淡色椅子不符合当前筛选</span>
       </p>
+
+      <!-- 缩略导航：放大到看不全时，用它拖到想去的位置 -->
+      <div
+        v-if="showMini"
+        class="seat-mini"
+        :style="{ width: `${miniSize.w}px`, height: `${miniSize.h}px` }"
+        role="presentation"
+        aria-hidden="true"
+        @pointerdown="onMiniDown"
+        @pointermove="onMiniMove"
+        @pointerup="onMiniUp"
+        @pointercancel="onMiniUp"
+      >
+        <svg class="seat-mini__svg" :viewBox="`0 0 ${layout.width} ${layout.height}`">
+          <rect
+            v-for="zone in layout.zones"
+            :key="zone.id"
+            class="seat-mini__zone"
+            :x="zone.x"
+            :y="zone.y"
+            :width="zone.w"
+            :height="zone.h"
+          />
+          <rect
+            v-for="table in layout.tables"
+            :key="table.id"
+            class="seat-mini__table"
+            :x="table.x"
+            :y="table.y"
+            :width="table.w"
+            :height="table.h"
+            :rx="table.shape === 'round' ? Math.min(table.w, table.h) / 2 : 4"
+          />
+          <rect
+            class="seat-mini__view"
+            :x="miniViewport.x"
+            :y="miniViewport.y"
+            :width="miniViewport.w"
+            :height="miniViewport.h"
+          />
+        </svg>
+      </div>
     </div>
 
     <SeatMapList
@@ -626,8 +826,11 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 0;
   left: 0;
+  /*
+   * 不要 will-change：提前提升为合成层会让浏览器按 1 倍光栅化后再缩放，
+   * 缩放不是整数时整张图的文字都会变虚。交给浏览器按当前 transform 重新光栅化。
+   */
   transform-origin: 0 0;
-  will-change: transform;
 }
 
 .seat-map__floor {
@@ -777,7 +980,7 @@ onBeforeUnmount(() => {
 
 .map-zone__label em {
   font-style: normal;
-  opacity: 0.55;
+  opacity: 0.72;
 }
 
 .map-table {
@@ -789,7 +992,8 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 1px;
   overflow: hidden;
-  color: var(--ssr-desk-line);
+  /* 桌面文字用墨色压深一档：原来是桌线色配桌面色，缩放后整行看着发灰、像糊了 */
+  color: color-mix(in srgb, var(--ssr-ink) 82%, var(--ssr-desk-line));
   background:
     repeating-linear-gradient(90deg, transparent 0 8px, color-mix(in srgb, var(--ssr-desk-line) 7%, transparent) 8px 9px),
     linear-gradient(180deg, var(--ssr-desk-top) 0%, var(--ssr-desk-mid) 100%);
@@ -844,8 +1048,8 @@ onBeforeUnmount(() => {
 
 .map-table__tag {
   padding: 0 2px;
-  color: var(--ssr-desk-line);
-  border: 1px solid color-mix(in srgb, var(--ssr-desk-line) 38%, transparent);
+  color: color-mix(in srgb, var(--ssr-ink) 70%, var(--ssr-desk-line));
+  border: 1px solid color-mix(in srgb, var(--ssr-desk-line) 55%, transparent);
   border-radius: 2px;
   font-family: var(--ssr-font-ui, sans-serif);
   font-size: 0.82em;
@@ -854,9 +1058,9 @@ onBeforeUnmount(() => {
 .map-table__meta {
   position: relative;
   z-index: 1;
-  color: color-mix(in srgb, var(--ssr-desk-line) 80%, transparent);
+  color: color-mix(in srgb, var(--ssr-ink) 62%, var(--ssr-desk-line));
   font-family: var(--ssr-font-ui, sans-serif);
-  font-size: calc(var(--table-font, 8px) * 0.78);
+  font-size: calc(var(--table-font, 8px) * 0.86);
   line-height: 1.1;
 }
 
@@ -1194,6 +1398,46 @@ onBeforeUnmount(() => {
   letter-spacing: 0.08em;
 }
 
+.seat-hover {
+  position: absolute;
+  z-index: 9;
+  display: flex;
+  gap: 7px;
+  align-items: baseline;
+  padding: 5px 10px;
+  color: var(--ssr-ink);
+  white-space: nowrap;
+  pointer-events: none;
+  background: var(--ssr-surface-raised);
+  border: 1px solid var(--ssr-line-strong);
+  border-radius: 10px;
+  box-shadow: var(--ssr-shadow-md);
+  transform: translate(-50%, calc(-100% - 8px));
+  font-size: var(--ssr-font-note);
+}
+
+.seat-hover--below {
+  transform: translate(-50%, 10px);
+}
+
+.seat-hover__no {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.seat-hover__state {
+  color: var(--ssr-muted-ink);
+}
+
+.seat-hover__state--mine {
+  color: var(--ssr-primary-ink);
+  font-weight: 600;
+}
+
+.seat-hover__meta {
+  color: var(--ssr-muted-ink);
+}
+
 .seat-map__hint {
   position: absolute;
   right: 50%;
@@ -1217,6 +1461,45 @@ onBeforeUnmount(() => {
 .seat-map__hint span + span::before {
   margin-right: 9px;
   content: '·';
+}
+
+/* 缩略导航：整图轮廓 + 当前视野框，可点击 / 拖动跳转。
+   放在画布右上角——底部常被搜索条拦着，放下面会被裁掉一半。 */
+.seat-mini {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 9;
+  overflow: hidden;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--ssr-surface) 92%, transparent);
+  border: 1px solid var(--ssr-line-strong);
+  border-radius: 10px;
+  box-shadow: var(--ssr-shadow-md);
+  touch-action: none;
+}
+
+.seat-mini__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.seat-mini__zone {
+  fill: color-mix(in srgb, var(--ssr-bg) 70%, transparent);
+  stroke: var(--ssr-line);
+  stroke-width: 4;
+}
+
+.seat-mini__table {
+  fill: var(--ssr-desk-mid, var(--ssr-line-strong));
+  opacity: 0.55;
+}
+
+.seat-mini__view {
+  fill: color-mix(in srgb, var(--ssr-primary) 16%, transparent);
+  stroke: var(--ssr-primary);
+  stroke-width: 8;
 }
 
 .seat-map__stage[data-lod='far'] .map-table__meta,

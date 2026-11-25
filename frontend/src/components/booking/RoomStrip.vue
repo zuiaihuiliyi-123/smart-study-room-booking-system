@@ -51,10 +51,15 @@ function revealActive() {
   if (!el) return
   const active = el.querySelector<HTMLElement>('.room-tab--on')
   if (!active) return
-  const left = active.offsetLeft
-  const right = left + active.offsetWidth
-  if (left < el.scrollLeft) el.scrollLeft = left - 8
-  else if (right > el.scrollLeft + el.clientWidth) el.scrollLeft = right - el.clientWidth + 8
+  // 用屏幕坐标算差值：offsetLeft 依赖 offsetParent，换布局就会算错，
+  // 之前首项被左箭头挡掉半个字就是这里算歪了。
+  const box = el.getBoundingClientRect()
+  const rect = active.getBoundingClientRect()
+  if (rect.left < box.left) {
+    el.scrollLeft = Math.max(0, el.scrollLeft - (box.left - rect.left) - 8)
+  } else if (rect.right > box.right) {
+    el.scrollLeft += rect.right - box.right + 8
+  }
   updateOverflow()
 }
 
@@ -62,8 +67,12 @@ let observer: ResizeObserver | null = null
 
 onMounted(() => {
   updateOverflow()
+  void nextTick(revealActive)
   if (typeof ResizeObserver !== 'undefined') {
-    observer = new ResizeObserver(updateOverflow)
+    observer = new ResizeObserver(() => {
+      updateOverflow()
+      revealActive()
+    })
     if (strip.value) observer.observe(strip.value)
   }
 })
