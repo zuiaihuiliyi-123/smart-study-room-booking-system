@@ -37,4 +37,11 @@ export const authHandlers = [
 http.get('/api/v1/auth/me', ({ request }) =>
     safe(() => json(publicUser(requireUser(request)))),
 ),
+
+http.post('/api/v1/auth/logout', ({ request }) =>
+    safe(() => {
+      requireUser(request)
+      return json({ message: '已退出登录' })
+    }),
+),
 ]

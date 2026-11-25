@@ -24,7 +24,12 @@ from app.models.user import User
 from app.schemas.reservation import CancelRequest, ForceCancelRequest, ReservationCreate
 from app.services import audit_service, availability_service, notification_service
 from app.services.reservation_query_service import get_reservation
+from app.services.reservation_state import transition_if_status
 from app.utils import time_utils
+
+
+class _StateChanged(Exception):
+    """内部哨兵：条件更新未命中，说明状态已被并发请求改变。"""
 
 
 def _find_by_idempotency_key(
@@ -73,37 +78,44 @@ def create_reservation(
         _ensure_same_payload(existing, payload)
         return existing
 
-    def operation() -> Reservation:
+    def operation() -> tuple[Reservation, bool]:
         with transaction(db):
             return _create_once(db, user, payload)
 
-    reservation = run_with_db_retry(db, operation)
+    reservation, created = run_with_db_retry(db, operation)
     db.refresh(reservation)
-    notification_service.notify_safe(
-        user_id=user.id,
-        message_type=MessageType.RESERVATION,
-        title="预约成功",
-        content=(
-            f"你已预约 {payload.reserve_date} "
-            f"{payload.start_time.strftime('%H:%M')}-{payload.end_time.strftime('%H:%M')} 的座位，"
-            f"请于开始前 {settings.checkin_early_minutes} 分钟至开始后 "
-            f"{settings.checkin_late_minutes} 分钟内签到。"
-        ),
-        related_type="预约单",
-        related_id=reservation.id,
-    )
+    # 幂等重放 / 并发同键只返回既有预约，不能重复发送“预约成功”
+    if created:
+        notification_service.notify_safe(
+            user_id=user.id,
+            message_type=MessageType.RESERVATION,
+            title="预约成功",
+            content=(
+                f"你已预约 {payload.reserve_date} "
+                f"{payload.start_time.strftime('%H:%M')}-{payload.end_time.strftime('%H:%M')} 的座位，"
+                f"请于开始前 {settings.checkin_early_minutes} 分钟至开始后 "
+                f"{settings.checkin_late_minutes} 分钟内签到。"
+            ),
+            related_type="预约单",
+            related_id=reservation.id,
+        )
     return reservation
 
 
 def _create_once(
     db: Session, user: User, payload: ReservationCreate
-) -> Reservation:
+) -> tuple[Reservation, bool]:
+    """创建一次预约；返回 ``(预约单, 是否本次新建)``。
+
+    幂等重放与并发同键都会返回既有预约且 ``created=False``，调用方据此避免
+    重复发送“预约成功”通知。
+    """
     now = time_utils.now()
 
     existing = _find_by_idempotency_key(db, user.id, payload.idempotency_key)
     if existing is not None:
         _ensure_same_payload(existing, payload)
-        return existing
+        return existing, False
 
     # 行锁：同一座位的预约串行化，同一用户的每日次数校验也串行化
     db.execute(
@@ -157,7 +169,7 @@ def _create_once(
         existing = _find_by_idempotency_key(db, user.id, payload.idempotency_key)
         if existing is not None:
             _ensure_same_payload(existing, payload)
-            return existing
+            return existing, False
 
         # 唯一约束冲突：区分座位占用（C3）与用户自身冲突（C4）
         seat_conflicts = availability_service._active_overlaps(
@@ -217,8 +229,7 @@ def _create_once(
             status_code=409,
         ) from None
 
-    return reservation
-
+    return reservation, True
 
 
 def cancel_my_reservation(
@@ -270,11 +281,31 @@ def cancel_my_reservation(
         )
 
     reason = (payload.reason or "").strip() or None
-    with transaction(db):
-        reservation.status = ReservationStatus.CANCELLED.value
-        reservation.cancel_time = now
-        reservation.cancel_reason = reason
-        release_slots(db, reservation.id)
+    try:
+        with transaction(db):
+            if not transition_if_status(
+                db,
+                reservation.id,
+                ReservationStatus.PENDING.value,
+                status=ReservationStatus.CANCELLED.value,
+                cancel_time=now,
+                cancel_reason=reason,
+            ):
+                raise _StateChanged
+            release_slots(db, reservation.id)
+    except _StateChanged:
+        latest = get_reservation(db, reservation_id)
+        message = (
+            "该预约已取消"
+            if latest.status == ReservationStatus.CANCELLED.value
+            else f"当前状态为「{latest.status}」，不能取消"
+        )
+        raise BusinessError(
+            message,
+            code="ST-031",
+            status_code=409,
+            details={"status": latest.status},
+        ) from None
 
     db.refresh(reservation)
     notification_service.notify_safe(
@@ -317,23 +348,43 @@ def force_cancel(
 
     now = time_utils.now()
     before = {"status": reservation.status}
-    with transaction(db):
-        reservation.status = ReservationStatus.CANCELLED.value
-        reservation.cancel_time = now
-        reservation.cancel_reason = reason
-        reservation.cancelled_by_id = admin_id
-        release_slots(db, reservation.id)
+    try:
+        with transaction(db):
+            if not transition_if_status(
+                db,
+                reservation.id,
+                ReservationStatus.PENDING.value,
+                status=ReservationStatus.CANCELLED.value,
+                cancel_time=now,
+                cancel_reason=reason,
+                cancelled_by_id=admin_id,
+            ):
+                raise _StateChanged
+            release_slots(db, reservation.id)
 
-        audit_service.record(
-            db,
-            operator_id=admin_id,
-            action_type="RESERVATION_FORCE_CANCEL",
-            target_type="reservation",
-            target_id=reservation.id,
-            reason=reason,
-            before_value=str(before),
-            after_value=str({"status": reservation.status}),
-        )
+            audit_service.record(
+                db,
+                operator_id=admin_id,
+                action_type="RESERVATION_FORCE_CANCEL",
+                target_type="reservation",
+                target_id=reservation.id,
+                reason=reason,
+                before_value=str(before),
+                after_value=str({"status": ReservationStatus.CANCELLED.value}),
+            )
+    except _StateChanged:
+        latest = get_reservation(db, reservation_id)
+        details = {"status": latest.status}
+        if latest.status == ReservationStatus.IN_USE.value:
+            details["hint"] = (
+                "已开始使用的预约如需追责，请使用手动违约登记（FR-023）"
+            )
+        raise BusinessError(
+            f"当前状态为「{latest.status}」，只能强制取消「待使用」的预约单",
+            code="ST-022",
+            status_code=409,
+            details=details,
+        ) from None
 
     db.refresh(reservation)
     notification_service.notify_safe(

@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     app_name: str = "智慧自习室预约与管理系统"
     api_v1_prefix: str = "/api/v1"
     debug: bool = False
+    # 生产环境标识：APP_ENV=production 时关闭 /docs、/openapi.json、/redoc。
+    app_env: str = "development"
+    # 接口限流（按 IP、60 秒固定窗口）；多 worker 部署下由数据库计数共享。
+    login_rate_limit_per_minute: int = 10
+    register_rate_limit_per_minute: int = 5
     # 统一业务时间口径：数据库存 Asia/Shanghai 的 naive datetime（MySQL DATETIME），
     # 前端按本地时间展示；禁止混用服务器本地时区与 UTC。
     app_timezone: str = "Asia/Shanghai"
@@ -74,6 +79,8 @@ class Settings(BaseSettings):
     login_failure_window_minutes: int = 15
     #: 锁定时长（分钟）。
     login_lock_minutes: int = 15
+    #: 登录失败计数的保留天数；超期由定时任务清理，防止随机学号撑大表（Q4-02）。
+    login_attempt_retention_days: int = 30
     # 测试环境通过环境变量关闭定时任务，避免后台任务连接真实数据库
     scheduler_enabled: bool = True
 

@@ -5,6 +5,7 @@ from app.tasks.auto_end_reservation import finish_expired_reservations
 from app.tasks.auto_violation import scan_auto_violations
 from app.tasks.blacklist_expiry import release_expired_restrictions
 from app.tasks.complaint_auto_close import close_stale_complaints
+from app.tasks.login_attempt_cleanup import cleanup_login_attempts
 from app.tasks.runtime import run_scheduled_task
 
 scheduler = BackgroundScheduler(timezone=settings.app_timezone)
@@ -55,6 +56,16 @@ def start_scheduler() -> None:
         hours=1,
         id="complaint_auto_close",
         name="投诉超时关闭",
+        **common_options,
+    )
+    # Q4-02(E)：每天凌晨清理过期登录失败计数，防止随机学号造成无界增长
+    scheduler.add_job(
+        _job("login_attempt_cleanup", cleanup_login_attempts),
+        "cron",
+        hour=3,
+        minute=30,
+        id="login_attempt_cleanup",
+        name="登录失败计数清理",
         **common_options,
     )
     scheduler.start()

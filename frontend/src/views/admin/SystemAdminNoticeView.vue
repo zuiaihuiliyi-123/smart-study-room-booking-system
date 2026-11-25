@@ -6,8 +6,9 @@ const router = useRouter()
 const auth = useAuthStore()
 
 function logout() {
-  auth.logout()
-  router.replace({ name: 'login' })
+  // 本地凭据在 logout() 内同步清除，可立即跳转；服务端撤销在后台完成
+  void auth.logout()
+  void router.replace({ name: 'login' })
 }
 </script>
 

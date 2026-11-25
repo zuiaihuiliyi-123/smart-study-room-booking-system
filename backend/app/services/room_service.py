@@ -239,14 +239,31 @@ def list_areas(db: Session, room_id: int) -> list[Area]:
     )
 
 
+def _lock_seats(db: Session, room_id: int, area_id: int | None) -> None:
+    """锁定关闭范围内的座位行，与创建预约的座位行锁串行化（FR-019 / BR-022）。
+
+    MySQL 下 ``SELECT ... FOR UPDATE`` 生效；关闭与预约创建按同一顺序（座位 →
+    预约/关闭记录）加锁，避免关闭提交后仍插入窗口内预约。
+    """
+    stmt = select(Seat.id).where(Seat.room_id == room_id)
+    if area_id is not None:
+        stmt = stmt.where(Seat.area_id == area_id)
+    db.execute(stmt.order_by(Seat.id).with_for_update())
+
+
 def _affected(
     db: Session,
     room_id: int,
     area_id: int | None,
     start_at: datetime,
     end_at: datetime,
+    *,
+    for_update: bool = False,
 ) -> tuple[list[Seat], list[Reservation]]:
-    """返回窗口内受影响的座位与「待使用 / 使用中」预约（BR-019 / BR-022）。"""
+    """返回窗口内受影响的座位与「待使用 / 使用中」预约（BR-019 / BR-022）。
+
+    ``for_update=True`` 用于关闭事务内的写入前复核，读取最新已提交数据。
+    """
     seat_stmt = select(Seat).where(Seat.room_id == room_id)
     if area_id is not None:
         seat_stmt = seat_stmt.where(Seat.area_id == area_id)
@@ -255,18 +272,19 @@ def _affected(
     if not seat_ids:
         return [], []
 
+    record_stmt = select(Reservation).where(
+        Reservation.seat_id.in_(seat_ids),
+        Reservation.status.in_(
+            (ReservationStatus.PENDING.value, ReservationStatus.IN_USE.value)
+        ),
+        Reservation.reserve_date >= start_at.date(),
+        Reservation.reserve_date <= end_at.date(),
+    )
+    if for_update:
+        record_stmt = record_stmt.with_for_update()
     records = list(
         db.scalars(
-            select(Reservation)
-            .where(
-                Reservation.seat_id.in_(seat_ids),
-                Reservation.status.in_(
-                    (ReservationStatus.PENDING.value, ReservationStatus.IN_USE.value)
-                ),
-                Reservation.reserve_date >= start_at.date(),
-                Reservation.reserve_date <= end_at.date(),
-            )
-            .order_by(Reservation.reserve_date, Reservation.start_time)
+            record_stmt.order_by(Reservation.reserve_date, Reservation.start_time)
         ).all()
     )
     affected = [
@@ -333,12 +351,15 @@ def close_room(
                 code="AREA_NOT_IN_ROOM",
                 status_code=404,
             )
+    # 与创建预约争用同一批座位行锁，确保“关闭影响清单”读取后不会被新预约插入
+    _lock_seats(db, room_id, payload.area_id)
     seats, affected = _affected(
         db, room_id, payload.area_id, payload.start_at, payload.end_at
     )
 
     actual_ids = sorted(record.id for record in affected)
     if sorted(payload.expected_reservation_ids) != actual_ids:
+        db.rollback()
         raise BusinessError(
             "影响清单已变化，请重新查询受影响预约后再确认",
             code="CONFLICT_LIST_CHANGED",
@@ -355,6 +376,26 @@ def close_room(
         operator_id=operator_id,
     )
     db.add(closure)
+    db.flush()
+
+    # 提交前用加锁读复核：若读取影响清单后又有新预约落库，必须拒绝本次关闭，
+    # 让管理员重新预览确认，而不是把新预约留在已关闭的时间窗内。
+    _, latest_affected = _affected(
+        db,
+        room_id,
+        payload.area_id,
+        payload.start_at,
+        payload.end_at,
+        for_update=True,
+    )
+    latest_ids = sorted(record.id for record in latest_affected)
+    if latest_ids != actual_ids:
+        db.rollback()
+        raise BusinessError(
+            "影响清单已变化，请重新查询受影响预约后再确认",
+            code="CONFLICT_LIST_CHANGED",
+            status_code=409,
+        )
 
     cancelled = 0
     messages: list[dict] = []

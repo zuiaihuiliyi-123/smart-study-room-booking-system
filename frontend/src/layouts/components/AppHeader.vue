@@ -38,7 +38,8 @@ const brandStyle = computed(() =>
 
 function onCommand(command: string) {
   if (command === 'logout') {
-    auth.logout()
+    // 本地凭据在 logout() 内同步清除，可立即跳转；服务端撤销在后台完成
+    void auth.logout()
     void router.push('/login')
     return
   }

@@ -5,6 +5,7 @@ import {
   changePassword as changePasswordApi,
   getMe,
   login as loginApi,
+  logout as logoutApi,
   register as registerApi,
 } from '@/api/auth'
 import type { CurrentUser, LoginRequest, RegisterRequest } from '@/types'
@@ -99,10 +100,19 @@ export const useAuthStore = defineStore('auth', () => {
     persist(TOKEN_KEY, data.access_token)
   }
 
-  function logout() {
+  async function logout() {
+    const current = token.value
+    // 先同步清理本地凭据，页面可立即跳转；再用旧令牌通知服务端撤销
     token.value = ''
     user.value = null
     clearCredentials()
+    if (current) {
+      try {
+        await logoutApi(current)
+      } catch {
+        // 令牌可能已过期：本地已登出，无需阻断
+      }
+    }
   }
 
   return {

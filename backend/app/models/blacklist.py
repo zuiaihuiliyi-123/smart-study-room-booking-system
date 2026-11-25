@@ -1,6 +1,13 @@
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -18,6 +25,7 @@ class BlacklistEntry(Base):
     __tablename__ = "blacklist_entries"
     __table_args__ = (
         Index("ix_blacklist_user_expire", "user_id", "expire_at"),
+        UniqueConstraint("active_user_id", name="uq_blacklist_active_user"),
         CheckConstraint("mode IN ('自动', '手动')", name="ck_blacklist_mode"),
         CheckConstraint(
             "expire_at IS NULL OR expire_at > start_at",
@@ -41,4 +49,11 @@ class BlacklistEntry(Base):
     )
     operator_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"), nullable=True
+    )
+    # 有效限制的并发闸门：生效期间等于 user_id，解除后置空。
+    # 唯一索引（MySQL/SQLite 允许多个 NULL）保证同一用户最多一条并行有效限制。
+    active_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=True,
+        comment="有效限制唯一标记；解除后置空",
     )

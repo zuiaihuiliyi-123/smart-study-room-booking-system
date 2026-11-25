@@ -9,13 +9,17 @@ declare module 'axios' {
      * 不能让每 10 秒一次的失败把屏幕刷满 toast（FR-053 / IR-004：失败保留上一次数据并提示）。
      */
     silent?: boolean
+    /** 401 时不清理凭据、不跳登录页（登出接口本身：旧令牌失效是预期结果） */
+    skipAuthRedirect?: boolean
   }
 }
 
-/** 单次请求的可选行为：静默失败 / 取消信号（轮询组件卸载时用） */
+/** 单次请求的可选行为：静默失败 / 取消信号（轮询组件卸载时用） / 自定义请求头 */
 export interface RequestOptions {
   silent?: boolean
   signal?: AbortSignal
+  headers?: Record<string, string>
+  skipAuthRedirect?: boolean
 }
 
 const request = axios.create({
@@ -45,7 +49,7 @@ request.interceptors.response.use(
     const message =
       error.response?.data?.message ?? error.response?.data?.detail ?? '请求失败，请稍后重试'
 
-    if (status === 401) {
+    if (status === 401 && !error.config?.skipAuthRedirect) {
       // 凭证已失效：两种存储都要清，避免残留令牌反复触发 401
       localStorage.removeItem('ssr_token')
       localStorage.removeItem('ssr_user')
@@ -71,11 +75,11 @@ export const http = {
   get<T>(url: string, params?: object, options?: RequestOptions) {
     return request.get<unknown, T>(url, { params, ...options })
   },
-  post<T>(url: string, data?: unknown) {
-    return request.post<unknown, T>(url, data)
+  post<T>(url: string, data?: unknown, options?: RequestOptions) {
+    return request.post<unknown, T>(url, data, options)
   },
-  patch<T>(url: string, data?: unknown) {
-    return request.patch<unknown, T>(url, data)
+  patch<T>(url: string, data?: unknown, options?: RequestOptions) {
+    return request.patch<unknown, T>(url, data, options)
   },
   delete<T>(url: string, params?: object, options?: RequestOptions) {
     return request.delete<unknown, T>(url, { params, ...options })

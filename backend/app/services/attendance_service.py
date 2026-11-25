@@ -6,7 +6,12 @@ from app.core.transactions import transaction
 from app.models.enums import ReservationStatus
 from app.models.reservation import Reservation
 from app.services import reservation_service
+from app.services.reservation_state import transition_if_status
 from app.utils import time_utils
+
+
+class _StateChanged(Exception):
+    """内部哨兵：条件更新未命中，说明状态已被并发请求改变。"""
 
 
 def _get_reservation(db: Session, reservation_id: int) -> Reservation:
@@ -79,9 +84,40 @@ def check_in(db: Session, user_id: int, reservation_id: int) -> Reservation:
             },
         )
 
-    with transaction(db):
-        reservation.status = ReservationStatus.IN_USE.value
-        reservation.check_in_time = now
+    try:
+        with transaction(db):
+            if not transition_if_status(
+                db,
+                reservation.id,
+                ReservationStatus.PENDING.value,
+                status=ReservationStatus.IN_USE.value,
+                check_in_time=now,
+            ):
+                raise _StateChanged
+    except _StateChanged:
+        # 事务已回滚，重新读取最新状态（如被管理员强制取消）给出准确提示
+        latest = _get_reservation(db, reservation_id)
+        if latest.status == ReservationStatus.IN_USE.value:
+            raise BusinessError(
+                f"已签到（签到时间：{latest.check_in_time}），无需重复签到",
+                code="ST-030",
+                status_code=409,
+                details={
+                    "status": latest.status,
+                    "check_in_time": (
+                        latest.check_in_time.isoformat()
+                        if latest.check_in_time
+                        else None
+                    ),
+                },
+            ) from None
+        raise BusinessError(
+            f"该预约已结束（当前状态：{latest.status}），无法签到",
+            code="ST-031",
+            status_code=409,
+            details={"status": latest.status},
+        ) from None
+
     db.refresh(reservation)
     return reservation
 
@@ -112,9 +148,26 @@ def check_out(db: Session, user_id: int, reservation_id: int) -> Reservation:
             details={"status": reservation.status},
         )
 
-    with transaction(db):
-        reservation.status = ReservationStatus.COMPLETED.value
-        reservation.check_out_time = time_utils.now()
-        reservation_service.release_slots(db, reservation.id)
+    now = time_utils.now()
+    try:
+        with transaction(db):
+            if not transition_if_status(
+                db,
+                reservation.id,
+                ReservationStatus.IN_USE.value,
+                status=ReservationStatus.COMPLETED.value,
+                check_out_time=now,
+            ):
+                raise _StateChanged
+            reservation_service.release_slots(db, reservation.id)
+    except _StateChanged:
+        latest = _get_reservation(db, reservation_id)
+        raise BusinessError(
+            f"该预约已结束（当前状态：{latest.status}），无法签退",
+            code="ST-031",
+            status_code=409,
+            details={"status": latest.status},
+        ) from None
+
     db.refresh(reservation)
     return reservation

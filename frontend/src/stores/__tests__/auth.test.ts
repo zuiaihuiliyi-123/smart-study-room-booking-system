@@ -10,6 +10,7 @@ vi.mock('@/api/auth', () => ({
   register: vi.fn(),
   getMe: vi.fn(),
   changePassword: vi.fn(),
+  logout: vi.fn().mockResolvedValue({ message: '已退出登录' }),
 }))
 
 const user: CurrentUser = {
@@ -72,8 +73,10 @@ describe('auth store 登录与持久化', () => {
     const store = useAuthStore()
     await store.login({ student_no: 'student', password: 'student123' }, true)
 
-    store.logout()
+    await store.logout()
 
+    // 本地凭据先清除，但服务端撤销仍携带原令牌
+    expect(authApi.logout).toHaveBeenCalledWith('token-3')
     expect(store.isLoggedIn).toBe(false)
     expect(store.user).toBeNull()
     expect(localStorage.getItem('ssr_token')).toBeNull()

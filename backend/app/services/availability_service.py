@@ -405,6 +405,38 @@ def list_available_seats(
             ),
         )
 
+    granularity = settings.reservation_granularity_minutes
+    if not (
+        time_utils.is_aligned(start_time, granularity)
+        and time_utils.is_aligned(end_time, granularity)
+    ):
+        raise BusinessError(
+            f"时间必须按 {granularity} 分钟对齐",
+            code="C6_BR-001",
+            status_code=422,
+            details=_details("C6", "BR-001", {"granularity_minutes": granularity}),
+        )
+
+    now = time_utils.now()
+    today = now.date()
+    latest = today + timedelta(days=settings.advance_booking_days)
+    if reserve_date < today or reserve_date > latest:
+        raise BusinessError(
+            f"只能查询 {today.isoformat()} 至 {latest.isoformat()} 的座位",
+            code="C6_BR-002",
+            status_code=422,
+            details=_details(
+                "C6",
+                "BR-002",
+                {
+                    "advance_days": settings.advance_booking_days,
+                    "allowed_from": today.isoformat(),
+                    "allowed_to": latest.isoformat(),
+                    "requested_date": reserve_date.isoformat(),
+                },
+            ),
+        )
+
     room = db.get(Room, room_id)
     if room is None:
         raise BusinessError("自习室不存在", code="ROOM_NOT_FOUND", status_code=404)

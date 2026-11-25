@@ -43,7 +43,8 @@ def test_protected_endpoint_requires_login(api_client) -> None:
     assert response.status_code == 401
 
 
-def test_login_payload_is_validated(client) -> None:
-    response = client.post("/api/v1/auth/login", json={})
+def test_login_payload_is_validated(api_client) -> None:
+    # 使用隔离的 SQLite 库：登录请求会先经过限流依赖（需要 rate_limit_buckets 表）
+    response = api_client.post("/api/v1/auth/login", json={})
 
     assert response.status_code == 422

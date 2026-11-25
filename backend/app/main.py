@@ -19,24 +19,32 @@ async def lifespan(_: FastAPI):
     shutdown_scheduler()
 
 
-app = FastAPI(
-    title=settings.app_name,
-    version="0.1.0",
-    description="智慧自习室预约与管理系统 API",
-    docs_url="/docs",
-    openapi_url="/openapi.json",
-    lifespan=lifespan,
-)
+def create_app() -> FastAPI:
+    """构建 FastAPI 应用；生产环境（APP_ENV=production）关闭接口文档。"""
+    is_production = settings.app_env.strip().lower() == "production"
+    application = FastAPI(
+        title=settings.app_name,
+        version="0.1.0",
+        description="智慧自习室预约与管理系统 API",
+        docs_url=None if is_production else "/docs",
+        openapi_url=None if is_production else "/openapi.json",
+        redoc_url=None if is_production else "/redoc",
+        lifespan=lifespan,
+    )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-register_exception_handlers(app)
+    register_exception_handlers(application)
+    return application
+
+
+app = create_app()
 
 
 @app.middleware("http")

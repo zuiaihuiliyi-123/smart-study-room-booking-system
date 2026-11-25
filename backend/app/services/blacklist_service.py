@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -38,6 +39,49 @@ def _active_entries(db: Session, user_id: int, now: datetime) -> list[BlacklistE
         ),
     )
     return list(db.scalars(stmt))
+
+
+def _clear_stale_auto_keys(db: Session, user_id: int, now: datetime) -> None:
+    """释放“已到期但定时任务尚未处理”的自动限制唯一标记。
+
+    这些记录在业务上已不生效（``_active_entries`` 会排除），但 active_user_id
+    仍占用唯一约束；先置空，允许用户获得新的限制记录。
+    """
+    stale_exists = db.scalar(
+        select(BlacklistEntry.id)
+        .where(
+            BlacklistEntry.user_id == user_id,
+            BlacklistEntry.active_user_id.is_not(None),
+            BlacklistEntry.mode == BlacklistMode.AUTO.value,
+            BlacklistEntry.expire_at.is_not(None),
+            BlacklistEntry.expire_at <= now,
+        )
+        .limit(1)
+    )
+    if stale_exists is None:
+        return
+    db.execute(
+        update(BlacklistEntry)
+        .where(
+            BlacklistEntry.user_id == user_id,
+            BlacklistEntry.active_user_id.is_not(None),
+            BlacklistEntry.mode == BlacklistMode.AUTO.value,
+            BlacklistEntry.expire_at.is_not(None),
+            BlacklistEntry.expire_at <= now,
+        )
+        .values(active_user_id=None)
+    )
+
+
+def _last_auto_release(db: Session, user_id: int) -> datetime | None:
+    """最近一次自动限制解除时间，作为违约计数清零的重置点。"""
+    return db.scalar(
+        select(func.max(BlacklistEntry.released_at)).where(
+            BlacklistEntry.user_id == user_id,
+            BlacklistEntry.mode == BlacklistMode.AUTO.value,
+            BlacklistEntry.released_at.is_not(None),
+        )
+    )
 
 
 def _sync_account_status(db: Session, user: User, now: datetime) -> str:
@@ -151,6 +195,7 @@ def add_entry(db: Session, admin: User, payload: BlacklistCreate) -> BlacklistEn
             status_code=403,
         )
 
+    _clear_stale_auto_keys(db, user.id, now)
     if _active_entries(db, user.id, now):
         raise BusinessError(
             "该用户已存在有效的限制记录", code="BLACKLIST_ALREADY_ACTIVE", status_code=409
@@ -168,8 +213,20 @@ def add_entry(db: Session, admin: User, payload: BlacklistCreate) -> BlacklistEn
         start_at=now,
         expire_at=payload.expire_at,
         operator_id=admin.id,
+        active_user_id=user.id,
     )
-    db.add(entry)
+    try:
+        # active_user_id 唯一约束是并发闸门：两个请求同时通过上面的查询时，
+        # 只有一个能插入成功，另一个转为 409。
+        with db.begin_nested():
+            db.add(entry)
+            db.flush()
+    except IntegrityError:
+        raise BusinessError(
+            "该用户已存在有效的限制记录",
+            code="BLACKLIST_ALREADY_ACTIVE",
+            status_code=409,
+        ) from None
     _sync_account_status(db, user, now)
 
     audit_service.record(
@@ -235,6 +292,7 @@ def release_entry(
 
     entry.released_at = now
     entry.release_reason = cleaned_reason
+    entry.active_user_id = None
     user = db.get(User, entry.user_id)
     if user is not None:
         _sync_account_status(db, user, now)
@@ -286,15 +344,15 @@ def restrict_if_threshold(
     if user.role != Role.STUDENT.value:
         return None
 
-    # 以违约记录数回写累计次数，保证计数与记录一致（ST-034 幂等）
-    record_count = (
-        db.scalar(
-            select(func.count())
-            .select_from(ViolationRecord)
-            .where(ViolationRecord.user_id == user_id)
-        )
-        or 0
+    # 以违约记录数回写累计次数，保证计数与记录一致（ST-034 幂等）。
+    # 自动限制到期解除后计数清零（裁决 D1），因此只统计最近一次自动解除之后的记录。
+    last_reset = _last_auto_release(db, user_id)
+    record_stmt = select(func.count()).select_from(ViolationRecord).where(
+        ViolationRecord.user_id == user_id
     )
+    if last_reset is not None:
+        record_stmt = record_stmt.where(ViolationRecord.created_at > last_reset)
+    record_count = db.scalar(record_stmt) or 0
     # 计数与明细取较大值：历史数据可能已回写计数但明细尚未补齐
     count = max(user.violation_count, record_count)
     user.violation_count = count
@@ -304,6 +362,7 @@ def restrict_if_threshold(
             # 计数回写仍需在调用方事务中可见
             db.flush()
         return None
+    _clear_stale_auto_keys(db, user.id, now)
     if _active_entries(db, user.id, now):
         if not commit:
             db.flush()
@@ -316,8 +375,15 @@ def restrict_if_threshold(
         start_at=now,
         expire_at=now + timedelta(days=settings.restriction_days),
         operator_id=None,
+        active_user_id=user.id,
     )
-    db.add(entry)
+    try:
+        with db.begin_nested():
+            db.add(entry)
+            db.flush()
+    except IntegrityError:
+        # 并发下已由另一事务创建了有效限制：视为已限制，不重复创建
+        return None
     _sync_account_status(db, user, now)
 
     audit_service.record(
@@ -377,11 +443,14 @@ def release_expired(db: Session, now: datetime | None = None) -> int:
     for entry in entries:
         entry.released_at = current
         entry.release_reason = "自动限制期限届满，系统自动解除（ST-042）"
+        entry.active_user_id = None
         touched.add(entry.user_id)
 
     for user_id in touched:
         user = db.get(User, user_id)
         if user is not None:
+            # 裁决 D1：自动限制到期解除后，累计违约次数清零，重新计算阈值
+            user.violation_count = 0
             _sync_account_status(db, user, current)
 
     db.commit()

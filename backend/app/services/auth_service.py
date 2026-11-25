@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -146,22 +146,47 @@ def change_password(
     )
 
 
+def logout(db: Session, user: User) -> None:
+    """登出：递增令牌版本，使当前及所有旧令牌立即失效。
+
+    客户端随后清除本地凭据；服务端不保存会话，靠 token_version 做撤销。
+    """
+    user.token_version = (user.token_version or 0) + 1
+    audit_service.record(
+        db,
+        operator_id=user.id,
+        action_type="LOGOUT",
+        target_type="USER",
+        target_id=user.id,
+        reason="用户主动退出登录",
+    )
+    db.commit()
+
+
 def _lock_remaining_minutes(locked_until: datetime, now: datetime) -> int:
     seconds = max(0.0, (locked_until - now).total_seconds())
     return max(1, int((seconds + 59) // 60))
 
 
-def _load_login_attempt(
-    db: Session, student_no: str, now: datetime
-) -> LoginAttempt | None:
-    """读取登录失败记录；仍在锁定期则直接拒绝，过期则清零。
+def _normalize_ip(client_ip: str | None) -> str:
+    """统一 IP 取值：缺省为 "unknown"，并截断到列宽（IPv6 最长 45）。"""
+    return (client_ip or "unknown").strip()[:45] or "unknown"
 
-    使用行锁串行化同一学号的并发失败请求；行不存在时的并发插入由
+
+def _load_login_attempt(
+    db: Session, student_no: str, client_ip: str, now: datetime
+) -> LoginAttempt | None:
+    """读取「学号 + IP」的登录失败记录；仍在锁定期则直接拒绝，过期则清零。
+
+    使用行锁串行化同一组合的并发失败请求；行不存在时的并发插入由
     ``_commit_login_failure`` 捕获唯一键冲突后重试。
     """
     attempt = db.scalar(
         select(LoginAttempt)
-        .where(LoginAttempt.student_no == student_no)
+        .where(
+            LoginAttempt.student_no == student_no,
+            LoginAttempt.ip == client_ip,
+        )
         .with_for_update()
     )
     if attempt is None:
@@ -184,13 +209,16 @@ def _load_login_attempt(
 def _register_login_failure(
     db: Session,
     student_no: str,
+    client_ip: str,
     attempt: LoginAttempt | None,
     user_id: int | None,
     now: datetime,
 ) -> datetime | None:
     """记录一次失败；达到阈值时设置锁定并写 ``LOGIN_LOCKED`` 审计。"""
     if attempt is None:
-        attempt = LoginAttempt(student_no=student_no, failed_count=0)
+        attempt = LoginAttempt(
+            student_no=student_no, ip=client_ip, failed_count=0
+        )
         db.add(attempt)
 
     window_start = now - timedelta(minutes=settings.login_failure_window_minutes)
@@ -222,6 +250,7 @@ def _register_login_failure(
 def _commit_login_failure(
     db: Session,
     student_no: str,
+    client_ip: str,
     attempt: LoginAttempt | None,
     user_id: int | None,
     now: datetime,
@@ -243,7 +272,7 @@ def _commit_login_failure(
                 reason=f"学号「{student_no}」凭证错误",
             )
             locked_until = _register_login_failure(
-                db, student_no, current, user_id, now
+                db, student_no, client_ip, current, user_id, now
             )
             db.commit()
             return locked_until
@@ -252,28 +281,49 @@ def _commit_login_failure(
             if retry == 1:
                 raise
             # 并发请求已创建该行；重新加锁读取后重试
-            current = _load_login_attempt(db, student_no, now)
+            current = _load_login_attempt(db, student_no, client_ip, now)
     return None
 
 
-def login(db: Session, payload: LoginRequest) -> TokenResponse:
+def cleanup_login_attempts(db: Session, now: datetime | None = None) -> int:
+    """Q4-02(E)：删除超过保留期的登录失败计数，返回删除行数。
+
+    不存在的学号也会计数（防枚举），因此该表必须定期清理；保留期足够覆盖
+    锁定窗口与事后审计排查即可，业务数据不受影响。
+    """
+    cutoff = (now or time_utils.now()) - timedelta(
+        days=settings.login_attempt_retention_days
+    )
+    result = db.execute(
+        delete(LoginAttempt).where(LoginAttempt.updated_at < cutoff)
+    )
+    db.commit()
+    return result.rowcount or 0
+
+
+def login(
+    db: Session, payload: LoginRequest, client_ip: str | None = None
+) -> TokenResponse:
     """FR-040：学号/工号 + 密码登录，签发 JWT，并记录登录审计（NFR-009）。
 
     登录成功与失败均写审计：成功记 ``LOGIN_SUCCESS``；凭证错误 / 账户停用记
     ``LOGIN_FAILED``（不记录密码，仅记学号与失败原因，供安全审计与暴力探测排查）。
 
-    B5：同一学号在窗口内连续失败达到上限后临时锁定；不存在的学号同样计数，
-    避免通过“是否锁定”判断账号是否存在。锁定期间返回 429，不校验密码。
+    B5：同一「学号 + 客户端 IP」在窗口内连续失败达到上限后临时锁定；不存在的
+    学号同样计数，避免通过“是否锁定”判断账号是否存在。锁定期间返回 429，
+    不校验密码。锁定按 IP 隔离，他人无法从其他地址把受害者账号锁死（Q4-02）。
     """
     student_no = payload.student_no.strip()
+    client_ip = _normalize_ip(client_ip)
     now = time_utils.now()
-    attempt = _load_login_attempt(db, student_no, now)
+    attempt = _load_login_attempt(db, student_no, client_ip, now)
     user = db.scalar(select(User).where(User.student_no == student_no))
 
     if user is None or not verify_password(payload.password, user.password_hash):
         locked_until = _commit_login_failure(
             db,
             student_no,
+            client_ip,
             attempt,
             user.id if user is not None else None,
             now,
@@ -292,9 +342,10 @@ def login(db: Session, payload: LoginRequest) -> TokenResponse:
         )
 
     if user.account_status == AccountStatus.DISABLED.value:
-        # 正确密码但账户停用：不按“失败登录”计数，并清掉历史失败记录
-        if attempt is not None:
-            db.delete(attempt)
+        # 正确密码但账户停用：不按“失败登录”计数，并清掉该学号的历史失败记录
+        db.execute(
+            delete(LoginAttempt).where(LoginAttempt.student_no == student_no)
+        )
         audit_service.record(
             db,
             operator_id=user.id,
@@ -310,9 +361,10 @@ def login(db: Session, payload: LoginRequest) -> TokenResponse:
             status_code=403,
         )
 
-    # 登录成功：清空失败计数，避免历史失败影响下一次登录
-    if attempt is not None:
-        db.delete(attempt)
+    # 登录成功：清空该学号在所有来源的失败计数（成功即证明账号归属）
+    db.execute(
+        delete(LoginAttempt).where(LoginAttempt.student_no == student_no)
+    )
 
     audit_service.record(
         db,

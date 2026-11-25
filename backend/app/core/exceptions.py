@@ -20,11 +20,13 @@ class BusinessError(Exception):
         code: str = "BUSINESS_ERROR",
         status_code: int = status.HTTP_400_BAD_REQUEST,
         details: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         self.message = message
         self.code = code
         self.status_code = status_code
         self.details = details
+        self.headers = headers
         super().__init__(message)
 
 
@@ -34,7 +36,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         content: dict[str, Any] = {"code": exc.code, "message": exc.message}
         if exc.details:
             content["details"] = exc.details
-        return JSONResponse(status_code=exc.status_code, content=content)
+        return JSONResponse(
+            status_code=exc.status_code, content=content, headers=exc.headers
+        )
 
     @app.exception_handler(IntegrityError)
     async def handle_integrity_error(
