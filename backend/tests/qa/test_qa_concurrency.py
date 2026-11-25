@@ -1,7 +1,12 @@
-"""阶段 3 · 并发与竞态复现用例（文件型 SQLite + 独立 session）。"""
+"""阶段 3 · 并发与竞态复现用例。
+
+默认使用文件型 SQLite；设置 ``QA_DATABASE_URL`` 后可切换到真实 MySQL，
+用于验证行锁、唯一约束与死锁重试在目标数据库上的行为。
+"""
 
 from __future__ import annotations
 
+import os
 import tempfile
 import threading
 import time as _time
@@ -38,10 +43,26 @@ from app.utils import time_utils
 FIXED_NOW = datetime(2026, 11, 24, 10, 0)
 D1 = date(2026, 11, 25)
 BARRIER_TIMEOUT = 5
+#: 设置后并发用例改跑真实 MySQL；每用例重建表以保证隔离。
+QA_DATABASE_URL = os.getenv("QA_DATABASE_URL")
+MYSQL_MODE = bool(QA_DATABASE_URL)
 
 
 @pytest.fixture()
-def file_db():
+def concurrency_db():
+    if QA_DATABASE_URL:
+        engine = create_engine(QA_DATABASE_URL, pool_pre_ping=True)
+        Base.metadata.drop_all(engine)
+        Base.metadata.create_all(engine)
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        session = factory()
+        try:
+            yield session, factory
+        finally:
+            session.close()
+            engine.dispose()
+        return
+
     tmp = Path(tempfile.gettempdir()) / f"ssr_qa_{threading.get_ident()}_{_time.time_ns()}.db"
     engine = create_engine(f"sqlite:///{tmp}", connect_args={"check_same_thread": False})
 
@@ -117,9 +138,9 @@ def _payload(seat_id: int, key: str, start: time = time(14, 0), end: time = time
 
 
 def test_same_idempotency_key_concurrently_sends_one_success_message(
-    file_db, monkeypatch
+    concurrency_db, monkeypatch
 ):
-    session, factory = file_db
+    session, factory = concurrency_db
     _, seat_id, user_ids, _ = _seed(session)
     messages: list[str] = []
     lock = threading.Lock()
@@ -169,8 +190,8 @@ def test_same_idempotency_key_concurrently_sends_one_success_message(
     )
 
 
-def test_checkin_vs_force_cancel_race(file_db, monkeypatch):
-    session, factory = file_db
+def test_checkin_vs_force_cancel_race(concurrency_db, monkeypatch):
+    session, factory = concurrency_db
     _, seat_id, user_ids, admin_id = _seed(session)
     reservation = Reservation(
         user_id=user_ids[0],
@@ -188,16 +209,27 @@ def test_checkin_vs_force_cancel_race(file_db, monkeypatch):
     barrier = threading.Barrier(2, timeout=BARRIER_TIMEOUT)
     original_attendance_get = attendance_service._get_reservation
     original_command_get = reservation_command_service.get_reservation
+    # 状态冲突后服务层会再次读取以给出提示；屏障只用于第一次读取的强制交错，
+    # 否则第二次 wait() 会在已通过的屏障上再次阻塞直至超时。
+    barrier_used: set[str] = set()
+    barrier_lock = threading.Lock()
+
+    def _wait_once(name: str) -> None:
+        with barrier_lock:
+            if name in barrier_used:
+                return
+            barrier_used.add(name)
+        barrier.wait()
 
     def _attendance_get(db, rid):
         record = original_attendance_get(db, rid)
-        barrier.wait()
+        _wait_once("attendance")
         _time.sleep(0.3)  # 让强制取消先提交，签到随后覆盖状态
         return record
 
     def _command_get(db, rid):
         record = original_command_get(db, rid)
-        barrier.wait()
+        _wait_once("command")
         return record
 
     monkeypatch.setattr(attendance_service, "_get_reservation", _attendance_get)
@@ -244,8 +276,8 @@ def test_checkin_vs_force_cancel_race(file_db, monkeypatch):
         print(f"\nRACE errors={[type(exc).__name__ for exc in errors]} final={final.status}")
 
 
-def test_close_room_vs_new_reservation_race(file_db, monkeypatch):
-    session, factory = file_db
+def test_close_room_vs_new_reservation_race(concurrency_db, monkeypatch):
+    session, factory = concurrency_db
     room_id, seat_id, user_ids, admin_id = _seed(session)
     start_at = datetime.combine(D1, time(14, 0))
     end_at = datetime.combine(D1, time(16, 0))
@@ -287,18 +319,29 @@ def test_close_room_vs_new_reservation_race(file_db, monkeypatch):
     def do_create():
         with factory() as db:
             user = db.get(User, user_ids[0])
-            reservation_service.create_reservation(
-                db, user, _payload(seat_id, "qa-close-race-01")
-            )
-            result["reservation_id"] = 1
+            try:
+                reservation_service.create_reservation(
+                    db, user, _payload(seat_id, "qa-close-race-01")
+                )
+                result["reservation_id"] = 1
+            except Exception as exc:  # noqa: BLE001
+                result["create_code"] = getattr(exc, "code", type(exc).__name__)
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         close_future = pool.submit(do_close)
         assert read_done.wait(timeout=BARRIER_TIMEOUT)
         create_future = pool.submit(do_create)
+        if MYSQL_MODE:
+            # InnoDB 行锁：create 会阻塞在 close 持有的座位行锁上，无法在 close
+            # 提交前插入。先放行 close；create 随后必须因关闭窗口被拒绝。
+            # （SQLite 不执行 FOR UPDATE，才能稳定构造“读取清单后插入”的交错。）
+            create_done.set()
+            close_future.result(timeout=10)
+        else:
+            create_future.result(timeout=10)
+            create_done.set()
+            close_future.result(timeout=10)
         create_future.result(timeout=10)
-        create_done.set()
-        close_future.result(timeout=10)
 
     with factory() as verify:
         closure_exists = (
@@ -330,10 +373,16 @@ def test_close_room_vs_new_reservation_race(file_db, monkeypatch):
         assert closure_exists or result.get("code") == "CONFLICT_LIST_CHANGED", (
             f"关闭既未成功也未按冲突拒绝：result={result}"
         )
+        if MYSQL_MODE:
+            # MySQL 下由座位行锁保证串行：关闭成功后，等待中的预约必须被拒绝
+            assert closure_exists, f"MySQL 下关闭未成功：result={result}"
+            assert result.get("create_code") == "ROOM_CLOSED", (
+                f"关闭提交后的新预约未被拒绝：result={result}"
+            )
 
 
-def test_concurrent_manual_blacklist_only_one_active(file_db, monkeypatch):
-    session, factory = file_db
+def test_concurrent_manual_blacklist_only_one_active(concurrency_db, monkeypatch):
+    session, factory = concurrency_db
     _, _, user_ids, admin_id = _seed(session)
     target_id = user_ids[0]
 
