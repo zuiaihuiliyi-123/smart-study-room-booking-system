@@ -1,6 +1,6 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
-import ElementPlus, { ElMessage } from 'element-plus'
+import ElementPlus, { ElMessage, messageDefaults } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 import 'element-plus/dist/index.css'
@@ -23,6 +23,14 @@ async function bootstrap() {
 
   // 把记住的浅色 / 暗色主题落到 <html>（首屏防闪由 index.html 的内联脚本负责）
   initTheme()
+
+  /*
+   * 全局消息条的默认值：默认 3 秒、同文案不合并，连续操作时会在页头堆成一摞，
+   * 把下面的按钮挡住。改成 1.6 秒 + 相同文案合并，各处调用点不用逐个改。
+   */
+  const toastDefaults = messageDefaults as { duration?: number; grouping?: boolean }
+  toastDefaults.duration = 1600
+  toastDefaults.grouping = true
 
   const app = createApp(App)
 

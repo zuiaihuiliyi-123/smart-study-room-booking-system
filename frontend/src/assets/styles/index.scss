@@ -271,6 +271,15 @@ body,
 }
 
 /* ---------- 3. Element Plus 外观收敛（去阴影、加密度、换主色） ---------- */
+/*
+ * 顶部消息条固定在视口顶部，正好压在页头按钮上：它虽然 1.6 秒就消失，
+ * 但消失前会吃掉点击（默认 pointer-events 不是 none），按钮像卡住。
+ * 这里让整条消息不接收指针事件，按钮照常可点。
+ */
+.el-message {
+  pointer-events: none;
+}
+
 .el-card {
   --el-card-border-color: var(--ssr-line);
   --el-card-border-radius: var(--ssr-radius);
