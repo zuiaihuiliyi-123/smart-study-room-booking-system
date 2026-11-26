@@ -22,7 +22,8 @@ backend/
 │   ├── init_db.sql          # 本地建库/建账号（方案 A，手工方式）
 │   ├── bootstrap_db.py      # 一键启动的 .env / 建库 / 账号辅助脚本
 │   ├── seed.py              # 演示账户
-│   └── seed_demo.py         # 演示自习室 / 分区 / 座位
+│   ├── seed_demo.py         # 演示自习室 / 分区 / 座位
+│   └── seed_demo_data.py    # 演示预约 / 违约 / 投诉 / 消息 / 评价（可 --reset）
 ├── tests/                   # Pytest
 ├── alembic.ini
 └── requirements.txt
@@ -54,6 +55,8 @@ alembic upgrade head
 python -m scripts.seed
 #    可选：演示自习室 / 分区 / 座位（幂等，同名自习室已存在时跳过）
 python -m scripts.seed_demo
+#    可选：演示预约 / 违约 / 投诉 / 消息 / 评价（演示前重建用 --reset）
+python -m scripts.seed_demo_data --reset
 
 # 6. 启动
 uvicorn app.main:app --reload
