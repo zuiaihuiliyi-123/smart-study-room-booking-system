@@ -119,33 +119,43 @@ def _sync_room_layout(db, room: Room, spec: dict) -> int:
     return added
 
 
-def main() -> None:
+def ensure_demo_resources(db) -> tuple[int, int, int]:
+    """在给定会话中确保演示自习室/分区/座位存在，返回（新建房间数, 复用房间数, 新增座位数）。
+
+    供 ``seed_demo_data`` 与测试复用；调用方负责 ``commit``。
+    """
     created_rooms = 0
     added_seats = 0
     topped_up_rooms = 0
 
+    for spec in DEMO_ROOMS:
+        room = db.scalar(select(Room).where(Room.name == spec["name"]))
+        if room is None:
+            room = Room(
+                name=spec["name"],
+                location=spec["location"],
+                open_time=spec["open_time"],
+                close_time=spec["close_time"],
+                capacity=0,
+            )
+            db.add(room)
+            db.flush()
+            created_rooms += 1
+        else:
+            topped_up_rooms += 1
+
+        added = _sync_room_layout(db, room, spec)
+        added_seats += added
+        if added:
+            print(f"补齐演示自习室「{spec['name']}」座位：+{added}")
+
+    db.flush()
+    return created_rooms, topped_up_rooms, added_seats
+
+
+def main() -> None:
     with SessionLocal() as db:
-        for spec in DEMO_ROOMS:
-            room = db.scalar(select(Room).where(Room.name == spec["name"]))
-            if room is None:
-                room = Room(
-                    name=spec["name"],
-                    location=spec["location"],
-                    open_time=spec["open_time"],
-                    close_time=spec["close_time"],
-                    capacity=0,
-                )
-                db.add(room)
-                db.flush()
-                created_rooms += 1
-            else:
-                topped_up_rooms += 1
-
-            added = _sync_room_layout(db, room, spec)
-            added_seats += added
-            if added:
-                print(f"补齐演示自习室「{spec['name']}」座位：+{added}")
-
+        created_rooms, topped_up_rooms, added_seats = ensure_demo_resources(db)
         db.commit()
 
     print(

@@ -1,0 +1,45 @@
+# Ruff 静态检查配置（开发工具，不参与运行时，不影响接口与数据库）
+#
+# 使用方式：
+#   ruff check .                 检查
+#   ruff check . --fix           自动修复可修复项
+#   ruff check . --statistics    按规则统计问题数量
+#   ruff format .                格式化（Black 兼容，先确认再执行）
+#
+# 规则说明见 https://docs.astral.sh/ruff/rules/
+
+line-length = 120
+target-version = "py311"
+
+exclude = [
+    ".venv",
+    "__pycache__",
+    "alembic/versions",
+]
+
+[lint]
+select = [
+    "E",    # pycodestyle 错误
+    "W",    # pycodestyle 警告
+    "F",    # pyflakes：未定义名、未使用 import 等
+    "I",    # isort：import 排序
+    "B",    # flake8-bugbear：常见 Bug 模式
+    "UP",   # pyupgrade：旧语法升级
+    "BLE",  # flake8-blind-except：裸 except / except: pass
+    "S",    # flake8-bandit：安全相关写法
+]
+
+ignore = [
+    "E501",  # 行宽交给 ruff format 处理
+    "B008",  # FastAPI 依赖注入惯用写法（Depends() 出现在默认参数中）
+    "S101",  # assert（测试与内部不变量断言）
+    "S105",  # 硬编码口令字样（测试夹具中的假密码）
+    "S106",  # 函数参数中的口令字样（测试夹具）
+    "UP042", # str+Enum → StrEnum 会改变 str() 序列化行为，需评估后手动改
+]
+
+[lint.per-file-ignores]
+# 测试代码放宽安全类规则，避免测试数据触发误报
+"tests/**/*.py" = ["S105", "S106", "S107", "S311", "BLE001", "E402"]
+# 迁移脚本由 Alembic 生成，保持原样
+"alembic/**/*.py" = ["ALL"]

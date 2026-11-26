@@ -24,6 +24,11 @@
 
 演示账户：`student / student123`、`admin / admin123`。
 
+**8～10 分钟课堂演示**：先运行根目录 `reset-demo.bat`（等价于 `python -m scripts.seed_demo_data --reset`），
+会生成相对当前时间的预约、违约、黑名单、投诉、站内消息、评价和场地关闭数据，并提供
+`demo_li` / `demo_wang` / `demo_zhao` / `demo_sun` 四个演示账号（密码均为 `demo1234`）。
+分步操作与讲解词见 [`docs/演示脚本-10分钟.md`](docs/演示脚本-10分钟.md)。
+
 > 开发服务器（`npm run dev`）的登录页会展示演示账号；生产构建默认隐藏，如需在生产预览中演示，构建前设置 `VITE_SHOW_DEMO_ACCOUNTS=true`。
 >
 > 学生自助注册默认开放；可在 `backend/.env` 用 `REGISTRATION_ENABLED=false` 关闭自助注册，或用 `REGISTRATION_WHITELIST=学号1,学号2` 启用学号白名单（留空表示不限制）。
@@ -43,7 +48,8 @@
 ├── .gitignore
 ├── start.bat                # Windows 一键启动（数据库 + 后端 + 前端）
 ├── stop.bat                 # 停止由 start.bat 启动的服务
-├── docs/                    # 需求规格说明书、质量验证报告
+├── reset-demo.bat           # 重置 8～10 分钟演示数据
+├── docs/                    # 需求规格说明书、质量验证报告、演示脚本
 ├── models/                  # 用例图、类图、活动图、时序图
 ├── backend/                 # FastAPI + SQLAlchemy + Alembic + MySQL
 │   ├── app/
@@ -112,6 +118,7 @@ npm run build           # vue-tsc + vite build
 | `docs/需求分析质量验证报告.md` | 需求分析质量验证报告（A 报告）：关键事实与规则确认、图模型提交、状态转换说明、场景走查、原型走查与验证、问题处理与复核、成员贡献与人工责任。**其中 A.5 场景走查、A.6 原型走查、A.8 成员贡献按实际状态标注为「未开展 / 待填写」，A.7 登记 13 项问题（V-01～V-13，均尚未人工复核）。** | V1.1 |
 | `docs/学生需求分析与AI智能体使用验证报告.md` | 课程作业的要求说明，A、B 两部分分别作为「需求分析质量验证报告」与「AI 智能体使用验证报告」的编写依据。 | — |
 | `docs/系统使用说明.md` | 本地启动、演示账号、前端质量门禁（ESLint/Prettier/Vitest/Playwright）、当前实现状态、数据库表与约束核对。 | V1.2 |
+| `docs/演示脚本-10分钟.md` | 8～10 分钟课堂演示的分步操作、数据地图、讲稿要点、故障兜底与重置命令。 | — |
 | `docs/数据库表结构说明.md` | 实际数据库全部表、字段、类型、索引、外键与 CHECK 约束。 | V1.0 |
 | `docs/数据库协作说明.md` | 每人本地 MySQL + Alembic 迁移的协作流程、组员分工与常见错误。 | V1.0 |
 | `docs/项目开发计划-三周冲刺版.md` | 三周排期、P0 基座冻结、任务分工与 VS 验收矩阵。 | V1.0 |

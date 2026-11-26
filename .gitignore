@@ -9,6 +9,10 @@ dist/
 *.egg-info/
 .eggs/
 pip-wheel-metadata/
+# pip 中断安装后残留的临时目录
+pip-build-tracker-*/
+pip-install-*/
+pip-ephem-wheel-cache-*/
 
 # ---- 虚拟环境 ----
 venv/
@@ -62,4 +66,5 @@ frontend/dist/
 # ---- 前端测试与构建产物 ----
 frontend/coverage/
 frontend/playwright-report/
+frontend/playwright-report-system/
 frontend/test-results/
