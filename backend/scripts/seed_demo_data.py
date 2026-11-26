@@ -3,8 +3,9 @@
 分工：
 - ``scripts.seed``：基础演示账户 admin / student；
 - ``scripts.seed_demo``：演示自习室、分区、座位；
-- 本脚本：在与“当前时间”相关的日期上补齐预约、违约、黑名单、投诉、站内消息、
-  评价和场地临时关闭，供 8～10 分钟课堂演示使用。
+- 本脚本：在 ``scripts.seed_demo`` 提供的 3 间自习室 / 10 个分区 / 98 个座位上，
+  按“当前时间”补齐预约、违约、黑名单、投诉、站内消息、评价和场地临时关闭，
+  供 8～10 分钟课堂演示使用。
 
 ``--reset`` 只清理演示账号（student、demo_li、demo_wang、demo_zhao、demo_sun）
 的业务数据，以及原因以「【演示】」开头的场地关闭记录；不会删除用户、其他用户的
@@ -335,16 +336,20 @@ def seed_demo_data(db: Session, now: datetime | None = None) -> dict[str, int]:
 
     room1 = db.scalar(select(Room).where(Room.name == "第一自习室"))
     room2 = db.scalar(select(Room).where(Room.name == "第二自习室"))
-    if room1 is None or room2 is None:
+    room3 = db.scalar(select(Room).where(Room.name == "第三自习室"))
+    if room1 is None or room2 is None or room3 is None:
         raise RuntimeError("演示自习室创建失败，请先运行 python -m scripts.seed_demo")
 
     # ---- 今天的“可签到”预约：开始时间在 10 分钟后，签到窗口已打开 ----
+    # 夜间/闭馆后无法演示签到：顺延到明天 13:00，避开明天 09:00-11:00 的取消演示预约，
+    # 否则同一用户同一时段会产生 C4 冲突，槽位唯一约束也会直接失败。
     soon_start = _aligned(now + timedelta(minutes=10), up=True)
     check_in_demo_available = (
-        soon_start.date() == today and soon_start.time() <= time(20, 55)
+        soon_start.date() == today
+        and time(8, 0) <= soon_start.time() <= time(20, 55)
     )
     if not check_in_demo_available:
-        soon_start = _at(today + timedelta(days=1), 9, 0)
+        soon_start = _at(today + timedelta(days=1), 13, 0)
     soon_end = soon_start + timedelta(hours=1)
 
     r_student_soon = _add_reservation(
@@ -401,7 +406,7 @@ def seed_demo_data(db: Session, now: datetime | None = None) -> dict[str, int]:
     _add_reservation(
         db,
         user=student,
-        seat=_seat(db, "第一自习室", "A-05"),
+        seat=_seat(db, "第三自习室", "D-01"),
         day=today - timedelta(days=4),
         start=time(16, 0),
         end=time(17, 0),
@@ -421,7 +426,7 @@ def seed_demo_data(db: Session, now: datetime | None = None) -> dict[str, int]:
     blacklist_service.restrict_if_threshold(db, student.id, now=now)
     stats["violations"] += 1
 
-    # ---- demo_li：明天被临时关闭影响的预约、历史完成预约 ----
+    # ---- demo_li：明天被临时关闭影响的预约、第三自习室历史完成预约 ----
     r_li_tomorrow = _add_reservation(
         db,
         user=li,
@@ -436,7 +441,7 @@ def seed_demo_data(db: Session, now: datetime | None = None) -> dict[str, int]:
     _add_reservation(
         db,
         user=li,
-        seat=_seat(db, "第二自习室", "C-02"),
+        seat=_seat(db, "第三自习室", "E-02"),
         day=today - timedelta(days=2),
         start=time(9, 0),
         end=time(10, 0),
@@ -474,18 +479,18 @@ def seed_demo_data(db: Session, now: datetime | None = None) -> dict[str, int]:
     )
     stats["violations"] += 1
 
-    # ---- demo_wang：3 次自动违约 + 自动黑名单（受限） ----
+    # ---- demo_wang：3 次自动违约（分布在 3 间自习室）+ 自动黑名单（受限） ----
     wang_specs = (
-        (2, time(9, 0), time(10, 0), "C-01"),
-        (3, time(14, 0), time(15, 0), "C-02"),
-        (4, time(16, 0), time(17, 0), "C-03"),
+        (2, time(9, 0), time(10, 0), "第一自习室", "B-01"),
+        (3, time(14, 0), time(15, 0), "第二自习室", "D-02"),
+        (4, time(16, 0), time(17, 0), "第三自习室", "F-02"),
     )
-    for offset, start, end, seat_no in wang_specs:
+    for offset, start, end, room_name, seat_no in wang_specs:
         day = today - timedelta(days=offset)
         reservation = _add_reservation(
             db,
             user=wang,
-            seat=_seat(db, "第二自习室", seat_no),
+            seat=_seat(db, room_name, seat_no),
             day=day,
             start=start,
             end=end,
@@ -508,7 +513,7 @@ def seed_demo_data(db: Session, now: datetime | None = None) -> dict[str, int]:
     _add_reservation(
         db,
         user=wang,
-        seat=_seat(db, "第二自习室", "C-05"),
+        seat=_seat(db, "第三自习室", "D-03"),
         day=today - timedelta(days=5),
         start=time(10, 0),
         end=time(11, 0),
@@ -527,7 +532,7 @@ def seed_demo_data(db: Session, now: datetime | None = None) -> dict[str, int]:
     _add_reservation(
         db,
         user=zhao,
-        seat=_seat(db, "第二自习室", "C-06"),
+        seat=_seat(db, "第二自习室", "D-05"),
         day=zhao_in_use_start.date(),
         start=zhao_in_use_start.time(),
         end=zhao_in_use_end.time(),
@@ -539,7 +544,7 @@ def seed_demo_data(db: Session, now: datetime | None = None) -> dict[str, int]:
     r_zhao_done1 = _add_reservation(
         db,
         user=zhao,
-        seat=_seat(db, "第二自习室", "C-07"),
+        seat=_seat(db, "第二自习室", "E-03"),
         day=today - timedelta(days=1),
         start=time(15, 0),
         end=time(16, 0),
@@ -552,7 +557,7 @@ def seed_demo_data(db: Session, now: datetime | None = None) -> dict[str, int]:
     r_zhao_done2 = _add_reservation(
         db,
         user=zhao,
-        seat=_seat(db, "第二自习室", "C-08"),
+        seat=_seat(db, "第三自习室", "E-01"),
         day=today - timedelta(days=5),
         start=time(10, 0),
         end=time(11, 0),
@@ -871,7 +876,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     )
     if not stats.get("check_in_ready"):
         print(
-            "提示：当前不在 08:00-21:00 之间，签到演示的预约已顺延到明天 09:00；"
+            "提示：当前不在 08:00-20:55 之间，签到演示的预约已顺延到明天 13:00；"
             "如需现场演示签到，请在白天重新运行 --reset。"
         )
     print("演示账号：")
