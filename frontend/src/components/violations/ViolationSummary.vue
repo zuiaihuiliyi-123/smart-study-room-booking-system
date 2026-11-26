@@ -49,9 +49,7 @@ const consequence = computed(() => {
         striped
       />
       <p class="summary__consequence">{{ consequence }}</p>
-      <p class="ssr-text-muted">
-        违约次数由违约记录累加得出；记录不可撤销，次数不会回退。
-      </p>
+      <p class="ssr-text-muted">违约次数由违约记录累加得出；记录不可撤销，次数不会回退。</p>
     </div>
 
     <el-alert
@@ -86,26 +84,37 @@ const consequence = computed(() => {
     <div v-else class="summary__banner summary__banner--ok">
       <el-icon class="summary__ok-icon"><Warning /></el-icon>
       <span>
-        账户状态：<b>{{ props.accountStatus }}</b>，当前不受限；如对违约记录有疑问，可通过「我的投诉」提交问题反馈。
+        账户状态：<b>{{ props.accountStatus }}</b
+        >，当前不受限；如对违约记录有疑问，可通过「我的投诉」提交问题反馈。
       </span>
     </div>
-</section>
+  </section>
 </template>
 
 <style scoped>
+/*
+ * 一块信息一张卡：进度在上、账户状态在下用分隔线隔开。
+ * 原来拆成左右两张卡，账户正常时右卡只有一行字，却被拉成和左卡等高，
+ * 卡内空出一大片；现在按内容堆叠，没有空栏，窄屏也不用再切列。
+ */
 .summary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
   margin-bottom: 16px;
+  overflow: hidden;
+  background: var(--ssr-surface);
+  border: 1px solid var(--ssr-line);
+  border-radius: var(--ssr-radius);
 }
 
 .summary__meter,
 .summary__banner {
   padding: 14px 16px;
-  background: var(--ssr-surface);
-  border: 1px solid var(--ssr-line);
-  border-radius: var(--ssr-radius);
+}
+
+/* 宽屏下进度条跟着卡片拉满会显得空，限制一下最长宽度 */
+.summary__meter :deep(.el-progress) {
+  max-width: 640px;
 }
 
 .summary__head {
@@ -114,6 +123,7 @@ const consequence = computed(() => {
   gap: 8px;
   align-items: baseline;
   justify-content: space-between;
+  max-width: 640px;
   margin-bottom: 10px;
 }
 
@@ -146,9 +156,16 @@ const consequence = computed(() => {
 }
 
 .summary__banner {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  border-top: 1px solid var(--ssr-line);
+}
+
+/*
+ * 受限时这里渲染的是 el-alert：不要改写它的 display / flex-direction，
+ * 否则图标会被挤到文字上方并整体居中，看着像一块空白板。
+ */
+.summary__banner.el-alert {
+  padding: 12px 16px;
+  border-radius: 0;
 }
 
 .summary__banner-body {
@@ -168,9 +185,11 @@ const consequence = computed(() => {
 }
 
 .summary__banner--ok {
+  display: flex;
   flex-direction: row;
   gap: 8px;
   align-items: flex-start;
+  padding: 14px 16px;
   font-size: var(--ssr-font-note);
 }
 
@@ -179,11 +198,5 @@ const consequence = computed(() => {
   margin-top: 2px;
   color: var(--ssr-warning);
   font-size: 16px;
-}
-
-@media (max-width: 1024px) {
-  .summary {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 </style>
