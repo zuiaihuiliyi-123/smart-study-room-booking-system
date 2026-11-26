@@ -164,6 +164,19 @@ touched.value = false
 </template>
 
 <style scoped>
+/* 表单卡跟随右侧列表卡等高：投诉内容框吃掉剩余高度，提交按钮始终贴卡底 */
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form :deep(.el-form) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .form__control {
   width: 100%;
 }
@@ -176,6 +189,33 @@ touched.value = false
 
 .form :deep(.el-form-item) {
   margin-bottom: 14px;
+}
+
+/* 最后一项 = 投诉内容：撑满表单剩余空间 */
+.form :deep(.el-form-item:last-of-type) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.form :deep(.el-form-item:last-of-type .el-form-item__content) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.form :deep(.el-textarea) {
+  display: flex;
+  flex: 1;
+  min-height: 132px;
+}
+
+.form :deep(.el-textarea__inner) {
+  height: 100%;
+  min-height: 132px;
+  resize: none;
 }
 
 .form__foot {

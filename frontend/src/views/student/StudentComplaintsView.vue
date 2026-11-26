@@ -94,7 +94,8 @@ onMounted(() => {
   display: grid;
   grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
   gap: 16px;
-  align-items: start;
+  /* 两列等高：投诉表单卡与列表卡底边对齐，表单内容区自行拉伸 */
+  align-items: stretch;
 }
 
 .pager {
