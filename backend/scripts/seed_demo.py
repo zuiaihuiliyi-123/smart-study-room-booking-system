@@ -1,7 +1,8 @@
 """创建演示资源数据（自习室 / 分区 / 座位）：python -m scripts.seed_demo
 
 幂等：同名自习室已存在时不再重复建房间，但会把演示布局中缺少的座位补齐，
-保证每个演示自习室至少有 12 个可预约座位（用户要求不少于 10 个）。
+保证演示座位图与当前演示版本一致：3 间自习室 / 10 个分区 / 98 个座位
+（第一自习室 38 座、第二自习室 30 座、第三自习室 30 座）。
 演示账户仍由 ``python -m scripts.seed`` 负责。
 """
 
@@ -12,6 +13,21 @@ from app.models.enums import SeatStatus
 from app.models.room import Area, Room
 from app.models.seat import Seat
 
+
+def _seats(
+    prefix: str, total: int, powered: int = 0, window: bool = False
+) -> list[tuple[str, bool, bool]]:
+    """生成 1..total 的座位表：(座位号, 是否有电源, 是否靠窗)。
+
+    前 ``powered`` 个座位有电源，其余无电源；``window`` 控制整区是否靠窗。
+    """
+    return [
+        (f"{prefix}-{index:02d}", index <= powered, window)
+        for index in range(1, total + 1)
+    ]
+
+
+# 与当前演示环境（预约座位图）保持一致：3 间自习室 / 10 个分区 / 98 个座位
 # (座位号, 是否有电源, 是否靠窗)
 DEMO_ROOMS: list[dict] = [
     {
@@ -22,25 +38,19 @@ DEMO_ROOMS: list[dict] = [
         "areas": [
             {
                 "name": "A 区·安静区",
-                "seats": [
-                    ("A-01", True, False),
-                    ("A-02", True, False),
-                    ("A-03", True, False),
-                    ("A-04", False, False),
-                    ("A-05", False, False),
-                    ("A-06", False, False),
-                ],
+                "seats": _seats("A", 10, powered=3),
             },
             {
                 "name": "B 区·靠窗区",
-                "seats": [
-                    ("B-01", True, True),
-                    ("B-02", True, True),
-                    ("B-03", True, True),
-                    ("B-04", False, True),
-                    ("B-05", False, True),
-                    ("B-06", False, True),
-                ],
+                "seats": _seats("B", 10, powered=3, window=True),
+            },
+            {
+                "name": "C 区·电源区",
+                "seats": _seats("C", 10, powered=10),
+            },
+            {
+                "name": "D 区·标准区",
+                "seats": _seats("D", 8),
             },
         ],
     },
@@ -52,20 +62,35 @@ DEMO_ROOMS: list[dict] = [
         "areas": [
             {
                 "name": "C 区·标准区",
-                "seats": [
-                    ("C-01", True, False),
-                    ("C-02", True, False),
-                    ("C-03", True, False),
-                    ("C-04", True, False),
-                    ("C-05", False, False),
-                    ("C-06", False, False),
-                    ("C-07", False, False),
-                    ("C-08", False, False),
-                    ("C-09", False, False),
-                    ("C-10", False, False),
-                    ("C-11", False, False),
-                    ("C-12", False, False),
-                ],
+                "seats": _seats("C", 10, powered=4),
+            },
+            {
+                "name": "D 区·靠窗区",
+                "seats": _seats("D", 10, powered=5, window=True),
+            },
+            {
+                "name": "E 区·电源区",
+                "seats": _seats("E", 10, powered=10),
+            },
+        ],
+    },
+    {
+        "name": "第三自习室",
+        "location": "图书馆 4 层北侧",
+        "open_time": "08:00",
+        "close_time": "22:00",
+        "areas": [
+            {
+                "name": "D 区·静音区",
+                "seats": _seats("D", 10),
+            },
+            {
+                "name": "E 区·靠窗区",
+                "seats": _seats("E", 10, window=True),
+            },
+            {
+                "name": "F 区·电源区",
+                "seats": _seats("F", 10, powered=10),
             },
         ],
     },
