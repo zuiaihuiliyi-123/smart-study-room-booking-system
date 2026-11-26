@@ -41,6 +41,23 @@ const PAN_KEEP = 80
 const layout = computed<SeatMapLayout>(() =>
   buildSeatMapLayout(props.groups, props.areas ?? []),
 )
+
+/*
+ * 窗户画在靠窗区所在那一带的右墙上，而不是横贯北墙：
+ * 这样「靠窗区」的座位右侧就是窗，位置和标签不再互相矛盾。
+ */
+const windowBand = computed(() => {
+  const zone = layout.value.zones.find((item) => item.kind === 'window')
+  if (zone) return { top: zone.y + 4, bottom: zone.y + zone.h - 4 }
+  return { top: 56, bottom: Math.max(120, layout.value.height - 150) }
+})
+const windowTicks = computed(() => {
+  const { top, bottom } = windowBand.value
+  const span = bottom - top
+  if (span <= 24) return []
+  const steps = Math.max(4, Math.min(8, Math.round(span / 32)))
+  return Array.from({ length: steps }, (_, index) => top + (span / (steps - 1)) * index)
+})
 const mineSet = computed(() => new Set(props.mineIds ?? []))
 const view = ref<'map' | 'list'>('map')
 const shellRef = ref<HTMLElement | null>(null)
@@ -603,15 +620,29 @@ onBeforeUnmount(() => {
               class="arch-wall"
             />
             <template v-if="layout.hasWindow">
-              <path :d="`M62 20 H ${layout.width - 240}`" class="arch-window" />
-              <path :d="`M62 26 H ${layout.width - 240}`" class="arch-window arch-window--faint" />
               <path
-                v-for="index in 12"
+                :d="`M${layout.width - 20} ${windowBand.top} V ${windowBand.bottom}`"
+                class="arch-window"
+              />
+              <path
+                :d="`M${layout.width - 26} ${windowBand.top} V ${windowBand.bottom}`"
+                class="arch-window arch-window--faint"
+              />
+              <path
+                v-for="(tickY, index) in windowTicks"
                 :key="index"
-                :d="`M${62 + ((layout.width - 302) / 11) * (index - 1)} 20 V26`"
+                :d="`M${layout.width - 26} ${tickY} H ${layout.width - 20}`"
                 class="arch-window-tick"
               />
-              <text x="86" y="13" class="arch-label">北窗 · NATURAL LIGHT</text>
+              <text
+                :x="layout.width - 9"
+                :y="(windowBand.top + windowBand.bottom) / 2"
+                :transform="`rotate(-90 ${layout.width - 9} ${(windowBand.top + windowBand.bottom) / 2})`"
+                class="arch-label"
+                text-anchor="middle"
+              >
+                东窗 · NATURAL LIGHT
+              </text>
             </template>
             <template v-if="layout.zones.length > 1">
               <path
