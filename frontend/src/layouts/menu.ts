@@ -1,13 +1,11 @@
 import type { Component } from 'vue'
 import {
   Bell,
-  Calendar,
   ChatDotRound,
   CircleClose,
   DataLine,
   Document,
   Grid,
-  HomeFilled,
   OfficeBuilding,
   Star,
   Tickets,
@@ -25,7 +23,8 @@ import {
 export interface MenuItem {
   path: string
   title: string
-  icon: Component
+  /** 侧栏菜单项必填；顶部横向导航只排文字，不需要图标 */
+  icon?: Component
   group?: string
 }
 
@@ -34,15 +33,28 @@ export interface MenuGroup {
   items: MenuItem[]
 }
 
-/** 学生端菜单（仅学生用户 R-01；R-03 教师角色已于 V2.1 取消） */
+/**
+ * 学生端顶部主导航（一级）：只放模块入口。
+ * 「个人中心」是分组入口，具体页面在下方 studentMenus 的侧栏里二级展开。
+ */
+export const studentNavMenus: MenuItem[] = [
+  { path: '/student/home', title: '首页' },
+  { path: '/student/booking', title: '预约座位' },
+  { path: '/student/profile', title: '个人中心' },
+]
+
+/**
+ * 学生端侧栏菜单（个人中心二级导航）。
+ * 与顶部导航分工：顶部是模块，侧栏是「我的」相关页面。
+ * 本期不含 AI 助手、会员卡、购买记录、信用与申诉（AGENTS.md §5.8 排除项），
+ * 违约记录只做查看，不提供申诉入口。
+ */
 export const studentMenus: MenuItem[] = [
-  { path: '/student/home', title: '首页', icon: HomeFilled, group: '学习服务' },
-  { path: '/student/booking', title: '预约座位', icon: Calendar, group: '学习服务' },
-  { path: '/student/reservations', title: '我的预约', icon: Tickets, group: '学习服务' },
-  { path: '/student/violations', title: '我的违约', icon: Warning, group: '我的记录' },
-  { path: '/student/complaints', title: '我的投诉', icon: ChatDotRound, group: '我的记录' },
-  { path: '/student/messages', title: '站内消息', icon: Bell, group: '我的记录' },
-  { path: '/student/profile', title: '个人资料', icon: User, group: '账户' },
+  { path: '/student/reservations', title: '我的预约', icon: Tickets },
+  { path: '/student/violations', title: '我的违约', icon: Warning },
+  { path: '/student/complaints', title: '我的投诉', icon: ChatDotRound },
+  { path: '/student/messages', title: '站内消息', icon: Bell },
+  { path: '/student/profile', title: '个人资料', icon: User },
 ]
 
 /** 管理端菜单：仅自习室管理员（R-02）可见。

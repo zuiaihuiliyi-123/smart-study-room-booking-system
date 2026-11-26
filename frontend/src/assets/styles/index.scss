@@ -401,6 +401,13 @@ $tag-variants: (
   margin-bottom: 16px;
 }
 
+/* 学生端正文铺满：宽屏下不再因为 1440px 上限在右侧留空白（管理端沿用 .page 原来的上限） */
+.app-main--fill .page,
+.app-main--fill .table-page {
+  max-width: none;
+  margin-right: 0;
+}
+
 .filter-bar {
   display: flex;
   flex-wrap: wrap;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 import BookingActionBar from '@/components/booking/BookingActionBar.vue'
 import BookingFilter from '@/components/booking/BookingFilter.vue'
@@ -9,6 +10,8 @@ import type { MatrixCell } from '@/components/booking/types'
 import PageHeader from '@/components/PageHeader.vue'
 import { type SeatCellState, timeRangeText } from '@/utils/bookingRules'
 import { useSeatBooking } from '@/utils/useSeatBooking'
+
+const router = useRouter()
 
 /** 底部操作条里的状态用短词，括号里的解释留给座位详情 */
 const STATE_SHORT: Record<SeatCellState, string> = {
@@ -66,14 +69,18 @@ const {
 } = useSeatBooking()
 
 const dateText = computed(
-  () => dateOptions.value.find((item) => item.value === filters.reserveDate)?.label ?? filters.reserveDate,
+  () =>
+    dateOptions.value.find((item) => item.value === filters.reserveDate)?.label ??
+    filters.reserveDate,
 )
 
 const timeText = computed(() => timeRangeText(filters.startTime, filters.endTime))
 
 const seatStateText = computed(() => {
   if (!selectedSeat.value) return ''
-  const cell = groups.value.flatMap((group) => group.cells).find((item) => item.seat.id === selectedSeat.value?.id)
+  const cell = groups.value
+    .flatMap((group) => group.cells)
+    .find((item) => item.seat.id === selectedSeat.value?.id)
   return cell ? STATE_SHORT[cell.state] : ''
 })
 
@@ -109,7 +116,11 @@ watch(() => filters.reserveDate, applyDateChange)
 
 <template>
   <div class="page booking-page">
-    <PageHeader title="预约座位" />
+    <PageHeader title="预约座位">
+      <template #actions>
+        <el-button @click="router.push('/student/reservations')">我的预约</el-button>
+      </template>
+    </PageHeader>
 
     <div class="booking-layout">
       <!-- 自动切日期 / 顺延时段改页面内联提示，不再连续弹 toast -->

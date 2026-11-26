@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowDown, Bell, Expand, Fold, Moon, Sunny } from '@element-plus/icons-vue'
 
+import type { MenuItem } from '@/layouts/menu'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/utils/useTheme'
 
@@ -18,8 +19,21 @@ const props = withDefaults(
     showMessages?: boolean
     /** 个人资料路由；不传则该下拉项禁用 */
     profilePath?: string
+    /** 顶部横向主导航（学生端）；不传则顶栏只有品牌区（管理端沿用侧栏导航） */
+    navItems?: MenuItem[]
+    /** 顶部导航选中项：与 router 路径不同源（个人中心的二级页都算「个人中心」） */
+    navActivePath?: string
+    /** 学生端顶栏：头像 + 姓名 + 「退出」文字按钮，替代管理端的下拉菜单 */
+    plainUser?: boolean
   }>(),
-  { unreadCount: 0, showMessages: true, profilePath: '' },
+  {
+    unreadCount: 0,
+    showMessages: true,
+    profilePath: '',
+    navItems: () => [],
+    navActivePath: '',
+    plainUser: false,
+  },
 )
 
 const emit = defineEmits<{
@@ -31,10 +45,18 @@ const router = useRouter()
 const auth = useAuthStore()
 const { isDark, toggleTheme } = useTheme()
 
-/** 品牌区与侧栏同宽对齐 */
-const brandStyle = computed(() =>
-    props.collapsed ? { width: 'var(--ssr-aside-w-collapsed)' } : { width: 'var(--ssr-aside-w)' },
-)
+const hasNav = computed(() => props.navItems.length > 0)
+
+/** 品牌区与侧栏同宽对齐；有顶部导航时改成自然宽度，把空间让给导航 */
+const brandStyle = computed(() => {
+  if (hasNav.value) return undefined
+  return props.collapsed
+    ? { width: 'var(--ssr-aside-w-collapsed)' }
+    : { width: 'var(--ssr-aside-w)' }
+})
+
+/** 头像占位：取姓名首字 */
+const userInitial = computed(() => auth.user?.name?.slice(0, 1) || '同')
 
 function onCommand(command: string) {
   if (command === 'logout') {
@@ -50,7 +72,7 @@ function onCommand(command: string) {
 </script>
 
 <template>
-  <header class="app-header">
+  <header class="app-header" :class="{ 'app-header--nav': hasNav }">
     <div class="app-header__brand" :style="brandStyle">
       <svg class="app-header__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
         <rect
@@ -67,11 +89,24 @@ function onCommand(command: string) {
         <rect x="8" y="15" width="5" height="8" rx="1.5" fill="currentColor" />
         <rect x="19" y="15" width="5" height="8" rx="1.5" fill="currentColor" />
       </svg>
-      <span v-if="!props.collapsed" class="app-header__brand-text">
+      <span v-if="!props.collapsed || hasNav" class="app-header__brand-text">
         <strong>智慧自习室</strong>
         <small>{{ props.roleLabel }}</small>
       </span>
     </div>
+
+    <nav v-if="hasNav" class="app-header__nav" aria-label="主导航">
+      <router-link
+        v-for="item in props.navItems"
+        :key="item.path"
+        :to="item.path"
+        class="app-header__nav-item"
+        :class="{ 'is-active': item.path === props.navActivePath }"
+        :aria-current="item.path === props.navActivePath ? 'page' : undefined"
+      >
+        {{ item.title }}
+      </router-link>
+    </nav>
 
     <div class="app-header__actions">
       <button
@@ -111,7 +146,20 @@ function onCommand(command: string) {
         </button>
       </el-badge>
 
-      <el-dropdown trigger="click" @command="onCommand">
+      <template v-if="props.plainUser">
+        <button
+          class="app-user app-user--plain"
+          type="button"
+          :title="props.profilePath ? '个人资料' : undefined"
+          @click="onCommand('profile')"
+        >
+          <span class="app-user__avatar" aria-hidden="true">{{ userInitial }}</span>
+          <span class="app-user__name">{{ auth.user?.name ?? '未登录' }}</span>
+        </button>
+        <button class="app-logout" type="button" @click="onCommand('logout')">退出</button>
+      </template>
+
+      <el-dropdown v-else trigger="click" @command="onCommand">
         <button class="app-user" type="button" aria-haspopup="menu">
           <span class="app-user__name">{{ auth.user?.name ?? '未登录' }}</span>
           <span class="app-user__role">{{ auth.user?.role ?? props.roleLabel }}</span>
@@ -173,6 +221,111 @@ function onCommand(command: string) {
 .app-header__brand-text small {
   font-size: var(--ssr-font-note);
   opacity: 0.85;
+}
+
+/* 有顶部导航时：品牌自然宽度 + 左内距对齐正文，横向导航从品牌右侧开始 */
+.app-header--nav .app-header__brand {
+  padding-left: var(--ssr-gutter);
+}
+
+.app-header__nav {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  min-width: 0;
+  height: 100%;
+  margin-left: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.app-header__nav::-webkit-scrollbar {
+  display: none;
+}
+
+.app-header__nav-item {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 16px;
+  color: var(--ssr-muted-ink);
+  font-size: var(--ssr-font-body);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* 宽屏把导航放在品牌与操作区之间居中（与 mock 一致）；窄屏靠左排，避免溢出被裁掉开头 */
+@media (min-width: 1100px) {
+  .app-header__nav {
+    justify-content: center;
+  }
+}
+
+.app-header__nav-item:hover {
+  color: var(--ssr-ink);
+}
+
+/* 选中态：加粗主色 + 3px 下划线（与侧栏 3px 竖条同一套选中语言） */
+.app-header__nav-item.is-active {
+  color: var(--ssr-primary-ink);
+  font-weight: 600;
+}
+
+.app-header__nav-item.is-active::after {
+  position: absolute;
+  right: 16px;
+  bottom: 0;
+  left: 16px;
+  height: 3px;
+  content: '';
+  background: var(--ssr-primary);
+  border-radius: 3px 3px 0 0;
+}
+
+/* 窄屏（<=720px）：顶栏折成两行——品牌与操作区一行、导航独占一行，保证三个入口都点得到 */
+@media (max-width: 720px) {
+  .app-header--nav {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--ssr-header-h);
+  }
+
+  .app-header--nav .app-header__brand,
+  .app-header--nav .app-header__actions {
+    height: 56px;
+  }
+
+  .app-header--nav .app-header__brand {
+    gap: 6px;
+    padding-left: 12px;
+  }
+
+  .app-header__brand-text small {
+    display: none;
+  }
+
+  .app-header__nav {
+    order: 3;
+    flex: 1 0 100%;
+    height: 44px;
+    margin-left: 0;
+    border-top: 1px solid var(--ssr-line);
+  }
+
+  .app-header__nav-item {
+    flex: 1 0 auto;
+    justify-content: center;
+    padding: 0 10px;
+    font-size: var(--ssr-font-note);
+  }
+}
+
+/* 手机竖屏：品牌只留图标，让品牌区与操作区挤在同一行，顶栏只折成两行 */
+@media (max-width: 480px) {
+  .app-header--nav .app-header__brand-text {
+    display: none;
+  }
 }
 
 .app-header__actions {
@@ -256,5 +409,40 @@ function onCommand(command: string) {
 
 .app-user__caret {
   font-size: 12px;
+}
+
+/* 学生端顶栏：头像占位 + 姓名，点进个人资料 */
+.app-user--plain {
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.app-user__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: var(--ssr-primary-ink);
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--ssr-primary-light);
+  border-radius: 50%;
+}
+
+.app-logout {
+  height: 32px;
+  padding: 0 8px;
+  color: var(--ssr-muted-ink);
+  font-size: var(--ssr-font-note);
+  background: transparent;
+  border: 0;
+  border-radius: var(--ssr-radius-sm);
+  cursor: pointer;
+}
+
+.app-logout:hover {
+  color: var(--ssr-ink);
+  background: var(--ssr-primary-light);
 }
 </style>

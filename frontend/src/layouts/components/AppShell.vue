@@ -19,8 +19,36 @@ const props = withDefaults(
     profilePath?: string
     /** 侧栏菜单角标：path -> 数量（管理端待处理投诉等） */
     badges?: Record<string, number>
+    /** 顶部横向主导航（学生端）；不传则顶栏只有品牌区，导航全在侧栏（管理端） */
+    navItems?: MenuItem[]
+    /** 顶部导航选中项；缺省按路由最长前缀在 navItems 里匹配 */
+    navActivePath?: string
+    /** 侧栏顶部用户卡（学生端） */
+    siderUser?: { name: string; role: string }
+    /** 是否显示面包屑；学生端改为顶栏导航后不再需要 */
+    showCrumb?: boolean
+    /** 学生端用户区：头像 + 姓名 + 退出文字按钮 */
+    plainUser?: boolean
+    /** 是否显示侧栏；学生端只有「个人中心」下的页面显示侧栏，首页与选座页让正文占满 */
+    showSider?: boolean
+    /**
+     * 正文是否铺满可用宽度。学生端开启：去掉 .page 的 1440px 上限，
+     * 否则宽屏（1920 等）右侧会留出一大块空白。
+     */
+    fillWidth?: boolean
   }>(),
-  { unreadCount: 0, showMessages: true, profilePath: '', badges: () => ({}) },
+  {
+    unreadCount: 0,
+    showMessages: true,
+    profilePath: '',
+    badges: () => ({}),
+    navItems: () => [],
+    navActivePath: '',
+    showCrumb: true,
+    plainUser: false,
+    showSider: true,
+    fillWidth: false,
+  },
 )
 
 const emit = defineEmits<{ (e: 'messages'): void }>()
@@ -56,9 +84,19 @@ const activePath = computed(() => {
   return hit ? hit.path : current
 })
 
+/** 顶部导航选中项：显式传入优先（个人中心把多个二级页归到一个模块） */
+const navActive = computed(() => {
+  if (props.navActivePath) return props.navActivePath
+  const current = route.path
+  const hit = props.navItems
+    .filter((item) => current === item.path || current.startsWith(`${item.path}/`))
+    .sort((a, b) => b.path.length - a.path.length)[0]
+  return hit ? hit.path : current
+})
+
 /** 面包屑：角色标签 → 各层路由 meta.title */
 const crumbs = computed(() =>
-    route.matched
+  route.matched
     .filter((record) => Boolean(record.meta.title))
     .map((record) => ({ path: record.path, title: String(record.meta.title) })),
 )
@@ -69,24 +107,29 @@ const crumbs = computed(() =>
     <AppHeader
       :role-label="props.roleLabel"
       :collapsed="collapsed"
-      :narrow="narrow"
+      :narrow="narrow && props.showSider"
       :unread-count="props.unreadCount"
       :show-messages="props.showMessages"
       :profile-path="props.profilePath"
+      :nav-items="props.navItems"
+      :nav-active-path="navActive"
+      :plain-user="props.plainUser"
       @messages="emit('messages')"
       @toggle="collapsed = !collapsed"
     />
 
     <div class="app-body">
       <AppSider
+        v-if="props.showSider"
         :menus="props.menus"
         :collapsed="collapsed"
         :active-path="activePath"
         :badges="props.badges"
+        :user="props.siderUser"
       />
 
       <div class="app-content">
-        <nav class="app-crumb" aria-label="面包屑导航">
+        <nav v-if="props.showCrumb" class="app-crumb" aria-label="面包屑导航">
           <ol class="app-crumb__list">
             <li class="app-crumb__root">{{ props.roleLabel }}</li>
             <li v-for="(crumb, index) in crumbs" :key="crumb.path" class="app-crumb__item">
@@ -103,7 +146,7 @@ const crumbs = computed(() =>
           </ol>
         </nav>
 
-        <main class="app-main">
+        <main class="app-main" :class="{ 'app-main--fill': props.fillWidth }">
           <router-view />
         </main>
       </div>

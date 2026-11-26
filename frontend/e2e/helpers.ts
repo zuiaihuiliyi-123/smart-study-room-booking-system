@@ -92,8 +92,14 @@ export async function bookFirstFreeSeat(
   return { seatLabel, reserveDate: dateText, startTime }
 }
 
-/** 通过左侧菜单进入“我的预约”，避免整页刷新把 MSW 内存数据重置掉。 */
+/**
+ * 进入“我的预约”。
+ * 侧栏只属于「个人中心」模块（首页 / 选座页不显示侧栏），所以先点顶栏「个人中心」，
+ * 再点侧栏项；全程站内跳转，避免整页刷新把 MSW 内存数据重置掉。
+ */
 export async function gotoMyReservations(page: Page): Promise<void> {
+  await page.getByRole('link', { name: '个人中心', exact: true }).click()
+  await page.waitForURL('**/student/profile')
   await page.getByRole('menuitem', { name: '我的预约', exact: true }).click()
   await page.waitForURL('**/student/reservations')
   await expect(page.getByRole('heading', { name: '我的预约' })).toBeVisible()
